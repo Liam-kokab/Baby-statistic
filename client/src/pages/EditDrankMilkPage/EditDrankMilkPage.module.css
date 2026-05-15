@@ -1,0 +1,78 @@
+.page {
+  padding: 1.5rem 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.select {
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.95rem;
+  color: var(--color-text);
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.select:focus {
+  border-color: var(--color-primary);
+}
+
+.input {
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.95rem;
+  color: var(--color-text);
+  font-weight: 600;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.errorMsg {
+  color: var(--color-primary-dark);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+}
+
+.loadingMsg {
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+

@@ -1,0 +1,27 @@
+node_modules
+*/node_modules
+
+# Build outputs
+client/dist
+server/dist
+dist
+
+# Database
+server/data
+data
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea
+.vscode
+
+# Deploy artifacts
+*.zip
+
+# Built static served by Express in prod
+server/public/assets
+

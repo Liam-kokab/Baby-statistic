@@ -1,0 +1,42 @@
+.page {
+  padding: 1.5rem 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: 1.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.errorMsg {
+  color: var(--color-primary-dark);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+}
+
+.loadingMsg {
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+

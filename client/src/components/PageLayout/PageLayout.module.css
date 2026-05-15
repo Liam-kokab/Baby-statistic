@@ -1,0 +1,41 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ── Header banner ────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2rem 1.5rem 0.75rem;
+  position: relative;
+}
+
+.emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--color-text);
+}
+
+/* ── Gradient themes ──────────────────────────────────────────────────────── */
+.pink   { background: linear-gradient(135deg, #fce4ec, #f3e5f5); }
+.blue   { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+.green  { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+.indigo { background: linear-gradient(135deg, #e8eaf6, #c5cae9); }
+.amber  { background: linear-gradient(135deg, #fff8e1, #ffe0b2); }
+
+/* ── Content area ─────────────────────────────────────────────────────────── */
+.content {
+  flex: 1;
+  padding: 1rem 1.25rem 1.5rem;
+}
+

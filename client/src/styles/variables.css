@@ -1,0 +1,40 @@
+:root {
+  /* ── Colors ─────────────────────────────────────────────────────────────── */
+  --color-bg:              #fef0f7;
+  --color-surface:         #ffffff;
+
+  --color-primary:         #ec407a;
+  --color-primary-dark:    #c2185b;
+  --color-primary-light:   #fce4ec;
+
+  --color-secondary:       #ab47bc;
+  --color-secondary-light: #f3e5f5;
+
+  --color-accent:          #ff6090;
+
+  --color-text:            #3d1a2e;
+  --color-text-muted:      #9d7a90;
+
+  --color-border:          #f8bbd0;
+
+  --color-disabled-bg:     #f5e6f0;
+  --color-disabled-text:   #c4a0b8;
+
+  /* ── Typography ──────────────────────────────────────────────────────────── */
+  --font-family: 'Nunito', 'Helvetica Neue', Arial, sans-serif;
+
+  /* ── Radii ───────────────────────────────────────────────────────────────── */
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ─────────────────────────────────────────────────────────────── */
+  --shadow-sm:  0 2px 8px  rgba(194, 24, 91, 0.15);
+  --shadow-md:  0 4px 16px rgba(194, 24, 91, 0.20);
+  --shadow-lg:  0 8px 28px rgba(194, 24, 91, 0.28);
+
+  /* ── Layout ──────────────────────────────────────────────────────────────── */
+  --navbar-height: 50px;
+}
+

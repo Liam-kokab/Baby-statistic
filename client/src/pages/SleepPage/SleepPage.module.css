@@ -1,0 +1,280 @@
+.loadingMsg,
+.errorMsg,
+.empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.errorMsg {
+  color: var(--color-primary-dark);
+}
+
+.statsBar {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.statChip {
+  flex: 1;
+  min-width: 120px;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+}
+
+/* ── Lists ───────────────────────────────────────────────────────────────── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* ── Item view card ──────────────────────────────────────────────────────── */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.cardEmoji {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+}
+
+.duration {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.timeRange {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Day view ────────────────────────────────────────────────────────────── */
+.dayGroup {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.dayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-primary-light);
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.dayHeader:hover {
+  filter: brightness(0.95);
+}
+
+.dayTotal {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-primary-dark);
+  white-space: nowrap;
+}
+
+.dayTotals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.dayAwake {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--color-secondary);
+  white-space: nowrap;
+}
+
+.dayItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.dayItemDuration {
+  flex: 1;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.time {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.editBtn {
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  min-width: unset;
+  min-height: unset;
+  font-size: 0.95rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Week view ───────────────────────────────────────────────────────────── */
+.weekGroup {
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.weekHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-primary-dark);
+  color: #fff;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.5rem;
+}
+
+.weekHeader:hover {
+  filter: brightness(0.9);
+}
+
+.weekStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.weekStatsRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.weekTotal {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.weekAwake {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--color-secondary-light);
+  opacity: 0.9;
+}
+
+.weekAvg {
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.weekGroup .dayGroup {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  box-shadow: none;
+}
+
+/* ── Awake items ─────────────────────────────────────────────────────────── */
+.awakeCard {
+  background: var(--color-secondary-light);
+  border-color: var(--color-secondary);
+}
+
+.awakeCard .duration {
+  color: var(--color-secondary);
+}
+
+.awakeDayItem {
+  background: var(--color-secondary-light);
+}
+
+.awakeDayItem .dayItemDuration {
+  color: var(--color-secondary);
+}
+
+/* ── Collapse chevron ────────────────────────────────────────────────────── */
+.chevron {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+/* ── Pumping section ──────────────────────────────────────────────────────── */
+.pumpingSection {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pumpingSectionTitle {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pumpingCard {
+  background: #f3fdf3;
+  border-color: #a5d6a7;
+}
+
+.pumpingCard .duration {
+  color: #2e7d32;
+}
+
+

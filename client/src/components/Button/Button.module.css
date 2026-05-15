@@ -1,0 +1,119 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  min-height: 48px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: filter 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.button .emoji {
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  transform: none;
+}
+
+.button.loading {
+  cursor: wait;
+}
+
+/* CSS loading spinner */
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Primary ──────────────────────────────────────────────────────────────── */
+.primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.primary:hover:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow: var(--shadow-md);
+}
+
+.primary:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  box-shadow: none;
+}
+
+/* ── Secondary ────────────────────────────────────────────────────────────── */
+.secondary {
+  background: var(--color-secondary-light);
+  color: var(--color-secondary);
+  border: 2px solid var(--color-secondary);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--color-secondary);
+  color: #fff;
+}
+
+.secondary:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  border-color: var(--color-disabled-text);
+}
+
+/* ── Ghost ────────────────────────────────────────────────────────────────── */
+.ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--color-primary-light);
+}
+
+.ghost:disabled {
+  color: var(--color-disabled-text);
+  border-color: var(--color-disabled-text);
+}
+
+/* ── Success ──────────────────────────────────────────────────────────────── */
+.success {
+  background: #2e7d32 !important;
+  color: #fff !important;
+  border-color: #2e7d32 !important;
+  cursor: default;
+}
+
+/* ── Error ────────────────────────────────────────────────────────────────── */
+.error {
+  background: #c62828 !important;
+  color: #fff !important;
+  border-color: #c62828 !important;
+  cursor: default;
+}
+

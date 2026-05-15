@@ -1,0 +1,21 @@
+.app {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* push content clear of the fixed navbar + a little breathing room */
+  padding-bottom: calc(var(--navbar-height) + 1.5rem);
+}
+
+.content::-webkit-scrollbar {
+  display: none;
+}
+
