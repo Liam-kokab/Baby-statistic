@@ -82,11 +82,19 @@ The container exposes port **80** and persists the database in the `/app/data` v
 5. Use the date filter on list pages to review historical data.
 6. Manage medicines on the Medicine page — add medicines, then tap to log doses.
 
-## API Documentation
+## Documentation
+
+| File | Description |
+|------|-------------|
+| [`doc/rest-api.md`](doc/rest-api.md) | Full REST endpoint reference |
+| [`doc/server.md`](doc/server.md) | Express setup, file structure, scripts, Docker |
+| [`doc/client.md`](doc/client.md) | React app structure, components, Vite config |
+| [`doc/db.md`](doc/db.md) | SQLite schema, migrations, triggers |
+| [`doc/common.md`](doc/common.md) | Shared types package, exports, usage |
+| [`doc/deploy.md`](doc/deploy.md) | Deployment guide |
+| [`doc/userGuid.md`](doc/userGuid.md) | End-user guide |
 
 Interactive Swagger UI is available at `http://<host>/api-docs` when the server is running.
-
-A full endpoint reference is in [`doc/rest-api.md`](doc/rest-api.md).
 
 ## ⚠️ Disclaimers
 
