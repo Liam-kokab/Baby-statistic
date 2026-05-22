@@ -15,5 +15,5 @@ export type TDrankMilk = {
 };
 
 export type TPostDrankMilk = Omit<TDrankMilk, 'id' | 'createdAt'> & {
-  isNewBottle?: boolean;
+  isNewBottle: boolean;
 };

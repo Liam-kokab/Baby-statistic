@@ -10,7 +10,7 @@ const fromDb = (row: TDrankMilkDb): TDrankMilk => ({
   createdAt: toOsloIso(row.created_at),
 });
 
-const toDb = (data: TPostDrankMilk): Omit<TDrankMilkDb, 'id' | 'created_at'> => ({
+const toDb = (data: Omit<TPostDrankMilk, 'isNewBottle'>): Omit<TDrankMilkDb, 'id' | 'created_at'> => ({
   amount: data.amount,
   source: data.source,
 });
@@ -48,7 +48,7 @@ export const drankMilkRepository = {
   update: (id: number, data: Partial<TPostDrankMilk> & { createdAt?: string }): TDrankMilk | null => {
     const existing = db.prepare<[number], TDrankMilkDb>('SELECT * FROM drank_milk WHERE id = ?').get(id);
     if (!existing) return null;
-    const { createdAt, ...rest } = data;
+    const { createdAt, isNewBottle: _, ...rest } = data;
     const merged = toDb({ ...fromDb(existing), ...rest });
     if (createdAt) {
       db.prepare<Omit<TDrankMilkDb, 'id'> & { id: number }>(`
@@ -90,12 +90,6 @@ export const drankMilkRepository = {
     return row ? fromDb(row) : null;
   },
 
-  findRecentBySource: (source: string, thresholdOslo: string): TDrankMilk | null => {
-    const row = db.prepare<[string, string], TDrankMilkDb>(
-      `SELECT * FROM drank_milk WHERE source = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1`
-    ).get(source, thresholdOslo);
-    return row ? fromDb(row) : null;
-  },
 
   getBackup: (from: string, to: string): TDrankMilk[] => {
     const rows = db.prepare<[string, string], TDrankMilkDb>(

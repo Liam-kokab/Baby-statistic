@@ -97,7 +97,6 @@ Extra methods beyond standard CRUD:
 | `servedMilkRepository` | `expireOverdue()` | Flips overdue `FRIDGE`/`FREEZER` records to `EXPIRED` |
 | `servedMilkRepository` | `deductStock(source, amount)` | Deducts `amount` from oldest matching records in a `db.transaction`; marks fully-consumed records as `USED` |
 | `drankMilkRepository` | `deductWaste(waste)` | Reduces the latest drank record's amount (only `FRIDGE`/`FREEZER` source) by `waste` (floored at 0); skips `BOOB` records; does **not** touch `served_milk` |
-| `drankMilkRepository` | `findRecentBySource(source, thresholdOslo)` | Finds the most recent drank record with the given `source` created at or after `thresholdOslo`; returns it or `null` |
 
 ## Services
 Each table has a service in `server/src/services/`. Services sit between routes and repositories and are where business logic belongs.
@@ -106,7 +105,7 @@ Each table has a service in `server/src/services/`. Services sit between routes 
 |---|---|---|
 | `servedMilkService` | `insert` | Calls `expireOverdue()` after inserting; auto-sets `expiryDate` (FRIDGE +4 d, FREEZER +6 mo) |
 | `servedMilkService` | `update` | Calls `expireOverdue()` after updating |
-| `drankMilkService` | `insert` | For `FRIDGE`/`FREEZER`: calls `deductStock` before inserting. If a record with the same source exists within the last 2 hours, adds to it instead of creating a new one. `BOOB` skips stock deduction but still merges. |
+| `drankMilkService` | `insert` | For `FRIDGE`/`FREEZER`: calls `deductStock` before inserting. If `isNewBottle` is `false`, adds the amount to the latest existing record instead of creating a new one. `BOOB` skips stock deduction. |
 | `drankMilkService` | `deductWaste(waste)` | Delegates to `drankMilkRepository.deductWaste`; only targets `FRIDGE`/`FREEZER` records; skips `deductStock` |
 | `sleepService` | `findLatest()` | Delegates to `sleepRepository.findLatest()` |
 

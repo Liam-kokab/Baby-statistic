@@ -97,7 +97,7 @@ After every insert or update, all overdue `FRIDGE`/`FREEZER` records are automat
 
 **GET query params**: `from`, `to` (ISO datetime, filter on `created_at`)
 
-**POST body**: `{ "amount": 60, "source": "FRIDGE" | "FREEZER" | "BOOB" }` — for `FRIDGE`/`FREEZER`, also deducts `amount` from the oldest matching `served_milk` records. `BOOB` does **not** deduct from storage. If a drank milk record with the **same source** already exists within the last 2 hours, the amount is added to that record instead of creating a new one.
+**POST body**: `{ "amount": 60, "source": "FRIDGE" | "FREEZER" | "BOOB", "isNewBottle": true }` — `isNewBottle` is required: `true` creates a new record; `false` adds the amount to the latest existing record. For `FRIDGE`/`FREEZER`, also deducts `amount` from the oldest matching `served_milk` records. `BOOB` does **not** deduct from storage.
 
 **POST `/waste` body**: `{ "amount": 10 }` — subtracts `amount` from the latest `drank_milk` record whose source is `FRIDGE` or `FREEZER` (floored at 0). `BOOB` records are skipped. Returns `404` if no matching drank records exist. Does **not** restore milk to storage.
 

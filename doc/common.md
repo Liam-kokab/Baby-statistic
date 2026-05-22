@@ -59,7 +59,7 @@ Each DB table has its own type file with three types:
 | `TDrankMilkSource` | `'FRIDGE' \| 'FREEZER' \| 'BOOB'` |
 | `TDrankMilkDb` | DB row — snake_case fields |
 | `TDrankMilk` | App type — camelCase fields including `source` |
-| `TPostDrankMilk` | POST body — `amount`, `source` |
+| `TPostDrankMilk` | POST body — `amount`, `source`, `isNewBottle` (required boolean: `true` = new record, `false` = add to latest) |
 
 ### `sleep.ts`
 | Type | Description |

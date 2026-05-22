@@ -11,11 +11,11 @@
     }
   },
   "create_drank_milk": {
-    "description": "Record that the baby drank milk. Source is FRIDGE (bottle — default) or BOOB. New bottle means the milk was freshly poured from storage. Refilled bottle means the baby drank from a bottle that had already been used (only relevant for FRIDGE source).",
+    "description": "Record that the baby drank milk. Source is FRIDGE (bottle — default) or BOOB. isNewBottle controls whether a new record is created (true) or added to the latest existing record (false).",
     "params": {
       "amount": "Amount in ml the baby drank",
       "source": "Where the milk came from. Defaults to FRIDGE (bottle).",
-      "isNewBottle": "Whether this was a new bottle or refiled bottle (only relevant if source is FRIDGE)"
+      "isNewBottle": "true = create a new record; false = add amount to the latest existing record"
     }
   },
   "log_milk_waste": {

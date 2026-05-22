@@ -27,11 +27,11 @@ export const drankMilkTools: ToolDefinition[] = [
     inputSchema: z.object({
       amount: z.number().describe(descriptions.create_drank_milk.params.amount),
       source: z.enum(['FRIDGE', 'BOOB']).optional().describe(descriptions.create_drank_milk.params.source),
-      isNewBottle: z.boolean().optional().describe(descriptions.create_drank_milk.params.isNewBottle),
+      isNewBottle: z.boolean().describe(descriptions.create_drank_milk.params.isNewBottle),
     }),
     handler: async (args: Record<string, unknown>) => {
       const source = (args.source as string) ?? 'FRIDGE';
-      const isNewBottle = args.isNewBottle as boolean | undefined;
+      const isNewBottle = args.isNewBottle as boolean;
       const res = await apiCall('POST', '/api/drank-milk', { amount: args.amount, source, isNewBottle });
       return jsonResponse(res);
     },

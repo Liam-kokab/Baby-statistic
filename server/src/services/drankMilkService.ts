@@ -2,7 +2,6 @@ import type { TDrankMilk, TPostDrankMilk } from 'baby-statistic-common';
 import { drankMilkRepository } from '../repositories/drankMilkRepository';
 import { servedMilkRepository } from '../repositories/servedMilkRepository';
 import type { TTimeFilter } from '../types';
-import { toOsloLocal } from '../utils/time';
 
 export const drankMilkService = {
   findAll: (filter: TTimeFilter = {}): TDrankMilk[] =>
@@ -18,11 +17,10 @@ export const drankMilkService = {
     if (data.source !== 'BOOB') {
       servedMilkRepository.deductStock(data.source, data.amount);
     }
-    if (data.isNewBottle != null) {
-      const twoHoursAgo = toOsloLocal(new Date(Date.now() - 150 * 60 * 1000).toISOString()); // 150 min — must match prevBottleEnabled threshold in HomePage
-      const recent = drankMilkRepository.findRecentBySource(data.source, twoHoursAgo);
-      if (recent) {
-        return drankMilkRepository.update(recent.id, { amount: recent.amount + data.amount }) ?? drankMilkRepository.insert(data);
+    if (!data.isNewBottle) {
+      const latest = drankMilkRepository.findLatest();
+      if (latest) {
+        return drankMilkRepository.update(latest.id, { amount: latest.amount + data.amount }) ?? drankMilkRepository.insert(data);
       }
     }
     return drankMilkRepository.insert(data);

@@ -138,7 +138,7 @@ const HomePage = () => {
     });
   };
 
-  const handleDrankMilk = (source: 'FRIDGE' | 'BOOB', isNewBottle?: boolean): void => {
+  const handleDrankMilk = (source: 'FRIDGE' | 'BOOB', isNewBottle: boolean): void => {
     const amount = Number(drankAmount);
     if (!amount || amount <= 0) return;
     const fb = source === 'FRIDGE' ? bottle : boob;
@@ -159,7 +159,7 @@ const HomePage = () => {
   const latestDrankAgeMinutes = latestDrank
     ? Math.floor((Date.now() - new Date(latestDrank.createdAt).getTime()) / 60_000)
     : null;
-  const prevBottleEnabled = latestDrankAgeMinutes !== null && latestDrankAgeMinutes <= 150; // 150 min — must match server merge threshold in drankMilkService
+  const prevBottleEnabled = latestDrankAgeMinutes !== null && latestDrankAgeMinutes <= 150;
 
   const handleWasteMilk = (): void => {
     const amount = Number(wasteAmount);
@@ -305,7 +305,7 @@ const HomePage = () => {
                 <Button
                   text="Boob"
                   emoji="🤱"
-                  onClick={() => handleDrankMilk('BOOB')}
+                  onClick={() => handleDrankMilk('BOOB', true)}
                   status={boob.status}
                   disabled={!drankAmount}
                   variant="secondary"

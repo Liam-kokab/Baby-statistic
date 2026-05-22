@@ -769,9 +769,10 @@
         "properties": {
           "amount": { "type": "integer", "example": 60 },
           "source": { "type": "string", "enum": ["FRIDGE", "FREEZER", "BOOB"], "example": "FRIDGE" },
+          "isNewBottle": { "type": "boolean", "description": "true = create new record; false = add amount to latest existing record", "example": true },
           "createdAt": { "type": "string", "format": "date-time" }
         },
-        "required": ["amount", "source"]
+        "required": ["amount", "source", "isNewBottle"]
       },
       "WastePost": {
         "type": "object",

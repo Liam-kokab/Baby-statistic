@@ -40,8 +40,8 @@ router.get('/:id', (req: Request, res: Response): void => {
 
 router.post('/', (req: Request, res: Response): void => {
   const { amount, source, isNewBottle } = bodyAs<TPostDrankMilk>(req);
-  if (amount === undefined || !source) {
-    res.status(400).json({ error: 'Missing required fields: amount, source' });
+  if (amount === undefined || !source || isNewBottle === undefined) {
+    res.status(400).json({ error: 'Missing required fields: amount, source, isNewBottle' });
     return;
   }
   if (source !== 'FRIDGE' && source !== 'FREEZER' && source !== 'BOOB') {
