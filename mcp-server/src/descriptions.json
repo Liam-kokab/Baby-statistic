@@ -1,0 +1,95 @@
+{
+  "get_current_time": {
+    "description": "Returns the current date and time in Oslo local time (Europe/Oslo) format \"2026-05-16T23:59:59\". Use this to determine \"now\" before creating time-based records (sleep start, medicine dose, etc.)."
+  },
+
+  "get_drank_milk": {
+    "description": "List all drank milk records. Shows how much milk the baby consumed, from which source (FRIDGE/BOOB). Optionally filter by date range.",
+    "params": {
+      "from": "Oslo local datetime (e.g. \"2026-05-16T00:00:00\") — filter records created on or after this time",
+      "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter records created on or before this time"
+    }
+  },
+  "create_drank_milk": {
+    "description": "Record that the baby drank milk. Source is FRIDGE (bottle — default) or BOOB. New bottle means the milk was freshly poured from storage. Refilled bottle means the baby drank from a bottle that had already been used (only relevant for FRIDGE source).",
+    "params": {
+      "amount": "Amount in ml the baby drank",
+      "source": "Where the milk came from. Defaults to FRIDGE (bottle).",
+      "isNewBottle": "Whether this was a new bottle or refiled bottle (only relevant if source is FRIDGE)"
+    }
+  },
+  "log_milk_waste": {
+    "description": "Subtract wasted milk from the latest drank milk record (FRIDGE only). Does NOT restore milk to storage. The amount is floored at 0.",
+    "params": {
+      "amount": "Amount in ml that was wasted"
+    }
+  },
+
+  "get_sleep": {
+    "description": "List all sleep records. Each record has a start time and an optional end time (null means baby is still sleeping). Optionally filter by date range.",
+    "params": {
+      "from": "Oslo local datetime (e.g. \"2026-05-16T00:00:00\") — filter records created on or after this time",
+      "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter records created on or before this time"
+    }
+  },
+  "get_latest_sleep": {
+    "description": "Get the most recent sleep record. Useful to check if the baby is currently sleeping (end = null means still asleep). Returns null if no sleep records exist."
+  },
+  "start_sleep": {
+    "description": "Record that the baby fell asleep now. Creates a new sleep record with start = now and end = null."
+  },
+  "end_sleep": {
+    "description": "Record that the baby woke up. Sets the end time on the most recent open sleep record (where end = null)."
+  },
+
+  "get_pee": {
+    "description": "List all pee events. Each event is a simple timestamp. Optionally filter by date range.",
+    "params": {
+      "from": "Oslo local datetime (e.g. \"2026-05-16T00:00:00\") — filter events on or after this time",
+      "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter events on or before this time"
+    }
+  },
+  "log_pee": {
+    "description": "Log a new pee event. No body required — timestamp is set to now."
+  },
+
+  "get_poop": {
+    "description": "List all poop events. Each event is a simple timestamp. Optionally filter by date range.",
+    "params": {
+      "from": "Oslo local datetime (e.g. \"2026-05-16T00:00:00\") — filter events on or after this time",
+      "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter events on or before this time"
+    }
+  },
+  "log_poop": {
+    "description": "Log a new poop event. No body required — timestamp is set to now."
+  },
+
+  "get_medicines": {
+    "description": "List all active medicines with their latest dose timestamp. Use this to discover medicine IDs before logging a dose. Shows which medicines exist and when they were last given."
+  },
+  "log_medicine_dose": {
+    "description": "Record that a dose of a specific medicine was given. Call get_medicines first to find the correct medicine ID. Defaults to now if takenAt is not provided.",
+    "params": {
+      "id": "The medicine ID (get from get_medicines)",
+      "takenAt": "Oslo local datetime (e.g. \"2026-05-16T08:00:00\") when dose was taken (defaults to now)"
+    }
+  },
+
+  "get_pumping": {
+    "description": "List all pumping (breast pump) entries. Optionally filter by date range.",
+    "params": {
+      "from": "Oslo local datetime (e.g. \"2026-05-16T00:00:00\") — filter entries on or after this time",
+      "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter entries on or before this time"
+    }
+  },
+  "get_latest_pumping": {
+    "description": "Get the most recent pumping entry. Returns null if no entries exist."
+  },
+  "log_pumping": {
+    "description": "Log a new pumping event. Timestamp is set to now."
+  },
+
+  "get_all_data": {
+    "description": "Get a full dump of ALL data from every table (served_milk, drank_milk, sleep, pee, poop, medicine, medicine_log, pumping). Use this for broad analysis across all categories. Returns a large JSON object keyed by table name."
+  }
+}

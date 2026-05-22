@@ -16,6 +16,7 @@ echo [3/3] Starting container...
 docker run -d ^
   --name baby-statistic ^
   -p 80:80 ^
+  -p 3001:3001 ^
   -v baby-statistic-data:/app/data ^
   --restart=on-failure ^
   baby-statistic

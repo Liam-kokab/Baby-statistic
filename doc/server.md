@@ -112,3 +112,7 @@ Each table has a service in `server/src/services/`. Services sit between routes 
 
 ## Timezone
 All timestamps are stored and returned as **Oslo local time** (`Europe/Oslo`). See `doc/db.md` for full details.
+
+## MCP Server
+
+See [`doc/mcp-server.md`](./mcp-server.md) for full documentation on the MCP server package (`mcp-server/`).

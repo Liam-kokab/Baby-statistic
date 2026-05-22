@@ -17,7 +17,7 @@ Copy the generated `baby-statistic-deploy.zip` to the target PC and extract it.
 ```bat
 scripts\deploy.bat
 ```
-App is now running at **http://localhost**.
+App is now running at **http://localhost** (web) and **http://localhost:3001/sse** (MCP server).
 
 ---
 
@@ -44,5 +44,5 @@ Copy the generated `baby-statistic-update.zip` to the target PC and extract it a
 ```bat
 scripts\update-dist.bat
 ```
-Injects the new `dist/` into the running container — no full Docker rebuild needed.
+Injects the new `dist/` and MCP server into the running container — no full Docker rebuild needed. Restart the container after: `docker restart baby-statistic`.
 

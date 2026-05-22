@@ -18,6 +18,7 @@ $includes = @(
     'common',
     'client',
     'server',
+    'mcp-server',
     'scripts',
     'doc'
 )

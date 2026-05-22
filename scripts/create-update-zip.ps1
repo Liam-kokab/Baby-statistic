@@ -23,8 +23,10 @@ New-Item (Join-Path $staging 'scripts') -ItemType Directory | Out-Null
 # Zip dist/ into staging/dist.zip
 Compress-Archive -Path $dist -DestinationPath $distZip -CompressionLevel Optimal
 
-# Copy update script
+
+# Copy update script and index.js
 Copy-Item (Join-Path $PSScriptRoot 'update-dist.bat') (Join-Path $staging 'scripts\update-dist.bat')
+Copy-Item (Join-Path $root 'index.js') (Join-Path $staging 'index.js')
 
 # ── Zip and clean up ──────────────────────────────────────────────────────────
 if (Test-Path $zipPath) { Remove-Item $zipPath }
