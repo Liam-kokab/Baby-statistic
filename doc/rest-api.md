@@ -16,6 +16,19 @@ Health check endpoint.
 
 ---
 
+## `GET /api/build-time`
+
+Returns the server build timestamp.
+
+**Handler**: `server/src/routes/buildTime.ts`
+
+**Response `200`**:
+```json
+{ "buildTime": "2026-05-22T12:00:00.000Z" }
+```
+
+---
+
 ## `GET /api/backup`
 
 Returns all rows from every data table as a full DB dump.
@@ -23,7 +36,7 @@ Returns all rows from every data table as a full DB dump.
 **Handler**: `server/src/routes/backup.ts`
 
 **Response `200`**:
-```json
+```jsonc
 {
   "served_milk":   [ ...rows ],
   "drank_milk":    [ ...rows ],

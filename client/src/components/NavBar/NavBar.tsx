@@ -14,6 +14,7 @@ const NAV_ITEMS: TNavItem[] = [
   { path: '/',           emoji: '🏠', label: 'Home'       },
   { path: '/milk-drank', emoji: '🍼', label: 'Milk Drank' },
   { path: '/sleep',      emoji: '🌙', label: 'Sleep'      },
+  { path: '/build-info', emoji: '🔧', label: 'Build Info' },
 ];
 
 const NavBar = () => {

@@ -6,12 +6,21 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
 import { z } from 'zod';
 import { allTools } from './tools';
 
 const app = express();
 const PORT = process.env.MCP_PORT ?? 3001;
 const mode = process.env.MCP_MODE ?? process.argv[2] ?? 'both'; // 'sse' | 'stdio' | 'both'
+
+const getMcpBuildTime = (): string => {
+  const filePath = path.join(__dirname, 'buildTime.json');
+  if (!fs.existsSync(filePath)) return 'unknown';
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as { buildTime: string };
+  return data.buildTime;
+};
 
 // Store active transports by session ID
 const transports = new Map<string, SSEServerTransport>();
@@ -76,7 +85,8 @@ if (mode === 'sse' || mode === 'both') {
   app.listen(PORT, () => {
     console.log(`\n🤖 MCP Server (SSE) running on http://localhost:${PORT}`);
     console.log(`   SSE endpoint:      http://localhost:${PORT}/sse`);
-    console.log(`   Messages endpoint:  http://localhost:${PORT}/messages\n`);
+    console.log(`   Messages endpoint:  http://localhost:${PORT}/messages`);
+    console.log(`   Build time:         ${getMcpBuildTime()}\n`);
   });
 }
 

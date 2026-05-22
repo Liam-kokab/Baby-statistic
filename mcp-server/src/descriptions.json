@@ -3,6 +3,10 @@
     "description": "Returns the current date and time in Oslo local time (Europe/Oslo) format \"2026-05-16T23:59:59\". Use this to determine \"now\" before creating time-based records (sleep start, medicine dose, etc.)."
   },
 
+  "get_mcp_build_time": {
+    "description": "Returns the build timestamp of the MCP server. Use this when the user asks about the MCP server version or build time."
+  },
+
   "get_drank_milk": {
     "description": "List all drank milk records. Shows how much milk the baby consumed, from which source (FRIDGE/BOOB). Optionally filter by date range.",
     "params": {

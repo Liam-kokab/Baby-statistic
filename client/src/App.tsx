@@ -13,6 +13,7 @@ import EditMedicineLogPage from './pages/EditMedicineLogPage/EditMedicineLogPage
 import EditMedicinePage from './pages/EditMedicinePage/EditMedicinePage';
 import EditPumpingPage from './pages/EditPumpingPage/EditPumpingPage';
 import PumpingPage from './pages/PumpingPage/PumpingPage';
+import BuildInfoPage from './pages/BuildInfoPage/BuildInfoPage';
 import styles from './App.module.css';
 
 const App = () => (
@@ -32,6 +33,7 @@ const App = () => (
         <Route path="/poop/:id"            element={<EditPoopPeePage type="poop" />} />
         <Route path="/pumping"             element={<PumpingPage />} />
         <Route path="/pumping/:id"         element={<EditPumpingPage />} />
+        <Route path="/build-info"           element={<BuildInfoPage />} />
         <Route path="*"                    element={<Navigate to="/" replace />} />
       </Routes>
     </main>

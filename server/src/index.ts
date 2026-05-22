@@ -14,6 +14,7 @@ import peeRouter from './routes/pee';
 import poopRouter from './routes/poop';
 import medicineRouter from './routes/medicine';
 import pumpingRouter from './routes/pumping';
+import buildTimeRouter from './routes/buildTime';
 
 const app = express();
 const PORT = process.env.PORT ?? (process.env.NODE_ENV === 'production' ? 80 : 3000);
@@ -45,6 +46,7 @@ app.use('/api/pee', peeRouter);
 app.use('/api/poop', poopRouter);
 app.use('/api/medicine', medicineRouter);
 app.use('/api/pumping', pumpingRouter);
+app.use('/api/build-time', buildTimeRouter);
 
 const clientDist = path.join(__dirname, 'public');
 if (fs.existsSync(path.join(clientDist, 'index.html'))) {

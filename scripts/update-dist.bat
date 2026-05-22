@@ -9,29 +9,35 @@ if not exist "%ZIP%" (
   exit /b 1
 )
 
-echo [1/4] Copying dist zip to container...
+echo [1/5] Copying dist zip to container...
 docker cp "%ZIP%" baby-statistic:/tmp/dist.zip
 if %errorlevel% neq 0 (
   echo ERROR: docker cp failed. Is the container running?
   exit /b %errorlevel%
 )
 
-echo [2/4] Unzipping dist inside container...
+echo [2/5] Unzipping dist inside container...
 docker exec baby-statistic sh -c "unzip -o /tmp/dist.zip -d /app; E=$?; rm -f /tmp/dist.zip; [ $E -le 1 ]"
 if %errorlevel% neq 0 (
   echo ERROR: Unzip inside container failed.
   exit /b %errorlevel%
 )
 
-echo [3/4] Copying index.js to container...
+echo [3/5] Copying index.js to container...
 if exist "%INDEX_JS%" (
   docker cp "%INDEX_JS%" baby-statistic:/app/index.js
 )
 
-echo [4/4] Cleaning up local zip...
+echo [4/5] Cleaning up local zip...
 del "%ZIP%"
 
+echo [5/5] Restarting container...
+docker restart baby-statistic
+if %errorlevel% neq 0 (
+  echo ERROR: docker restart failed.
+  exit /b %errorlevel%
+)
+
 echo.
-echo  Files updated successfully in the container.
-echo  Restart the container to apply: docker restart baby-statistic
+echo  Done! Container restarted with updated files.
 echo.
