@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetch2 } from 'baby-statistic-common/util';
 import type { TServedMilk, TServedMilkTotal, TServedMilkStatus } from 'baby-statistic-common';
@@ -9,6 +9,7 @@ import Button from '../../components/Button/Button';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
+import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import styles from './MilkSavedPage.module.css';
 
 const STATUS_EMOJI: Record<TServedMilkStatus, string> = {
@@ -52,27 +53,33 @@ const MilkSavedPage = () => {
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
 
+  const load = useCallback(async () => {
+    setError(null);
+    const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
+    const [listResult, totalResult] = await Promise.all([
+      fetch2<TServedMilk[]>(`/api/served-milk?${params}`),
+      fetch2<TServedMilkTotal>('/api/served-milk/total'),
+    ]);
+    if (listResult.ok) {
+      setData(listResult.data);
+    } else {
+      setError(listResult.error);
+    }
+    if (totalResult.ok) {
+      setTotals(totalResult.data);
+    }
+  }, [from, to]);
+
+  const visibilityRef = useRefetchOnVisible(load);
+
   useEffect(() => {
-    const load = async () => {
+    const initialLoad = async () => {
       setLoading(true);
-      setError(null);
-      const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-      const [listResult, totalResult] = await Promise.all([
-        fetch2<TServedMilk[]>(`/api/served-milk?${params}`),
-        fetch2<TServedMilkTotal>('/api/served-milk/total'),
-      ]);
-      if (listResult.ok) {
-        setData(listResult.data);
-      } else {
-        setError(listResult.error);
-      }
-      if (totalResult.ok) {
-        setTotals(totalResult.data);
-      }
+      await load();
       setLoading(false);
     };
-    load();
-  }, [from, to]);
+    initialLoad();
+  }, [load]);
 
   const toggleStatus = (status: TServedMilkStatus): void => {
     setActiveStatuses((prev) =>
@@ -220,7 +227,7 @@ const MilkSavedPage = () => {
   };
 
   return (
-    <PageLayout title="Milk Saved" emoji="🧊" gradient="blue">
+    <PageLayout title="Milk Saved" emoji="🧊" gradient="blue" ref={visibilityRef}>
       <div className={styles.statsBar}>
         <div className={styles.statChip}>🥛 Fridge: <strong>{totals.fridge} ml</strong></div>
         <div className={styles.statChip}>❄️ Freezer: <strong>{totals.freezer} ml</strong></div>

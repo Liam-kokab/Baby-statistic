@@ -5,10 +5,25 @@ import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
 import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TActionStatus } from '../../utils/useActionFeedback';
+import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import { ACTION_MIN_MS, ACTION_DONE_MS } from '../../config';
 import styles from './HomePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
+
+const getMilkAgeClass = (createdAt: string): string => {
+  const ageMin = (Date.now() - new Date(createdAt).getTime()) / 60_000;
+  if (ageMin < 90) return 'milkLastGreen';
+  if (ageMin < 120) return 'milkLastYellow';
+  return 'milkLastDefault';
+};
+
+const formatAgo = (isoString: string): string => {
+  const totalMin = Math.floor((Date.now() - new Date(isoString).getTime()) / 60_000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h ${m}m ago` : `${m}m ago`;
+};
 
 const formatTime = (seconds: number): string => {
   const h = Math.floor(seconds / 3600);
@@ -53,6 +68,12 @@ const HomePage = () => {
   // ── Poop / Pee ────────────────────────────────────────────────────────────
   const poop = useActionFeedback();
   const pee  = useActionFeedback();
+  const [latestNappy, setLatestNappy] = useState<string | null>(null);
+
+  const loadLatestNappy = async (): Promise<void> => {
+    const res = await fetch2<{ createdAt: string } | null>('/api/nappy/latest');
+    if (res.ok) setLatestNappy(res.data?.createdAt ?? null);
+  };
 
   // ── Pumping ───────────────────────────────────────────────────────────────
   const [lastPumping, setLastPumping] = useState<TPumping | null>(null);
@@ -91,11 +112,18 @@ const HomePage = () => {
     }
   };
 
-  useEffect(() => {
+  const refetchAll = (): void => {
     loadSleep();
     loadLatestDrank();
     loadLatestPumping();
+    loadLatestNappy();
     loadMedicines();
+  };
+
+  const visibilityRef = useRefetchOnVisible(refetchAll);
+
+  useEffect(() => {
+    refetchAll();
     const medRefresh = setInterval(loadMedicines, 60_000);
     return () => { clearInterval(medRefresh); };
   }, []);
@@ -178,6 +206,7 @@ const HomePage = () => {
   const handlePoop = (): void => {
     poop.run(async () => {
       const res = await fetch2('/api/poop', { method: 'POST' });
+      if (res.ok) await loadLatestNappy();
       return res.ok;
     });
   };
@@ -185,6 +214,7 @@ const HomePage = () => {
   const handlePee = (): void => {
     pee.run(async () => {
       const res = await fetch2('/api/pee', { method: 'POST' });
+      if (res.ok) await loadLatestNappy();
       return res.ok;
     });
   };
@@ -221,7 +251,7 @@ const HomePage = () => {
   const isSleeping = activeSleep !== null;
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} ref={visibilityRef}>
       <div className={styles.hero}>
         <p className={styles.heroEmoji}>{isSleeping ? '😴' : '🌸'}</p>
         <h1 className={styles.heroTitle}>Baby Stats</h1>
@@ -273,7 +303,18 @@ const HomePage = () => {
 
         {/* ── Milk ── */}
         <section className={styles.card}>
-          <h2 className={styles.sectionTitle}>🍼 Milk</h2>
+          <div className={styles.milkHeader}>
+            <h2 className={styles.sectionTitle}>🍼 Milk</h2>
+            {latestDrank ? (
+              <span className={`${styles.milkLastInfo} ${styles[getMilkAgeClass(latestDrank.createdAt)]}`}>
+                {latestDrank.amount} ml · {formatAgo(latestDrank.createdAt)}
+              </span>
+            ) : (
+              <span className={`${styles.milkLastInfo} ${styles.milkLastDefault}`}>
+                No last dranked milk
+              </span>
+            )}
+          </div>
 
           <div className={styles.subSection}>
             <p className={styles.subLabel}>Baby drank</p>
@@ -338,7 +379,12 @@ const HomePage = () => {
 
         {/* ── Nappy ── */}
         <section className={styles.card}>
-          <h2 className={styles.sectionTitle}>🚽 Nappy</h2>
+          <div className={styles.milkHeader}>
+            <h2 className={styles.sectionTitle}>🚽 Nappy</h2>
+            <span className={`${styles.milkLastInfo} ${styles.milkLastDefault}`}>
+              {latestNappy ? `Changed ${formatAgo(latestNappy)}` : 'No diaper change logged'}
+            </span>
+          </div>
           <div className={styles.btnRowFull}>
             <Button
               text="Poop 💩"

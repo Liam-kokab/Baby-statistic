@@ -30,7 +30,7 @@ const BuildInfoPage = () => {
   }, []);
 
   return (
-    <PageLayout title="Build Info" emoji="🔧">
+    <PageLayout title="Settings" emoji="⚙️">
       <div className={styles.card}>
         <div className={styles.row}>
           <span className={styles.label}>Frontend</span>

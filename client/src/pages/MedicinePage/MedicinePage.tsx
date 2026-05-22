@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetch2 } from 'baby-statistic-common/util';
 import type { TMedicineLog, TMedicineWithLatestLog } from 'baby-statistic-common';
@@ -10,6 +10,7 @@ import Input from '../../components/Input/Input';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
+import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import styles from './MedicinePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
@@ -61,8 +62,7 @@ const MedicinePage = () => {
     if (res.ok) setMedicines(res.data);
   };
 
-  const loadLogs = async (): Promise<void> => {
-    setLoading(true);
+  const loadLogs = useCallback(async (): Promise<void> => {
     setError(null);
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
     const [logsRes, medsRes] = await Promise.all([
@@ -80,10 +80,18 @@ const MedicinePage = () => {
     } else {
       setError(medsRes.error);
     }
-    setLoading(false);
-  };
+  }, [from, to]);
 
-  useEffect(() => { loadLogs(); }, [from, to]);
+  const visibilityRef = useRefetchOnVisible(loadLogs);
+
+  useEffect(() => {
+    const initialLoad = async () => {
+      setLoading(true);
+      await loadLogs();
+      setLoading(false);
+    };
+    initialLoad();
+  }, [loadLogs]);
 
   const toggleDay = (date: string): void =>
     setOpenDays((prev) => { const n = new Set(prev); n.has(date) ? n.delete(date) : n.add(date); return n; });
@@ -238,7 +246,7 @@ const MedicinePage = () => {
   };
 
   return (
-    <PageLayout title="Medicines" emoji="💊" gradient="green">
+    <PageLayout title="Medicines" emoji="💊" gradient="green" ref={visibilityRef}>
       <DateRangeFilter
         from={from}
         to={to}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetch2 } from 'baby-statistic-common/util';
 import type { TPumping } from 'baby-statistic-common';
@@ -9,6 +9,7 @@ import Button from '../../components/Button/Button';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
+import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import styles from './PumpingPage.module.css';
 
 const getDefaultFrom = (): string => {
@@ -41,21 +42,27 @@ const PumpingPage = () => {
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
 
+  const load = useCallback(async () => {
+    setError(null);
+    const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
+    const result = await fetch2<TPumping[]>(`/api/pumping?${params}`);
+    if (result.ok) {
+      setData(result.data);
+    } else {
+      setError(result.error);
+    }
+  }, [from, to]);
+
+  const visibilityRef = useRefetchOnVisible(load);
+
   useEffect(() => {
-    const load = async () => {
+    const initialLoad = async () => {
       setLoading(true);
-      setError(null);
-      const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-      const result = await fetch2<TPumping[]>(`/api/pumping?${params}`);
-      if (result.ok) {
-        setData(result.data);
-      } else {
-        setError(result.error);
-      }
+      await load();
       setLoading(false);
     };
-    load();
-  }, [from, to]);
+    initialLoad();
+  }, [load]);
 
   const totalCount = data.length;
   const daysWithData = new Set(data.map((d) => d.createdAt.slice(0, 10))).size;
@@ -186,7 +193,7 @@ const PumpingPage = () => {
   };
 
   return (
-    <PageLayout title="Pumping" emoji="🥛" gradient="indigo">
+    <PageLayout title="Pumping" emoji="🥛" gradient="indigo" ref={visibilityRef}>
       <DateRangeFilter
         from={from}
         to={to}

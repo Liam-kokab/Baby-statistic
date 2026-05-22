@@ -121,6 +121,36 @@
 }
 
 /* ── Sub-sections inside milk card ───────────────────────────────────────── */
+.milkHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.milkLastInfo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.milkLastGreen {
+  background: #f0faf0;
+  color: #2e7d32;
+}
+
+.milkLastYellow {
+  background: #fffde7;
+  color: #f57f17;
+}
+
+.milkLastDefault {
+  background: var(--color-primary-light);
+  color: var(--color-text-muted);
+}
+
 .subSection {
   display: flex;
   flex-direction: column;

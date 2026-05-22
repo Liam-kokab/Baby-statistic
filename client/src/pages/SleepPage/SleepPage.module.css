@@ -252,29 +252,3 @@
   transform: rotate(90deg);
 }
 
-/* ── Pumping section ──────────────────────────────────────────────────────── */
-.pumpingSection {
-  margin-top: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.pumpingSectionTitle {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--color-text);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.pumpingCard {
-  background: #f3fdf3;
-  border-color: #a5d6a7;
-}
-
-.pumpingCard .duration {
-  color: #2e7d32;
-}
-
-

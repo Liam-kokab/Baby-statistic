@@ -13,7 +13,9 @@ import EditMedicineLogPage from './pages/EditMedicineLogPage/EditMedicineLogPage
 import EditMedicinePage from './pages/EditMedicinePage/EditMedicinePage';
 import EditPumpingPage from './pages/EditPumpingPage/EditPumpingPage';
 import PumpingPage from './pages/PumpingPage/PumpingPage';
-import BuildInfoPage from './pages/BuildInfoPage/BuildInfoPage';
+import MilkSavedPage from './pages/MilkSavedPage/MilkSavedPage';
+import EditStoredMilkPage from './pages/EditStoredMilkPage/EditStoredMilkPage';
+import SettingsPage from './pages/BuildInfoPage/BuildInfoPage';
 import styles from './App.module.css';
 
 const App = () => (
@@ -22,6 +24,8 @@ const App = () => (
       <Routes>
         <Route path="/"                    element={<HomePage />} />
         <Route path="/milk-drank"          element={<MilkDrankPage />} />
+        <Route path="/milk-saved"          element={<MilkSavedPage />} />
+        <Route path="/milk-saved/:id"      element={<EditStoredMilkPage />} />
         <Route path="/medicine"            element={<MedicinePage />} />
         <Route path="/medicine/log/:id"    element={<EditMedicineLogPage />} />
         <Route path="/medicine/:id"        element={<EditMedicinePage />} />
@@ -33,7 +37,7 @@ const App = () => (
         <Route path="/poop/:id"            element={<EditPoopPeePage type="poop" />} />
         <Route path="/pumping"             element={<PumpingPage />} />
         <Route path="/pumping/:id"         element={<EditPumpingPage />} />
-        <Route path="/build-info"           element={<BuildInfoPage />} />
+        <Route path="/settings"            element={<SettingsPage />} />
         <Route path="*"                    element={<Navigate to="/" replace />} />
       </Routes>
     </main>

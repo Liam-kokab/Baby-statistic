@@ -1,3 +1,18 @@
+/* ── Overlay (click to close menu) ────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Bottom nav bar ──────────────────────────────────────────────────────── */
 .nav {
   position: fixed;
   bottom: 0;
@@ -77,4 +92,83 @@
 
 .navBtn.active:active {
   transform: translateY(-18px) scale(0.88);
+}
+
+/* ── Arc menu items ──────────────────────────────────────────────────────── */
+.menuAnchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menuItem {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  font-size: 1.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: rgba(254, 240, 247, 0.85);
+  color: var(--color-text);
+  cursor: pointer;
+  transform: scale(0) translate(0, 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease,
+              background 0.15s ease,
+              border-color 0.15s ease;
+  transition-delay: calc(var(--i) * 0.04s);
+  box-shadow: var(--shadow-sm);
+}
+
+.menuItemOpen {
+  opacity: 1;
+  pointer-events: auto;
+  /* Arc: items curve outward — X grows quadratically, Y is linear */
+  transform: scale(1)
+    translate(
+          calc(5px + var(--i) * (var(--i) * 0.7)  * 7px),
+          calc(-23px + var(--i) * -56px)
+    );
+}
+
+.menuItem:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.menuItemActive {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+/* ── Tooltip for menu items ──────────────────────────────────────────────── */
+.menuItem::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(61, 26, 46, 0.88);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 2;
+}
+
+.menuItem:hover::before {
+  opacity: 1;
 }

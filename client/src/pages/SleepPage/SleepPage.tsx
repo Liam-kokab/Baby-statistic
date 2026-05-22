@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetch2 } from 'baby-statistic-common/util';
-import type { TSleep, TPumping } from 'baby-statistic-common';
+import type { TSleep } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import type { TView } from '../../components/DateRangeFilter/DateRangeFilter';
@@ -9,6 +9,7 @@ import Button from '../../components/Button/Button';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
+import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import styles from './SleepPage.module.css';
 
 const getDefaultFrom = (): string => {
@@ -79,31 +80,32 @@ const SleepPage = () => {
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
   const [data, setData] = useState<TSleep[]>([]);
-  const [pumpingData, setPumpingData] = useState<TPumping[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
 
+  const load = useCallback(async () => {
+    setError(null);
+    const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
+    const sleepResult = await fetch2<TSleep[]>(`/api/sleep?${params}`);
+    if (sleepResult.ok) {
+      setData(sleepResult.data);
+    } else {
+      setError(sleepResult.error);
+    }
+  }, [from, to]);
+
+  const visibilityRef = useRefetchOnVisible(load);
+
   useEffect(() => {
-    const load = async () => {
+    const initialLoad = async () => {
       setLoading(true);
-      setError(null);
-      const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-      const [sleepResult, pumpingResult] = await Promise.all([
-        fetch2<TSleep[]>(`/api/sleep?${params}`),
-        fetch2<TPumping[]>(`/api/pumping?${params}`),
-      ]);
-      if (sleepResult.ok) {
-        setData(sleepResult.data);
-      } else {
-        setError(sleepResult.error);
-      }
-      if (pumpingResult.ok) setPumpingData(pumpingResult.data);
+      await load();
       setLoading(false);
     };
-    load();
-  }, [from, to]);
+    initialLoad();
+  }, [load]);
 
   const totalMs = totalDurationMs(data);
   const daysWithData = new Set(data.map((d) => d.start.slice(0, 10))).size;
@@ -300,46 +302,8 @@ const SleepPage = () => {
     );
   };
 
-  const renderPumpingSection = () => {
-    const sorted = [...pumpingData].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return (
-      <div className={styles.pumpingSection}>
-        <h2 className={styles.pumpingSectionTitle}>🥛 Pumping</h2>
-        {sorted.length === 0 ? (
-          <p className={styles.empty}>No pumping records found 🥛</p>
-        ) : (
-          <div className={styles.list}>
-            {sorted.map((item, i) => {
-              const next = sorted[i + 1];
-              const gapMs = next
-                ? new Date(item.createdAt).getTime() - new Date(next.createdAt).getTime()
-                : null;
-              return (
-                <div key={item.id} className={`${styles.card} ${styles.pumpingCard}`}>
-                  <span className={styles.cardEmoji}>🥛</span>
-                  <div className={styles.cardBody}>
-                    <span className={styles.duration}>
-                      {gapMs !== null ? formatMs(gapMs) + ' since prev' : 'First pump'}
-                    </span>
-                    <span className={styles.timeRange}>{formatDateTime(item.createdAt)}</span>
-                  </div>
-                  <Button
-                    emoji="✏️"
-                    variant="ghost"
-                    className={styles.editBtn}
-                    onClick={() => navigate(`/pumping/${item.id}`)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <PageLayout title="Sleep" emoji="😴" gradient="indigo">
+    <PageLayout title="Sleep" emoji="😴" gradient="indigo" ref={visibilityRef}>
       <DateRangeFilter
         from={from}
         to={to}
@@ -361,7 +325,6 @@ const SleepPage = () => {
       ) : (
         <>
           {view === 'item' ? renderItemView() : view === 'day' ? renderDayView() : renderWeekView()}
-          {renderPumpingSection()}
         </>
       )}
     </PageLayout>

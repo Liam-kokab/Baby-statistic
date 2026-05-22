@@ -14,6 +14,7 @@ import peeRouter from './routes/pee';
 import poopRouter from './routes/poop';
 import medicineRouter from './routes/medicine';
 import pumpingRouter from './routes/pumping';
+import nappyRouter from './routes/nappy';
 import buildTimeRouter from './routes/buildTime';
 
 const app = express();
@@ -46,6 +47,7 @@ app.use('/api/pee', peeRouter);
 app.use('/api/poop', poopRouter);
 app.use('/api/medicine', medicineRouter);
 app.use('/api/pumping', pumpingRouter);
+app.use('/api/nappy', nappyRouter);
 app.use('/api/build-time', buildTimeRouter);
 
 const clientDist = path.join(__dirname, 'public');
