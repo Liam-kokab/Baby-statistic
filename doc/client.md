@@ -88,15 +88,15 @@ All tokens are CSS custom properties on `:root` — available in every module wi
 | `--color-text` | `#3d1a2e` | Body text |
 | `--color-text-muted` | `#9d7a90` | Placeholders, subtitles |
 | `--color-border` | `#f8bbd0` | Borders |
-| `--navbar-height` | `50px` | Reserved for fixed NavBar |
+| `--navbar-height` | `3.125rem` (50px) | Reserved for fixed NavBar |
 
-Use in any module CSS file with `var()` — no import needed:
-```css
-.myClass {
-  color: var(--color-primary);
-  border-radius: var(--radius-md);
-}
-```
+Use in any module CSS file with `var()` — no import needed: e.g. `color: var(--color-primary);` and `border-radius: var(--radius-md);`
+
+## Units / Sizing policy
+
+- Root font-size is set to `16px` so `1rem = 16px` across the client. Use rem-based variables for spacing, font sizes and radii defined in `styles/variables.css` (e.g. `--space-md`, `--radius-md`).
+- Keep `%` units where currently used for fluid layouts.
+- Allowed px exceptions: shadows, media-query breakpoints, borders/hairlines (1px/2px), and SVG stroke widths — these may remain in px for crisp rendering.
 
 ## Components
 

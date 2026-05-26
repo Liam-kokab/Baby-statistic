@@ -1,10 +1,10 @@
 .toggle {
   position: relative;
   display: grid;
-  gap: 2px;
-  background: var(--color-ui-2, #f4f6fb);
-  padding: 4px;
-  border-radius: var(--radius-md, 10px);
+  gap: var(--space-xxxs);
+  background: var(--color-ui-2);
+  padding: var(--space-xxs);
+  border-radius: var(--radius-md);
   align-items: stretch;
   /* subtle shadow for the whole control so unselected options contrast better */
   box-shadow: 0 6px 18px rgba(16,24,40,0.06);
@@ -23,8 +23,8 @@
 .segment {
   background: transparent;
   border: 0;
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: var(--space-10) var(--space-sm);
+  border-radius: var(--radius-6);
   cursor: pointer;
   font-weight: 600;
   color: var(--color-text, #0f1724);
@@ -44,7 +44,7 @@
 
 .segment:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-focus, rgba(59,130,246,0.18));
+  box-shadow: 0 0 0 3px var(--color-focus);
 }
 
 .active {
@@ -56,9 +56,9 @@
 .thumb {
   position: absolute;
   left: 0;
-  top: 4px;
-  bottom: 4px;
-  border-radius: 8px;
+  top: var(--space-xxs);
+  bottom: var(--space-xxs);
+  border-radius: var(--radius-8);
   /* subtle gradient: slightly darker primary -> primary */
   background: linear-gradient(180deg, var(--color-primary-dark, #c2185b), var(--color-primary, #ec407a));
   box-shadow: 0 6px 14px rgba(194,24,91,0.12);
