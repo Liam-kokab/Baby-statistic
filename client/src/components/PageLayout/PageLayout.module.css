@@ -4,6 +4,26 @@
   min-height: 100%;
 }
 
+/* Local fallbacks to satisfy static analysis and provide safe defaults when variables are missing */
+:root {
+  --hero-var: transparent;
+  --banner-pink-start: #fce4ec;
+  --banner-pink-mid: #f3e5f5;
+  --banner-pink-end: #e8eaf6;
+  --banner-blue-start: #e3f2fd;
+  --banner-blue-mid: #bbdefb;
+  --banner-blue-end: #bbdefb;
+  --banner-green-start: #e8f5e9;
+  --banner-green-mid: #c8e6c9;
+  --banner-green-end: #c8e6c9;
+  --banner-indigo-start: #e8eaf6;
+  --banner-indigo-mid: #c5cae9;
+  --banner-indigo-end: #c5cae9;
+  --banner-amber-start: #fff8e1;
+  --banner-amber-mid: #ffe0b2;
+  --banner-amber-end: #ffe0b2;
+}
+
 /* ── Header banner ────────────────────────────────────────────────────────── */
 .header {
   display: flex;
@@ -12,26 +32,40 @@
   gap: 0.35rem;
   padding: 2rem 1.5rem 0.75rem;
   position: relative;
+  /* Default CSS variables so static analysis and pages without overrides have sensible fallbacks */
+  --hero-var: var(--banner-title-bg, transparent);
+  --page-banner-start: var(--banner-pink-start, #fce4ec);
+  --page-banner-mid: var(--banner-pink-end, #f3e5f5);
+  --page-banner-end: var(--banner-pink-end, #e8eaf6);
 }
 
 .emoji {
   font-size: 2.5rem;
   line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+  color: var(--banner-emoji-color, inherit);
+  /* shadow color may be tuned per theme */
+  filter: drop-shadow(0 2px 4px var(--banner-emoji-shadow, rgba(0, 0, 0, 0.12)));
 }
 
 .title {
   font-size: 1.6rem;
   font-weight: 900;
-  color: var(--color-text);
+  color: var(--banner-title-color, var(--color-text));
+}
+
+.title {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.5rem;
+  background: transparent; /* background is set inline from PageLayout.tsx using per-page variables */
 }
 
 /* ── Gradient themes ──────────────────────────────────────────────────────── */
-.pink   { background: linear-gradient(135deg, #fce4ec, #f3e5f5); }
-.blue   { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
-.green  { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
-.indigo { background: linear-gradient(135deg, #e8eaf6, #c5cae9); }
-.amber  { background: linear-gradient(135deg, #fff8e1, #ffe0b2); }
+.pink   { background: linear-gradient(135deg, var(--banner-pink-start, #fce4ec) 0%, var(--banner-pink-mid, var(--banner-pink-end, #f3e5f5)) 60%, var(--banner-pink-end, #e8eaf6) 100%); }
+.blue   { background: linear-gradient(135deg, var(--banner-blue-start, #e3f2fd) 0%, var(--banner-blue-mid, var(--banner-blue-end, #bbdefb)) 60%, var(--banner-blue-end, #bbdefb) 100%); }
+.green  { background: linear-gradient(135deg, var(--banner-green-start, #e8f5e9) 0%, var(--banner-green-mid, var(--banner-green-end, #c8e6c9)) 60%, var(--banner-green-end, #c8e6c9) 100%); }
+.indigo { background: linear-gradient(135deg, var(--banner-indigo-start, #e8eaf6) 0%, var(--banner-indigo-mid, var(--banner-indigo-end, #c5cae9)) 60%, var(--banner-indigo-end, #c5cae9) 100%); }
+.amber  { background: linear-gradient(135deg, var(--banner-amber-start, #fff8e1) 0%, var(--banner-amber-mid, var(--banner-amber-end, #ffe0b2)) 60%, var(--banner-amber-end, #ffe0b2) 100%); }
 
 /* ── Content area ─────────────────────────────────────────────────────────── */
 .content {

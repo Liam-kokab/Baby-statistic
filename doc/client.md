@@ -8,7 +8,11 @@
 - **Styling**: CSS Modules (`.module.css` per component) + shared `variables.css` (CSS custom properties)
 - **Icons**: Plain emoji characters — passed via the `emoji` prop on `Button` or rendered directly as text
 - **Font**: [Nunito](https://fonts.google.com/specimen/Nunito) (loaded via Google Fonts in `index.html`)
-- **Theme**: Soft baby-girl palette — pinks, lavenders, warm mauve text
+- **Theme**: Three selectable baby palettes (persisted in localStorage) with light and dark variants:
+  - `girl`: soft pinks & lavenders
+  - `neutral` (default): soft green/beige neutral palette
+  - `boy`: soft blue palette
+  The selected theme is stored under the `theme` key in localStorage and applied by adding `theme-<name>` (or `theme-<name>-dark`) on the `<html>` element. The Settings page exposes a three-way toggle (👧/🌿/👦) to switch themes, and a separate Mode toggle (🌞 Light / ⚙️ Auto / 🌙 Dark) to choose light/dark/auto behavior (stored under `themeMode`, default `auto`).
 - **Dev port**: `5173` (Vite dev server; proxies `/api/*` → `http://localhost:3000`)
 
 ## File Structure

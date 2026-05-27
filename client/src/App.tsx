@@ -15,7 +15,7 @@ import EditPumpingPage from './pages/EditPumpingPage/EditPumpingPage';
 import PumpingPage from './pages/PumpingPage/PumpingPage';
 import MilkSavedPage from './pages/MilkSavedPage/MilkSavedPage';
 import EditStoredMilkPage from './pages/EditStoredMilkPage/EditStoredMilkPage';
-import SettingsPage from './pages/BuildInfoPage/BuildInfoPage';
+import SettingsPage from './pages/SettingsPage/SettingsPage';
 import styles from './App.module.css';
 
 const App = () => (

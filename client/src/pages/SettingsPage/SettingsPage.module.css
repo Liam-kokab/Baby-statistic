@@ -31,3 +31,9 @@
   font-size: 0.9rem;
 }
 
+.control {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+

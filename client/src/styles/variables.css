@@ -2,29 +2,6 @@
   /* Set root font-size so 1rem = 16px (assumption for the project) */
   font-size: 16px;
   /* Allowed px exceptions: shadows, media-query breakpoints, borders/hairlines, svg strokes */
-  /* ── Colors ─────────────────────────────────────────────────────────────── */
-  --color-bg:              #fef0f7;
-  --color-surface:         #ffffff;
-
-  --color-primary:         #ec407a;
-  --color-primary-dark:    #c2185b;
-  --color-primary-light:   #fce4ec;
-
-  --color-secondary:       #ab47bc;
-  --color-secondary-light: #f3e5f5;
-
-  --color-accent:          #ff6090;
-
-  --color-text:            #3d1a2e;
-  --color-text-muted:      #9d7a90;
-
-  --color-border:          #f8bbd0;
-
-  --color-disabled-bg:     #f5e6f0;
-  --color-disabled-text:   #c4a0b8;
-  /* UI helpers (used as fallbacks in components) */
-  --color-ui-2:            #f4f6fb;
-  --color-focus:           rgba(59,130,246,0.18);
 
   /* ── Typography ──────────────────────────────────────────────────────────── */
   --font-family: 'Nunito', 'Helvetica Neue', Arial, sans-serif;
@@ -56,5 +33,473 @@
 
   /* ── Layout ──────────────────────────────────────────────────────────────── */
   --navbar-height: 3.125rem; /* 50px */
+  /* Global fallbacks for per-page banner variables used by PageLayout */
+  --hero-var: transparent;
+  --page-banner-start: var(--banner-pink-start, #fce4ec);
+  --page-banner-mid: var(--banner-pink-end, #f3e5f5);
+  --page-banner-end: var(--banner-pink-end, #e8eaf6);
 }
 
+/* Dark variants for each theme */
+.theme-girl-dark {
+  --color-bg:              #1b0b11;
+  --color-surface:         #241319;
+  --color-primary:         #ff79a0;
+  --color-primary-dark:    #ff4d7a;
+  --color-primary-light:   rgba(255,121,160,0.08);
+  --color-secondary:       #b57abf;
+  --color-secondary-light: rgba(181,122,191,0.06);
+  --color-accent:          #ff89ab;
+  --color-text:            #ffeef7;
+  --color-text-muted:      #d4a9be;
+  --color-border:          #3b1a27;
+  --color-disabled-bg:     #1a0c12;
+  --color-disabled-text:   #8f6b7b;
+  --color-ui-2:            #12080b;
+  --color-focus:           rgba(255,121,160,0.18);
+  --shadow-sm:  0 2px 8px  rgba(0,0,0,0.6);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.65);
+  --shadow-lg:  0 8px 28px rgba(0,0,0,0.7);
+  --banner-pink-start:  #2b1220;
+  --banner-pink-end:    #3a1726;
+  --banner-blue-start:  #1b2530;
+  --banner-blue-end:    #132028;
+  --banner-green-start: #16221a;
+  --banner-green-end:   #122018;
+  --banner-indigo-start:#201827;
+  --banner-indigo-end:  #1a1420;
+  --banner-amber-start: #2b160f;
+  --banner-amber-end:   #3a1f14;
+  --banner-title-color: #ffeef7;
+  --banner-emoji-color: inherit;
+  --banner-emoji-shadow: rgba(0,0,0,0.6);
+  --banner-title-bg: rgba(255,121,160,0.06);
+  /* Per-page banner gradients for dark girl */
+  --banner-pink-settings-start: #291021;
+  --banner-pink-settings-mid: #331426;
+  --banner-pink-settings-end: #1f0f18;
+  --banner-blue-milk-saved-start: var(--banner-blue-start);
+  --banner-blue-milk-saved-mid: var(--banner-blue-end);
+  --banner-blue-milk-saved-end: var(--banner-blue-end);
+  --banner-green-milk-drank-start: var(--banner-green-start);
+  --banner-green-milk-drank-mid: var(--banner-green-end);
+  --banner-green-milk-drank-end: var(--banner-green-end);
+  --banner-indigo-sleep-start: var(--banner-indigo-start);
+  --banner-indigo-sleep-mid: var(--banner-indigo-end);
+  --banner-indigo-sleep-end: var(--banner-indigo-end);
+  --banner-indigo-pumping-start: var(--banner-indigo-start);
+  --banner-indigo-pumping-mid: var(--banner-indigo-end);
+  --banner-indigo-pumping-end: var(--banner-indigo-end);
+  --banner-amber-poop-pee-start: var(--banner-amber-start);
+  --banner-amber-poop-pee-mid: var(--banner-amber-end);
+  --banner-amber-poop-pee-end: var(--banner-amber-end);
+  --hero-bg-pink:    var(--banner-title-bg);
+  --hero-bg-blue:    var(--banner-title-bg);
+  --hero-bg-green:   var(--banner-title-bg);
+  --hero-bg-indigo:  var(--banner-title-bg);
+  --hero-bg-amber:   var(--banner-title-bg);
+}
+
+.theme-boy-dark {
+  --color-bg:              #07121a;
+  --color-surface:         #0e2230;
+  --color-primary:         #80c8ff;
+  --color-primary-dark:    #4aa3e6;
+  --color-primary-light:   rgba(128,200,255,0.06);
+  --color-secondary:       #4fd0e9;
+  --color-secondary-light: rgba(79,208,233,0.06);
+  --color-accent:          #6fd0ff;
+  --color-text:            #eaf7ff;
+  --color-text-muted:      #9ec0d1;
+  --color-border:          #0b3547;
+  --color-disabled-bg:     #06121a;
+  --color-disabled-text:   #6b8b99;
+  --color-ui-2:            #05121a;
+  --color-focus:           rgba(128,200,255,0.18);
+  --shadow-sm:  0 2px 8px  rgba(0,0,0,0.6);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.65);
+  --shadow-lg:  0 8px 28px rgba(0,0,0,0.7);
+  --banner-pink-start:  #071722;
+  --banner-pink-end:    #0b2430;
+  --banner-blue-start:  #072033;
+  --banner-blue-end:    #0b3048;
+  --banner-green-start: #0b2620;
+  --banner-green-end:   #09221a;
+  --banner-indigo-start:#081424;
+  --banner-indigo-end:  #061022;
+  --banner-amber-start: #1b0f08;
+  --banner-amber-end:   #25150a;
+  --banner-title-color: #eaf7ff;
+  --banner-emoji-color: inherit;
+  --banner-emoji-shadow: rgba(0,0,0,0.6);
+  --banner-title-bg: rgba(128,200,255,0.06);
+  --hero-bg-pink:    var(--banner-title-bg);
+  --hero-bg-blue:    var(--banner-title-bg);
+  --hero-bg-green:   var(--banner-title-bg);
+  --hero-bg-indigo:  var(--banner-title-bg);
+  --hero-bg-amber:   var(--banner-title-bg);
+  /* per-page banner mappings for dark boy */
+  --banner-pink-settings-start: var(--banner-pink-start);
+  --banner-pink-settings-mid: var(--banner-pink-end);
+  --banner-pink-settings-end: var(--banner-pink-end);
+  --banner-blue-milk-saved-start: var(--banner-blue-start);
+  --banner-blue-milk-saved-mid: var(--banner-blue-end);
+  --banner-blue-milk-saved-end: var(--banner-blue-end);
+  --banner-green-milk-drank-start: var(--banner-green-start);
+  --banner-green-milk-drank-mid: var(--banner-green-end);
+  --banner-green-milk-drank-end: var(--banner-green-end);
+  --banner-indigo-sleep-start: var(--banner-indigo-start);
+  --banner-indigo-sleep-mid: var(--banner-indigo-end);
+  --banner-indigo-sleep-end: var(--banner-indigo-end);
+  --banner-indigo-pumping-start: var(--banner-indigo-start);
+  --banner-indigo-pumping-mid: var(--banner-indigo-end);
+  --banner-indigo-pumping-end: var(--banner-indigo-end);
+  --banner-amber-poop-pee-start: var(--banner-amber-start);
+  --banner-amber-poop-pee-mid: var(--banner-amber-end);
+  --banner-amber-poop-pee-end: var(--banner-amber-end);
+}
+
+.theme-neutral-dark {
+  --color-bg:              #07140d;
+  --color-surface:         #0f231b;
+  --color-primary:         #9ad56a;
+  --color-primary-dark:    #6da033;
+  --color-primary-light:   rgba(154,213,106,0.06);
+  --color-secondary:       #b7d784;
+  --color-secondary-light: rgba(183,215,132,0.06);
+  --color-accent:          #cfeaa0;
+  --color-text:            #ecf6eb;
+  --color-text-muted:      #b6c7b1;
+  --color-border:          #12301f;
+  --color-disabled-bg:     #07120e;
+  --color-disabled-text:   #889a83;
+  --color-ui-2:            #07120e;
+  --color-focus:           rgba(154,213,106,0.18);
+  --shadow-sm:  0 2px 8px  rgba(0,0,0,0.6);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.65);
+  --shadow-lg:  0 8px 28px rgba(0,0,0,0.7);
+  --banner-pink-start:  #0b1a14;
+  --banner-pink-end:    #0f241b;
+  --banner-blue-start:  #0b201a;
+  --banner-blue-end:    #092215;
+  --banner-green-start: #0b2418;
+  --banner-green-end:   #092014;
+  --banner-indigo-start:#0c1e18;
+  --banner-indigo-end:  #081612;
+  --banner-amber-start: #171006;
+  --banner-amber-end:   #22150a;
+  --banner-title-color: #ecf6eb;
+  --banner-emoji-color: inherit;
+  --banner-emoji-shadow: rgba(0,0,0,0.6);
+  --banner-title-bg: rgba(154,213,106,0.06);
+  --hero-bg-pink:    var(--banner-title-bg);
+  --hero-bg-blue:    var(--banner-title-bg);
+  --hero-bg-green:   var(--banner-title-bg);
+  --hero-bg-indigo:  var(--banner-title-bg);
+  --hero-bg-amber:   var(--banner-title-bg);
+  /* per-page banner mappings for dark neutral */
+  --banner-pink-settings-start: var(--banner-pink-start);
+  --banner-pink-settings-mid: var(--banner-pink-end);
+  --banner-pink-settings-end: var(--banner-pink-end);
+  --banner-blue-milk-saved-start: var(--banner-blue-start);
+  --banner-blue-milk-saved-mid: var(--banner-blue-end);
+  --banner-blue-milk-saved-end: var(--banner-blue-end);
+  --banner-green-milk-drank-start: var(--banner-green-start);
+  --banner-green-milk-drank-mid: var(--banner-green-end);
+  --banner-green-milk-drank-end: var(--banner-green-end);
+  --banner-indigo-sleep-start: var(--banner-indigo-start);
+  --banner-indigo-sleep-mid: var(--banner-indigo-end);
+  --banner-indigo-sleep-end: var(--banner-indigo-end);
+  --banner-indigo-pumping-start: var(--banner-indigo-start);
+  --banner-indigo-pumping-mid: var(--banner-indigo-end);
+  --banner-indigo-pumping-end: var(--banner-indigo-end);
+  --banner-amber-poop-pee-start: var(--banner-amber-start);
+  --banner-amber-poop-pee-mid: var(--banner-amber-end);
+  --banner-amber-poop-pee-end: var(--banner-amber-end);
+}
+
+/* Theme color palettes — applied by adding one of these classes to <html> */
+.theme-girl {
+  --color-bg:              #fef0f7;
+  --color-surface:         #ffffff;
+
+  --color-primary:         #ec407a;
+  --color-primary-dark:    #c2185b;
+  --color-primary-light:   #fce4ec;
+
+  --color-secondary:       #ab47bc;
+  --color-secondary-light: #f3e5f5;
+
+  --color-accent:          #ff6090;
+
+  --color-text:            #3d1a2e;
+  --color-text-muted:      #9d7a90;
+
+  --color-border:          #f8bbd0;
+
+  --color-disabled-bg:     #f5e6f0;
+  --color-disabled-text:   #c4a0b8;
+  /* UI helpers (used as fallbacks in components) */
+  --color-ui-2:            #f4f6fb;
+  --color-focus:           rgba(59,130,246,0.18);
+
+  --shadow-sm:  0 2px 8px  rgba(194, 24, 91, 0.15);
+  --shadow-md:  0 4px 16px rgba(194, 24, 91, 0.20);
+  --shadow-lg:  0 8px 28px rgba(194, 24, 91, 0.28);
+
+  /* Banner gradients (page header) — keep existing girl values */
+  --banner-pink-start:  #fce4ec;
+  --banner-pink-end:    #f3e5f5;
+  --banner-blue-start:  #e3f2fd;
+  --banner-blue-end:    #bbdefb;
+  --banner-green-start: #e8f5e9;
+  --banner-green-end:   #c8e6c9;
+  --banner-indigo-start:#e8eaf6;
+  --banner-indigo-end:  #c5cae9;
+  --banner-amber-start: #fff8e1;
+  --banner-amber-end:   #ffe0b2;
+  /* Hero title / emoji colours for the page header */
+  --banner-title-color: var(--color-text);
+  --banner-emoji-color: inherit;
+  --banner-emoji-shadow: rgba(0, 0, 0, 0.12);
+  --banner-title-bg: var(--color-primary-light);
+  /* Per-page hero background colors for girl theme */
+  --hero-bg-pink:    #fce4ec;
+  --hero-bg-blue:    #e3f2fd;
+  --hero-bg-green:   #e8f5e9;
+  --hero-bg-indigo:  #e8eaf6;
+  --hero-bg-amber:   #fff8e1;
+  /* Per-page mappings (use page slug) */
+  --hero-bg-settings: var(--hero-bg-pink);
+  --hero-bg-milk-saved: var(--hero-bg-blue);
+  --hero-bg-milk-drank: var(--hero-bg-green);
+  --hero-bg-sleep: var(--hero-bg-indigo);
+  --hero-bg-pumping: var(--hero-bg-indigo);
+  --hero-bg-poop-pee: var(--hero-bg-amber);
+  --hero-bg-medicines: var(--hero-bg-green);
+  --hero-bg-edit-stored-milk: var(--hero-bg-blue);
+  --hero-bg-edit-drank-milk: var(--hero-bg-green);
+  --hero-bg-edit-medicine: var(--hero-bg-green);
+  --hero-bg-edit-medicine-log: var(--hero-bg-green);
+  --hero-bg-edit-pumping: var(--hero-bg-indigo);
+  --hero-bg-edit-sleep: var(--hero-bg-indigo);
+  --hero-bg-edit-poop: var(--hero-bg-amber);
+  --hero-bg-edit-pee: var(--hero-bg-amber);
+  /* Per-page banner gradients (start/mid/end) */
+  --banner-pink-settings-start: var(--banner-pink-start);
+  --banner-pink-settings-mid: var(--banner-pink-end);
+  --banner-pink-settings-end: var(--banner-pink-end);
+  --banner-blue-milk-saved-start: var(--banner-blue-start);
+  --banner-blue-milk-saved-mid: var(--banner-blue-end);
+  --banner-blue-milk-saved-end: var(--banner-blue-end);
+  --banner-green-milk-drank-start: var(--banner-green-start);
+  --banner-green-milk-drank-mid: var(--banner-green-end);
+  --banner-green-milk-drank-end: var(--banner-green-end);
+  --banner-indigo-sleep-start: var(--banner-indigo-start);
+  --banner-indigo-sleep-mid: var(--banner-indigo-end);
+  --banner-indigo-sleep-end: var(--banner-indigo-end);
+  --banner-indigo-pumping-start: var(--banner-indigo-start);
+  --banner-indigo-pumping-mid: var(--banner-indigo-end);
+  --banner-indigo-pumping-end: var(--banner-indigo-end);
+  --banner-amber-poop-pee-start: var(--banner-amber-start);
+  --banner-amber-poop-pee-mid: var(--banner-amber-end);
+  --banner-amber-poop-pee-end: var(--banner-amber-end);
+  --banner-green-medicines-start: var(--banner-green-start);
+  --banner-green-medicines-mid: var(--banner-green-end);
+  --banner-green-medicines-end: var(--banner-green-end);
+  /* edit pages map to same gradients as their target pages */
+  --banner-blue-edit-stored-milk-start: var(--banner-blue-start);
+  --banner-blue-edit-stored-milk-mid: var(--banner-blue-end);
+  --banner-blue-edit-stored-milk-end: var(--banner-blue-end);
+  --banner-green-edit-drank-milk-start: var(--banner-green-start);
+  --banner-green-edit-drank-milk-mid: var(--banner-green-end);
+  --banner-green-edit-drank-milk-end: var(--banner-green-end);
+  --banner-green-edit-medicine-start: var(--banner-green-start);
+  --banner-green-edit-medicine-mid: var(--banner-green-end);
+  --banner-green-edit-medicine-end: var(--banner-green-end);
+  --banner-green-edit-medicine-log-start: var(--banner-green-start);
+  --banner-green-edit-medicine-log-mid: var(--banner-green-end);
+  --banner-green-edit-medicine-log-end: var(--banner-green-end);
+  --banner-indigo-edit-pumping-start: var(--banner-indigo-start);
+  --banner-indigo-edit-pumping-mid: var(--banner-indigo-end);
+  --banner-indigo-edit-pumping-end: var(--banner-indigo-end);
+  --banner-indigo-edit-sleep-start: var(--banner-indigo-start);
+  --banner-indigo-edit-sleep-mid: var(--banner-indigo-end);
+  --banner-indigo-edit-sleep-end: var(--banner-indigo-end);
+  --banner-amber-edit-poop-start: var(--banner-amber-start);
+  --banner-amber-edit-poop-mid: var(--banner-amber-end);
+  --banner-amber-edit-poop-end: var(--banner-amber-end);
+  --banner-amber-edit-pee-start: var(--banner-amber-start);
+  --banner-amber-edit-pee-mid: var(--banner-amber-end);
+  --banner-amber-edit-pee-end: var(--banner-amber-end);
+}
+
+.theme-boy {
+  --color-bg:              #f0f7ff;
+  --color-surface:         #ffffff;
+
+  --color-primary:         #42a5f5;
+  --color-primary-dark:    #1565c0;
+  --color-primary-light:   #e3f2fd;
+
+  --color-secondary:       #26c6da;
+  --color-secondary-light: #e0f7fa;
+
+  --color-accent:          #4fc3f7;
+
+  --color-text:            #12324a;
+  --color-text-muted:      #6b8290;
+
+  --color-border:          #cfe9ff;
+
+  --color-disabled-bg:     #e6f3fb;
+  --color-disabled-text:   #9fbfda;
+  --color-ui-2:            #f8fbff;
+  --color-focus:           rgba(66,165,245,0.18);
+
+  --shadow-sm:  0 2px 8px  rgba(21,101,192,0.10);
+  --shadow-md:  0 4px 16px rgba(21,101,192,0.14);
+  --shadow-lg:  0 8px 28px rgba(21,101,192,0.18);
+
+  /* Banner gradients tuned for blue theme */
+  --banner-pink-start:  #e6f4ff;
+  --banner-pink-end:    #d7ecff;
+  --banner-blue-start:  #e3f2fd;
+  --banner-blue-end:    #bbdefb;
+  --banner-green-start: #e8fbf7;
+  --banner-green-end:   #dff7f5;
+  --banner-indigo-start:#e8eaf6;
+  --banner-indigo-end:  #c5cae9;
+  --banner-amber-start: #fff9f3;
+  --banner-amber-end:   #fff2e6;
+  --banner-title-color: #0f2a3a;
+  --banner-emoji-color: inherit;
+  --banner-emoji-shadow: rgba(21,101,192,0.12);
+  --banner-title-bg: var(--color-primary-light);
+  /* Per-page hero background colors for boy theme */
+  --hero-bg-pink:    #e6f4ff;
+  --hero-bg-blue:    #e3f2fd;
+  --hero-bg-green:   #e8fbf7;
+  --hero-bg-indigo:  #e8eaf6;
+  --hero-bg-amber:   #fff9f3;
+  /* Per-page banner gradients for boy theme */
+  --banner-pink-settings-start: var(--banner-pink-start);
+  --banner-pink-settings-mid: var(--banner-pink-end);
+  --banner-pink-settings-end: var(--banner-pink-end);
+  --banner-blue-milk-saved-start: var(--banner-blue-start);
+  --banner-blue-milk-saved-mid: var(--banner-blue-end);
+  --banner-blue-milk-saved-end: var(--banner-blue-end);
+  --banner-green-milk-drank-start: var(--banner-green-start);
+  --banner-green-milk-drank-mid: var(--banner-green-end);
+  --banner-green-milk-drank-end: var(--banner-green-end);
+  --banner-indigo-sleep-start: var(--banner-indigo-start);
+  --banner-indigo-sleep-mid: var(--banner-indigo-end);
+  --banner-indigo-sleep-end: var(--banner-indigo-end);
+  --banner-indigo-pumping-start: var(--banner-indigo-start);
+  --banner-indigo-pumping-mid: var(--banner-indigo-end);
+  --banner-indigo-pumping-end: var(--banner-indigo-end);
+  --banner-amber-poop-pee-start: var(--banner-amber-start);
+  --banner-amber-poop-pee-mid: var(--banner-amber-end);
+  --banner-amber-poop-pee-end: var(--banner-amber-end);
+  /* Per-page mappings (use page slug) */
+  --hero-bg-settings: var(--hero-bg-pink);
+  --hero-bg-milk-saved: var(--hero-bg-blue);
+  --hero-bg-milk-drank: var(--hero-bg-green);
+  --hero-bg-sleep: var(--hero-bg-indigo);
+  --hero-bg-pumping: var(--hero-bg-indigo);
+  --hero-bg-poop-pee: var(--hero-bg-amber);
+  --hero-bg-medicines: var(--hero-bg-green);
+  --hero-bg-edit-stored-milk: var(--hero-bg-blue);
+  --hero-bg-edit-drank-milk: var(--hero-bg-green);
+  --hero-bg-edit-medicine: var(--hero-bg-green);
+  --hero-bg-edit-medicine-log: var(--hero-bg-green);
+  --hero-bg-edit-pumping: var(--hero-bg-indigo);
+  --hero-bg-edit-sleep: var(--hero-bg-indigo);
+  --hero-bg-edit-poop: var(--hero-bg-amber);
+  --hero-bg-edit-pee: var(--hero-bg-amber);
+}
+
+.theme-neutral {
+  --color-bg:              #f7f9f4;
+  --color-surface:         #ffffff;
+
+  --color-primary:         #7cb342;
+  --color-primary-dark:    #558b2f;
+  --color-primary-light:   #f1f8ee;
+
+  --color-secondary:       #9ccc65;
+  --color-secondary-light: #f3f9ec;
+
+  --color-accent:          #cddc39;
+
+  --color-text:            #243228;
+  --color-text-muted:      #6b756b;
+
+  --color-border:          #e6f0df;
+
+  --color-disabled-bg:     #f0f5eb;
+  --color-disabled-text:   #bfc9b9;
+  --color-ui-2:            #fbfdf9;
+  --color-focus:           rgba(124,179,66,0.18);
+
+  --shadow-sm:  0 2px 8px  rgba(88, 101, 68, 0.08);
+  --shadow-md:  0 4px 16px rgba(88, 101, 68, 0.12);
+  --shadow-lg:  0 8px 28px rgba(88, 101, 68, 0.16);
+
+  /* Banner gradients tuned for neutral theme */
+  --banner-pink-start:  #f7f9f4;
+  --banner-pink-end:    #eef3e9;
+  --banner-blue-start:  #f4f7f2;
+  --banner-blue-end:    #ebf0e8;
+  --banner-green-start: #e8f5e9;
+  --banner-green-end:   #c8e6c9;
+  --banner-indigo-start:#f4f6f0;
+  --banner-indigo-end:  #e9efe6;
+  --banner-amber-start: #fff9f0;
+  --banner-amber-end:   #fff1dd;
+  --banner-title-color: #243228;
+  --banner-emoji-color: inherit;
+  --banner-emoji-shadow: rgba(88,101,68,0.10);
+  --banner-title-bg: var(--color-primary-light);
+  /* Per-page hero background colors for neutral theme */
+  --hero-bg-pink:    #f7f9f4;
+  --hero-bg-blue:    #f4f7f2;
+  --hero-bg-green:   #f1f8ee;
+  --hero-bg-indigo:  #f4f6f0;
+  --hero-bg-amber:   #fff9f0;
+  /* Per-page banner gradients for neutral theme */
+  --banner-pink-settings-start: var(--banner-pink-start);
+  --banner-pink-settings-mid: var(--banner-pink-end);
+  --banner-pink-settings-end: var(--banner-pink-end);
+  --banner-blue-milk-saved-start: var(--banner-blue-start);
+  --banner-blue-milk-saved-mid: var(--banner-blue-end);
+  --banner-blue-milk-saved-end: var(--banner-blue-end);
+  --banner-green-milk-drank-start: var(--banner-green-start);
+  --banner-green-milk-drank-mid: var(--banner-green-end);
+  --banner-green-milk-drank-end: var(--banner-green-end);
+  --banner-indigo-sleep-start: var(--banner-indigo-start);
+  --banner-indigo-sleep-mid: var(--banner-indigo-end);
+  --banner-indigo-sleep-end: var(--banner-indigo-end);
+  --banner-indigo-pumping-start: var(--banner-indigo-start);
+  --banner-indigo-pumping-mid: var(--banner-indigo-end);
+  --banner-indigo-pumping-end: var(--banner-indigo-end);
+  --banner-amber-poop-pee-start: var(--banner-amber-start);
+  --banner-amber-poop-pee-mid: var(--banner-amber-end);
+  --banner-amber-poop-pee-end: var(--banner-amber-end);
+  /* Per-page mappings (use page slug) */
+  --hero-bg-settings: var(--hero-bg-pink);
+  --hero-bg-milk-saved: var(--hero-bg-blue);
+  --hero-bg-milk-drank: var(--hero-bg-green);
+  --hero-bg-sleep: var(--hero-bg-indigo);
+  --hero-bg-pumping: var(--hero-bg-indigo);
+  --hero-bg-poop-pee: var(--hero-bg-amber);
+  --hero-bg-medicines: var(--hero-bg-green);
+  --hero-bg-edit-stored-milk: var(--hero-bg-blue);
+  --hero-bg-edit-drank-milk: var(--hero-bg-green);
+  --hero-bg-edit-medicine: var(--hero-bg-green);
+  --hero-bg-edit-medicine-log: var(--hero-bg-green);
+  --hero-bg-edit-pumping: var(--hero-bg-indigo);
+  --hero-bg-edit-sleep: var(--hero-bg-indigo);
+  --hero-bg-edit-poop: var(--hero-bg-amber);
+  --hero-bg-edit-pee: var(--hero-bg-amber);
+}
