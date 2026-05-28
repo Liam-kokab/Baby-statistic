@@ -51,7 +51,7 @@ const SettingsPage = () => {
       {/* Appearance card */}
       <section className={styles.card}>
         <h2 className={styles.sectionTitle}>Appearance</h2>
-        <div className={styles.row}>
+        <div className={`${styles.row} ${styles.rowStack}`}>
           <span className={styles.label}>Theme</span>
           <div className={`${styles.value} ${styles.control}`}>
             <Toggle
@@ -62,7 +62,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <div className={styles.row}>
+        <div className={`${styles.row} ${styles.rowStack}`}>
           <span className={styles.label}>Mode</span>
           <div className={`${styles.value} ${styles.control}`}>
             <Toggle

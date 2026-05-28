@@ -136,6 +136,11 @@ No props. Uses `useNavigate` and `useLocation` hooks internally.
 
 Fixed bottom bar with six emoji buttons. Active page is highlighted with a raised pink pill.
 
+Note: the NavBar includes the device safe-area inset (e.g. `env(safe-area-inset-bottom)`) in its
+total height on mobile so non-active buttons stay vertically centered above the top border. Only
+the active button is visually raised and overlaps the border. This prevents buttons from appearing
+too high on phones with a home indicator.
+
 | Position | Path | Emoji | Label |
 |---|---|---|---|
 | 1 | `/poop-pee` | 💩 | Poop & Pee |

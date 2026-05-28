@@ -78,9 +78,9 @@ if (fs.existsSync(path.join(clientDist, 'index.html'))) {
         'girl:light': '#ec407a',
         'neutral:light': '#7cb342',
         'boy:light': '#42a5f5',
-        'girl:dark': '#ff79a0',
-        'neutral:dark': '#9ad56a',
-        'boy:dark': '#80c8ff',
+        'girl:dark': '#402029',
+        'neutral:dark': '#2c3c1e',
+        'boy:dark': '#20313e',
       };
 
       const key = `${theme || 'neutral'}:${mode === 'dark' ? 'dark' : 'light'}`;

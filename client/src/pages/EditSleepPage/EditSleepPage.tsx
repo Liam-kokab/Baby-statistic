@@ -92,25 +92,42 @@ const EditSleepPage = () => {
             </div>
             {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}
             <div className={styles.actions}>
-              <Button text="Save" emoji="💾" onClick={handleSubmit} loading={saving} />
-              <Button text="Cancel" emoji="↩️" variant="secondary" onClick={goBack} />
               <Button
-                text="Delete"
-                emoji="🗑️"
-                variant="ghost"
-                loading={deleting}
-                onClick={async () => {
-                  setDeleting(true);
-                  setError(null);
-                  const res = await fetch2<null>(`/api/sleep/${id}`, { method: 'DELETE' });
-                  if (res.ok) {
-                    goBack();
-                  } else {
-                    setError(res.error);
-                    setDeleting(false);
-                  }
-                }}
+                className={styles.saveBtn}
+                text="Save"
+                emoji="💾"
+                onClick={handleSubmit}
+                loading={saving}
               />
+
+              <div className={styles.secondaryRow}>
+                <Button
+                  className={styles.secondaryBtn}
+                  text="Cancel"
+                  emoji="↩️"
+                  variant="secondary"
+                  onClick={goBack}
+                />
+
+                <Button
+                  className={styles.secondaryBtn}
+                  text="Delete"
+                  emoji="🗑️"
+                  variant="ghost"
+                  loading={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    setError(null);
+                    const res = await fetch2<null>(`/api/sleep/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                      goBack();
+                    } else {
+                      setError(res.error);
+                      setDeleting(false);
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
         )}

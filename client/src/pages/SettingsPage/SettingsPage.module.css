@@ -16,6 +16,11 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+.rowStack {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .row:last-child {
   border-bottom: none;
 }
@@ -35,6 +40,12 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+}
+
+.rowStack .control {
+  justify-content: flex-start;
+  width: 100%;
+  margin-top: 0.35rem;
 }
 
 .section {

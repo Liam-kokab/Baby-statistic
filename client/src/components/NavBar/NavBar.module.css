@@ -18,13 +18,20 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: var(--navbar-height);
+  /* include the device safe-area inset in the nav's total height so buttons remain vertically centered
+     on phones with a home indicator. Use env(..., 0px) as a safe fallback for browsers that don't
+     support the env() variable. Set box-sizing so padding is included in the height calculation. */
+  box-sizing: border-box;
+  height: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px));
   background: var(--color-surface);
   border-top: 2px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 1rem env(safe-area-inset-bottom);
+  /* keep horizontal padding, and apply bottom inset via padding-bottom so it doesn't push content out
+     of the nav when the inset is present */
+  padding: 0 1rem;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   box-shadow: 0 -4px 20px rgba(194, 24, 91, 0.1);
   z-index: 100;
   overflow: visible;
