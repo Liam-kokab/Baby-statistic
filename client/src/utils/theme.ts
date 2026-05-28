@@ -66,10 +66,28 @@ const applyEffectiveTheme = (theme: TTheme, dark: boolean): void => {
   clearAllThemeClasses(el);
   const cls = dark ? `theme-${theme}-dark` : `theme-${theme}`;
   el.classList.add(cls);
+  // update the meta theme-color to match the current --color-primary
+  try {
+    const cs = getComputedStyle(el);
+    const primary = cs.getPropertyValue('--color-primary').trim() || '';
+    if (primary) {
+      let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+      }
+      meta.content = primary;
+    }
+  } catch (_e) {
+    // ignore if running in environments without DOM
+  }
 };
 
 export const setTheme = (theme: TTheme): void => {
   saveTheme(theme);
+  // persist theme in a cookie so server can serve a matching manifest.json at install time
+  try { document.cookie = `theme=${theme}; path=/; max-age=${60 * 60 * 24 * 365}`; } catch (_e) {}
   const mode = getSavedMode() ?? 'auto';
   const dark = resolveDark(mode);
   applyEffectiveTheme(theme, dark);
@@ -77,6 +95,8 @@ export const setTheme = (theme: TTheme): void => {
 
 export const setMode = (mode: TThemeMode): void => {
   saveMode(mode);
+  // persist mode in a cookie so server can use it when returning manifest.json
+  try { document.cookie = `themeMode=${mode}; path=/; max-age=${60 * 60 * 24 * 365}`; } catch (_e) {}
   // remove existing listener
   if (mq && mqListener) {
     try { mq.removeEventListener('change', mqListener); } catch (_e) { try { mq.removeListener(mqListener as any); } catch (_e2) {} }

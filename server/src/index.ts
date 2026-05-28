@@ -54,6 +54,44 @@ app.use('/api/predictions', predictionsRouter);
 
 const clientDist = path.join(__dirname, 'public');
 if (fs.existsSync(path.join(clientDist, 'index.html'))) {
+  // Serve a theme-aware manifest.json so PWA installs can reflect the user's chosen theme
+  app.get('/manifest.json', (_req, res) => {
+    try {
+      const manifestPath = path.join(clientDist, 'manifest.json');
+      if (!fs.existsSync(manifestPath)) return res.status(404).send('manifest not found');
+      const raw = fs.readFileSync(manifestPath, 'utf-8');
+      const manifest = JSON.parse(raw) as Record<string, unknown>;
+
+      // parse cookies (simple parser)
+      const cookieHeader = (_req.headers && (_req.headers as any).cookie) || '';
+      const cookies: Record<string,string> = {};
+      cookieHeader.split(';').map((s: string) => s.trim()).filter(Boolean).forEach((c: string) => {
+        const [k, ...v] = c.split('=');
+        cookies[k] = decodeURIComponent(v.join('='));
+      });
+
+      const theme = (cookies.theme as string) || '';
+      const mode = (cookies.themeMode as string) || 'light';
+
+      // map theme+mode to a reasonable theme_color used by the manifest
+      const colorMap: Record<string,string> = {
+        'girl:light': '#ec407a',
+        'neutral:light': '#7cb342',
+        'boy:light': '#42a5f5',
+        'girl:dark': '#ff79a0',
+        'neutral:dark': '#9ad56a',
+        'boy:dark': '#80c8ff',
+      };
+
+      const key = `${theme || 'neutral'}:${mode === 'dark' ? 'dark' : 'light'}`;
+      (manifest as any).theme_color = colorMap[key] || (manifest as any).theme_color;
+      return res.json(manifest);
+    } catch (err) {
+      console.error('Failed to serve manifest.json:', err);
+      return res.status(500).send('error');
+    }
+  });
+
   app.use(express.static(clientDist));
 
   app.get('/{*path}', (_req, res) => {
