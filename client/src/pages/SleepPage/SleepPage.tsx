@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetch2 } from 'baby-statistic-common/util';
 import type { TSleep } from 'baby-statistic-common';
@@ -44,12 +44,8 @@ const totalDurationMs = (items: TSleep[]): number =>
 
 // items must be sorted descending by start (as produced by groupSleepByDay)
 const totalAwakeMsForItems = (items: TSleep[]): number =>
-  items.reduce((sum, item, i) => {
-    if (i === 0) return sum;
-    if (!item.end) return sum;
-    const gap = Math.max(0, new Date(items[i - 1].start).getTime() - new Date(item.end).getTime());
-    return sum + gap;
-  }, 0);
+  // reuse calcAwakeStats to ensure consistent awake calculation (including ongoing awake)
+  calcAwakeStats(items).totalMs;
 
 const calcAwakeStats = (items: TSleep[]): { totalMs: number; avgMs: number } => {
   const sorted = [...items].sort((a, b) => a.start.localeCompare(b.start));
@@ -60,6 +56,16 @@ const calcAwakeStats = (items: TSleep[]): { totalMs: number; avgMs: number } => 
     const gap = new Date(item.start).getTime() - new Date(prev.end).getTime();
     return gap > 0 ? [...acc, gap] : acc;
   }, []);
+  // If there is no ongoing sleep (no item with end === null) but we have sleeps,
+  // include the gap from the last sleep end to now as an ongoing awake period.
+  const hasOngoingSleep = sorted.some((s) => s.end === null);
+  if (!hasOngoingSleep && sorted.length > 0) {
+    const last = sorted[sorted.length - 1];
+    if (last.end) {
+      const gapNow = Date.now() - new Date(last.end).getTime();
+      if (gapNow > 0) gaps.push(gapNow);
+    }
+  }
   const totalMs = gaps.reduce((s, g) => s + g, 0);
   const avgMs = gaps.length > 0 ? Math.round(totalMs / gaps.length) : 0;
   return { totalMs, avgMs };
@@ -107,6 +113,24 @@ const SleepPage = () => {
     initialLoad();
   }, [load]);
 
+  // Augment data with an ongoing "awake" pseudo-entry when appropriate:
+  // If there is no ongoing sleep (no item.end === null) and we have at least one sleep
+  // whose end is set, create a synthetic awake item starting at the last sleep end.
+  const augmentedData = useMemo(() => {
+    if (data.length === 0) return data;
+    const hasOngoing = data.some((d) => d.end === null);
+    if (hasOngoing) return data;
+    const latest = data.reduce((a, b) => (a.start > b.start ? a : b));
+    if (!latest.end) return data;
+    const awakeSynthetic: TSleep = {
+      id: -1,
+      start: latest.end,
+      end: null,
+      createdAt: latest.end,
+    };
+    return [...data, awakeSynthetic];
+  }, [data]);
+
   const totalMs = totalDurationMs(data);
   const daysWithData = new Set(data.map((d) => d.start.slice(0, 10))).size;
   const avgMs = daysWithData > 0 ? Math.round(totalMs / daysWithData) : 0;
@@ -129,6 +153,17 @@ const SleepPage = () => {
 
   const renderSleepItems = (items: TSleep[]) =>
     items.flatMap((item, i) => {
+      // synthetic awake entry (id < 0)
+      if (item.id < 0) {
+        const awakeMs = Date.now() - new Date(item.start).getTime();
+        return [
+          <div key={`awake-${item.id}`} className={`${styles.dayItem} ${styles.awakeDayItem}`}>
+            <span className={styles.dayItemDuration}>☀️ {formatMs(awakeMs)}</span>
+            <span className={styles.time}>{formatTime(item.start)} → Ongoing</span>
+          </div>,
+        ];
+      }
+
       const next = items[i + 1];
       const awakeMs =
         next?.end
@@ -148,10 +183,10 @@ const SleepPage = () => {
           ? [
               <div key={`awake-${item.id}`} className={`${styles.dayItem} ${styles.awakeDayItem}`}>
                 <span className={styles.dayItemDuration}>☀️ {formatMs(awakeMs)}</span>
-                  <span className={styles.time}>
-                    {formatTime(next.end!)}
-                    {` → ${formatTime(item.start)}`}
-                  </span>
+                <span className={styles.time}>
+                  {formatTime(next.end!)}
+                  {` → ${formatTime(item.start)}`}
+                </span>
               </div>,
             ]
           : []),
@@ -159,58 +194,73 @@ const SleepPage = () => {
     });
 
   const renderItemView = () => {
-    const sorted = [...data].sort((a, b) => b.start.localeCompare(a.start));
+    const sorted = [...augmentedData].sort((a, b) => b.start.localeCompare(a.start));
     return (
       <div className={styles.list}>
         {sorted.length === 0 ? (
           <p className={styles.empty}>No records found 😴</p>
         ) : (
           sorted.flatMap((item, i) => {
-            const next = sorted[i + 1];
-            const awakeMs =
-              next?.end
-                ? Math.max(0, new Date(item.start).getTime() - new Date(next.end).getTime())
-                : null;
-            return [
-              <div key={item.id} className={styles.card}>
-                <span className={styles.cardEmoji}>😴</span>
-                <div className={styles.cardBody}>
-                  <span className={styles.duration}>{formatDuration(item.start, item.end)}</span>
-                  <span className={styles.timeRange}>
-                    {formatDateTime(item.start)}
-                    {item.end ? ` → ${formatTime(item.end)}` : ''}
-                  </span>
-                </div>
-                <Button
-                  emoji="✏️"
-                  variant="ghost"
-                  className={styles.editBtn}
-                  onClick={() => navigate(`/sleep/${item.id}`)}
-                />
-              </div>,
-              ...(awakeMs !== null && awakeMs > 0
-                ? [
-                    <div key={`awake-${item.id}`} className={`${styles.card} ${styles.awakeCard}`}>
-                      <span className={styles.cardEmoji}>☀️</span>
-                      <div className={styles.cardBody}>
-                        <span className={styles.duration}>{formatMs(awakeMs)}</span>
-                        <span className={styles.timeRange}>
-                          {formatDateTime(next.end!)}
-                          {` → ${formatTime(item.start)}`}
-                        </span>
-                      </div>
-                    </div>,
-                  ]
-                : []),
-            ];
-          })
-        )}
+              // synthetic awake entry
+              if (item.id < 0) {
+                const awakeMs = Date.now() - new Date(item.start).getTime();
+                return [
+                  <div key={`awake-${item.id}`} className={`${styles.card} ${styles.awakeCard}`}>
+                    <span className={styles.cardEmoji}>☀️</span>
+                    <div className={styles.cardBody}>
+                      <span className={styles.duration}>{formatMs(awakeMs)}</span>
+                      <span className={styles.timeRange}>{formatDateTime(item.start)} → Ongoing</span>
+                    </div>
+                  </div>,
+                ];
+              }
+
+              const next = sorted[i + 1];
+              const awakeMs =
+                next?.end
+                  ? Math.max(0, new Date(item.start).getTime() - new Date(next.end).getTime())
+                  : null;
+              return [
+                <div key={item.id} className={styles.card}>
+                  <span className={styles.cardEmoji}>😴</span>
+                  <div className={styles.cardBody}>
+                    <span className={styles.duration}>{formatDuration(item.start, item.end)}</span>
+                    <span className={styles.timeRange}>
+                      {formatDateTime(item.start)}
+                      {item.end ? ` → ${formatTime(item.end)}` : ''}
+                    </span>
+                  </div>
+                  <Button
+                    emoji="✏️"
+                    variant="ghost"
+                    className={styles.editBtn}
+                    onClick={() => navigate(`/sleep/${item.id}`)}
+                  />
+                </div>,
+                ...(awakeMs !== null && awakeMs > 0
+                  ? [
+                      <div key={`awake-${item.id}`} className={`${styles.card} ${styles.awakeCard}`}>
+                        <span className={styles.cardEmoji}>☀️</span>
+                        <div className={styles.cardBody}>
+                          <span className={styles.duration}>{formatMs(awakeMs)}</span>
+                          <span className={styles.timeRange}>
+                            {formatDateTime(next.end!)}
+                            {` → ${formatTime(item.start)}`}
+                          </span>
+                        </div>
+                      </div>,
+                    ]
+                  : []),
+              ];
+            })
+          )
+        }
       </div>
     );
   };
 
   const renderDayView = () => {
-    const groups = groupByDay(data, sleepKeyFn);
+    const groups = groupByDay(augmentedData, sleepKeyFn);
     return (
       <div className={styles.list}>
         {groups.length === 0 ? (
@@ -242,7 +292,7 @@ const SleepPage = () => {
   };
 
   const renderWeekView = () => {
-    const weeks = groupByWeek(data, sleepKeyFn);
+    const weeks = groupByWeek(augmentedData, sleepKeyFn);
     return (
       <div className={styles.list}>
         {weeks.length === 0 ? (

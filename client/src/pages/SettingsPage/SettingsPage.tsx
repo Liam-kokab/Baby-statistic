@@ -47,7 +47,10 @@ const SettingsPage = () => {
 
   return (
     <PageLayout title="Settings" emoji="⚙️">
-      <div className={styles.card}>
+      <div className={styles.content}>
+      {/* Appearance card */}
+      <section className={styles.card}>
+        <h2 className={styles.sectionTitle}>Appearance</h2>
         <div className={styles.row}>
           <span className={styles.label}>Theme</span>
           <div className={`${styles.value} ${styles.control}`}>
@@ -69,7 +72,11 @@ const SettingsPage = () => {
             />
           </div>
         </div>
+      </section>
 
+      {/* Build & Info card */}
+      <section className={styles.card}>
+        <h2 className={styles.sectionTitle}>Build & Info</h2>
         <div className={styles.row}>
           <span className={styles.label}>Frontend</span>
           <span className={styles.value}>{formatBuildTime(clientBuildTime)}</span>
@@ -78,6 +85,9 @@ const SettingsPage = () => {
           <span className={styles.label}>Backend</span>
           <span className={styles.value}>{formatBuildTime(serverBuildTime)}</span>
         </div>
+      </section>
+
+      {/* Advanced card removed */}
       </div>
     </PageLayout>
   );

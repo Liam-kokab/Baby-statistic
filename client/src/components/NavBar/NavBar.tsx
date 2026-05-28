@@ -40,6 +40,11 @@ const NavBar = () => {
     setMenuOpen(false);
   }, [navigate]);
 
+  const navigateAndClose = useCallback((path: string) => {
+    navigate(path);
+    closeMenu();
+  }, [navigate, closeMenu]);
+
   return (
     <>
       {menuOpen ? <div className={styles.overlay} onClick={closeMenu} /> : null}
@@ -77,7 +82,7 @@ const NavBar = () => {
             aria-label={label}
             data-tooltip={label}
             className={`${styles.navBtn} ${pathname === path ? styles.active : ''}`}
-            onClick={() => navigate(path)}
+            onClick={() => navigateAndClose(path)}
           >
             {emoji}
           </button>
