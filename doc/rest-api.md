@@ -103,6 +103,7 @@ After every insert or update, all overdue `FRIDGE`/`FREEZER` records are automat
 |---|---|---|
 | GET | `/api/drank-milk` | List all |
 | GET | `/api/drank-milk/:id` | Get one |
+| | GET | `/api/drank-milk/suggested` | Suggest next bottle amount |
 | POST | `/api/drank-milk` | Create (also deducts from stored milk) |
 | POST | `/api/drank-milk/waste` | Subtract waste from the latest record (does **not** touch storage) |
 | PUT | `/api/drank-milk/:id` | Update |
@@ -116,7 +117,25 @@ After every insert or update, all overdue `FRIDGE`/`FREEZER` records are automat
 
 **PUT body**: `{ "amount": 60, "source": "FRIDGE" | "FREEZER" | "BOOB", "createdAt": "..." }` (partial)
 
+**GET `/suggested` response**: `{ "nextDrinkAmount": 60 }` — suggested millilitres for the next bottle. Uses server-side settings (no query params).
+
 ---
+
+## Predictions — `/api/predictions`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/predictions` | List stored prediction logs (optional `from`/`to` query) |
+| GET | `/api/predictions/latest` | Get the most recent stored prediction |
+
+**GET query params**: `from`, `to` (ISO datetime).
+
+Notes:
+- The server stores the current prediction (the value returned by `/api/drank-milk/suggested`) in `prediction_log` each time a new stored-bottle record is created (`POST /api/drank-milk` with `isNewBottle = true` and `source` = `FRIDGE` or `FREEZER`). `BOOB` records are not logged or linked.
+- `GET /api/predictions` returns only predictions that have been linked to an actual `drank_milk` record (i.e. `actual_id IS NOT NULL`).
+- When filtering with `from`/`to`, the filter applies to the *linked* drink timestamp — the server uses the linked `drank_milk.created_at` as the canonical `createdAt` for a prediction when present.
+- Each returned prediction item includes optional debug fields recorded at prediction time: `rawPrediction`, `observedMax`, `recencyFactor`, and `roundingStep`.
+
 
 ## Sleep — `/api/sleep`
 

@@ -14,8 +14,18 @@
       "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter records created on or before this time"
     }
   },
+  "get_current_prediction": {
+    "description": "Get the current suggested next bottle amount from the server. Returns a JSON object { nextDrinkAmount: number }."
+  },
+  "get_prediction_logs": {
+    "description": "List stored prediction logs that was made before baby drank the milk. Returns predictions already and the actual amount that baby drank. Optionally filter by date range.",
+    "params": {
+      "from": "Oslo local datetime (e.g. \"2026-05-16T00:00:00\") — filter by the linked drink timestamp on or after this time",
+      "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter by the linked drink timestamp on or before this time"
+    }
+  },
   "create_drank_milk": {
-    "description": "Record that the baby drank milk. Source is FRIDGE (bottle — default) or BOOB. isNewBottle controls whether a new record is created (true) or added to the latest existing record (false).",
+    "description": "Record that the baby drank milk. Source is FRIDGE/FREEZER (bottle — default FRIDGE) or BOOB. isNewBottle controls whether a new record is created (true) or added to the latest existing record (false).",
     "params": {
       "amount": "Amount in ml the baby drank",
       "source": "Where the milk came from. Defaults to FRIDGE (bottle).",
@@ -23,7 +33,7 @@
     }
   },
   "log_milk_waste": {
-    "description": "Subtract wasted milk from the latest drank milk record (FRIDGE only). Does NOT restore milk to storage. The amount is floored at 0.",
+    "description": "Subtract wasted milk from the latest drank milk record (FRIDGE or FREEZER). Does NOT restore milk to storage. The amount is floored at 0.",
     "params": {
       "amount": "Amount in ml that was wasted"
     }

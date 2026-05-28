@@ -1,0 +1,25 @@
+{
+  "drankMilk": {
+    "prediction": {
+      "lookbackDays": 35,
+      "weeks": 5,
+      "roundingStep": 10,
+      "maxReduction": 0.3,
+      "halfLifeWeeks": 2,
+      "minSamplesPerBucket": 2,
+      "reductionExponent": 2
+    },
+    "bucket": {
+      "hours": 2
+    },
+    "recency": {
+      "decayHours": 4,
+      "minFactor": 0.5
+    },
+    "logging": {
+      "matchThresholdSec": 2,
+      "padSeconds": 5
+    }
+  }
+}
+

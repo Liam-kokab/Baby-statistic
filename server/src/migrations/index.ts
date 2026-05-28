@@ -400,6 +400,21 @@ export const migrations: TMigration[] = [
       ALTER TABLE medicine_simple RENAME TO medicine;
     `,
   },
+  {
+    name: '011_prediction_logs',
+    up: `
+      CREATE TABLE IF NOT EXISTS prediction_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        predicted_amount INTEGER NOT NULL,
+        actual_id INTEGER NULL,
+        -- debugging fields
+        raw_prediction REAL NULL,
+        observed_max INTEGER NULL,
+        recency_factor REAL NULL,
+        rounding_step INTEGER NULL
+      );
+    `,
+  },
 ];
 
 

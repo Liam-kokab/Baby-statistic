@@ -16,6 +16,7 @@ import medicineRouter from './routes/medicine';
 import pumpingRouter from './routes/pumping';
 import nappyRouter from './routes/nappy';
 import buildTimeRouter from './routes/buildTime';
+import predictionsRouter from './routes/predictions';
 
 const app = express();
 const PORT = process.env.PORT ?? (process.env.NODE_ENV === 'production' ? 80 : 3000);
@@ -49,6 +50,7 @@ app.use('/api/medicine', medicineRouter);
 app.use('/api/pumping', pumpingRouter);
 app.use('/api/nappy', nappyRouter);
 app.use('/api/build-time', buildTimeRouter);
+app.use('/api/predictions', predictionsRouter);
 
 const clientDist = path.join(__dirname, 'public');
 if (fs.existsSync(path.join(clientDist, 'index.html'))) {

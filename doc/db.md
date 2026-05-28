@@ -117,6 +117,20 @@ A custom SQLite function `now_oslo()` is registered on the connection at startup
 | `id` | INTEGER PK | autoincrement |
 | `created_at` | TEXT | Oslo local datetime |
 
+### `prediction_log` (migration `011_prediction_logs`)
+| Column             | Type            | Notes                                                                                                                                                                                                                             |
+|--------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `id`               | INTEGER PK      | autoincrement                                                                                                                                                                                                                     |
+| `predicted_amount` | INTEGER         | Suggested ml recorded at the time a new stored-bottle was created                                                                                                                                                                 |
+| `actual_id`        | INTEGER \| NULL | When available, links to `drank_milk.id` for the matching actual drink; many predictions may be unlinked until the corresponding `drank_milk` is inserted and the prediction row is updated. API returns only linked predictions. |
+| `raw_prediction`   | REAL \| NULL    | Internal raw (unrounded) predicted value captured for diagnostics/tuning                                                                                                                                                          |
+| `observed_max`     | INTEGER \| NULL | Observed historical single-bottle max used by the shrink step                                                                                                                                                                     |
+| `recency_factor`   | REAL \| NULL    | Recency scaling factor applied when the prediction was generated                                                                                                                                                                  |
+| `rounding_step`    | INTEGER \| NULL | Rounding step used (e.g. 10 ml)                                                                                                                                                                                                   |
+
+Notes:
+- The `prediction_log` intentionally does NOT include its own `created_at`; when a prediction is linked to an actual drink the server uses the linked `drank_milk.created_at` as the canonical `createdAt` for reporting and filtering. `GET /api/predictions` returns only linked predictions and exposes the linked drink timestamp as the prediction `createdAt`.
+
 ## Triggers
 `updated_at` columns and their `AFTER UPDATE` triggers were removed in migration `007_drop_updated_at`. No triggers remain on data tables.
 

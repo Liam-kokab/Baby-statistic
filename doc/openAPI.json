@@ -265,6 +265,99 @@
         }
       }
     },
+    "/api/drank-milk/suggested": {
+      "get": {
+        "tags": ["Drank Milk"],
+        "summary": "Get suggested next bottle amount",
+        "description": "Returns a suggested millilitre amount for the next bottle based on server-side settings (default lookback 35 days).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "nextDrinkAmount": { "type": "integer", "example": 60 }
+                  },
+                  "required": ["nextDrinkAmount"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/predictions": {
+      "get": {
+        "tags": ["Drank Milk"],
+        "summary": "List stored prediction logs",
+        "parameters": [
+          { "$ref": "#/components/parameters/From" },
+          { "$ref": "#/components/parameters/To" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "predictedAmount": { "type": "integer" },
+                      "actualId": { "type": "integer" },
+                      "createdAt": { "type": "string", "format": "date-time" },
+                      "rawPrediction": { "type": "number", "nullable": true },
+                      "observedMax": { "type": "integer", "nullable": true },
+                      "recencyFactor": { "type": "number", "nullable": true },
+                      "roundingStep": { "type": "integer", "nullable": true }
+                    },
+                    "required": ["id","predictedAmount","actualId","createdAt"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/predictions/latest": {
+      "get": {
+        "tags": ["Drank Milk"],
+        "summary": "Get the most recent stored prediction",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "predictedAmount": { "type": "integer" },
+                        "actualId": { "type": "integer" },
+                        "createdAt": { "type": "string", "format": "date-time" },
+                        "rawPrediction": { "type": "number", "nullable": true },
+                        "observedMax": { "type": "integer", "nullable": true },
+                        "recencyFactor": { "type": "number", "nullable": true },
+                        "roundingStep": { "type": "integer", "nullable": true }
+                      },
+                      "required": ["id","predictedAmount","actualId","createdAt"]
+                    },
+                    { "type": "null" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/drank-milk/{id}": {
       "parameters": [{ "$ref": "#/components/parameters/Id" }],
       "get": {

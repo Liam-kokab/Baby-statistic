@@ -15,6 +15,12 @@ router.get('/latest', (_req: Request, res: Response): void => {
   res.json(drankMilkService.findLatest());
 });
 
+router.get('/suggested', (_req: Request, res: Response): void => {
+  // No query params accepted — uses server-side settings in `server/src/config/config.json` (see `drankMilk.prediction` and related subkeys)
+  const nextDrinkAmount = drankMilkService.suggestNextDrinkAmount();
+  res.json({ nextDrinkAmount });
+});
+
 router.post('/waste', (req: Request, res: Response): void => {
   const { amount } = bodyAs<{ amount: number }>(req);
   if (!amount || amount <= 0) {

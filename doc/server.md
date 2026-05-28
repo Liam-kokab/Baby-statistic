@@ -105,13 +105,15 @@ Each table has a service in `server/src/services/`. Services sit between routes 
 |---|---|---|
 | `servedMilkService` | `insert` | Calls `expireOverdue()` after inserting; auto-sets `expiryDate` (FRIDGE +4 d, FREEZER +6 mo) |
 | `servedMilkService` | `update` | Calls `expireOverdue()` after updating |
-| `drankMilkService` | `insert` | For `FRIDGE`/`FREEZER`: calls `deductStock` before inserting. If `isNewBottle` is `false`, adds the amount to the latest existing record instead of creating a new one. `BOOB` skips stock deduction. |
+ | `drankMilkService` | `insert` | For `FRIDGE`/`FREEZER`: logs the current prediction (into `prediction_log`), calls `deductStock` before inserting, and after the `drank_milk` row is created links the prediction to the actual drink. If `isNewBottle` is `false`, adds the amount to the latest existing record instead of creating a new one. `BOOB` skips stock deduction and is not logged/linked. |
 | `drankMilkService` | `deductWaste(waste)` | Delegates to `drankMilkRepository.deductWaste`; only targets `FRIDGE`/`FREEZER` records; skips `deductStock` |
 | `sleepService` | `findLatest()` | Delegates to `sleepRepository.findLatest()` |
 
 ## Timezone
 All timestamps are stored and returned as **Oslo local time** (`Europe/Oslo`). See `doc/db.md` for full details.
 
+## Server settings
+The server reads runtime settings from `server/src/config/config.json`. Prediction-related tuning values for the drank-milk service live under the `drankMilk.prediction` key (see also `drankMilk.bucket`, `drankMilk.recency`, and `drankMilk.logging`). Adjust those values and restart the server to change behaviour of endpoints such as `/api/drank-milk/suggested`.
 ## MCP Server
 
 See [`doc/mcp-server.md`](./mcp-server.md) for full documentation on the MCP server package (`mcp-server/`).

@@ -45,6 +45,7 @@ const HomePage = () => {
   // ── Drank milk ────────────────────────────────────────────────────────────
   const [drankAmount, setDrankAmount] = useState('');
   const [latestDrank, setLatestDrank] = useState<TDrankMilk | null>(null);
+  const [suggestedAmount, setSuggestedAmount] = useState<number | null>(null);
   const bottle = useActionFeedback();
   const boob   = useActionFeedback();
 
@@ -59,6 +60,11 @@ const HomePage = () => {
         console.log('[drankMilk] no entries found');
       }
     }
+  };
+
+  const loadSuggested = async (): Promise<void> => {
+    const res = await fetch2<{ nextDrinkAmount: number }>('/api/drank-milk/suggested');
+    if (res.ok) setSuggestedAmount(res.data.nextDrinkAmount ?? null);
   };
 
   // ── Waste milk ────────────────────────────────────────────────────────────
@@ -115,6 +121,7 @@ const HomePage = () => {
   const refetchAll = (): void => {
     loadSleep();
     loadLatestDrank();
+    loadSuggested();
     loadLatestPumping();
     loadLatestNappy();
     loadMedicines();
@@ -323,7 +330,7 @@ const HomePage = () => {
               value={drankAmount}
               onChange={setDrankAmount}
               type="tel"
-              placeholder="e.g. 80"
+              placeholder={`e.g. ${suggestedAmount ?? 80}`}
               name="drankAmount"
             />
             <div className={styles.btnRowFull}>
