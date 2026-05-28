@@ -22,19 +22,20 @@ A simple self-hosted baby statistics tracker that logs daily events for your new
 - 🏠 **Home dashboard** — at-a-glance view of today's events, easy access to logging actions
 - 📅 **Date range filtering** — view logs for any time period
 - 🧊 **Smart milk management** — automatic expiry calculation (fridge: 4 days, freezer: 6 months), automatic deduction from storage when baby drinks, FIFO ordering
+ - 🔮 **Next-bottle prediction** — the server suggests a rounded `nextDrinkAmount` for the next bottle based on recent drinking patterns (configurable lookback). Predictions are logged so you can compare predicted vs actual consumption and improve the model over time.
 - 🔄 **Backup & restore** — full DB export/import via REST API
 - 📖 **Swagger UI** — interactive API docs at `/api-docs`
 - 🐳 **Docker ready** — single-container deployment with persistent volume
 
 ## Tech Stack
 
-| Layer | Tech |
-|-------|------|
-| Client | React 19, Vite 8, TypeScript, CSS Modules |
-| Server | Express 5, TypeScript, better-sqlite3 |
-| Database | SQLite (file-based, zero config) |
-| Shared | npm workspaces monorepo with a `common/` types package |
-| Deploy | Docker (Node 22 Alpine) |
+| Layer    | Tech                                                   |
+|----------|--------------------------------------------------------|
+| Client   | React 19, Vite 8, TypeScript, CSS Modules              |
+| Server   | Express 5, TypeScript, better-sqlite3                  |
+| Database | SQLite (file-based, zero config)                       |
+| Shared   | npm workspaces monorepo with a `common/` types package |
+| Deploy   | Docker (Node 22 Alpine)                                |
 
 ## Getting Started
 
@@ -84,15 +85,15 @@ The container exposes port **80** and persists the database in the `/app/data` v
 
 ## Documentation
 
-| File | Description |
-|------|-------------|
-| [`doc/rest-api.md`](doc/rest-api.md) | Full REST endpoint reference |
-| [`doc/server.md`](doc/server.md) | Express setup, file structure, scripts, Docker |
-| [`doc/client.md`](doc/client.md) | React app structure, components, Vite config |
-| [`doc/db.md`](doc/db.md) | SQLite schema, migrations, triggers |
-| [`doc/common.md`](doc/common.md) | Shared types package, exports, usage |
-| [`doc/deploy.md`](doc/deploy.md) | Deployment guide |
-| [`doc/userGuid.md`](doc/userGuid.md) | End-user guide |
+| File                                 | Description                                    |
+|--------------------------------------|------------------------------------------------|
+| [`doc/rest-api.md`](doc/rest-api.md) | Full REST endpoint reference                   |
+| [`doc/server.md`](doc/server.md)     | Express setup, file structure, scripts, Docker |
+| [`doc/client.md`](doc/client.md)     | React app structure, components, Vite config   |
+| [`doc/db.md`](doc/db.md)             | SQLite schema, migrations, triggers            |
+| [`doc/common.md`](doc/common.md)     | Shared types package, exports, usage           |
+| [`doc/deploy.md`](doc/deploy.md)     | Deployment guide                               |
+| [`doc/userGuid.md`](doc/userGuid.md) | End-user guide                                 |
 
 Interactive Swagger UI is available at `http://<host>/api-docs` when the server is running.
 

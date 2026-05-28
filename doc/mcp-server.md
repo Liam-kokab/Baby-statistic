@@ -81,8 +81,10 @@ All tool descriptions are stored in `src/descriptions.json` as a flat key-value 
 | Tool | Description |
 |---|---|
 | `get_drank_milk` | List drank milk records (optional date filter) |
-| `create_drank_milk` | Record baby drank milk (source: FRIDGE default, or BOOB) |
-| `log_milk_waste` | Subtract wasted milk from latest record |
+| `create_drank_milk` | Record baby drank milk (source: FRIDGE/FREEZER default FRIDGE, or BOOB) |
+| `log_milk_waste` | Subtract wasted milk from latest record (FRIDGE/FREEZER) |
+| `get_current_prediction` | Get server-side suggested next bottle amount (`/api/drank-milk/suggested`) |
+| `get_prediction_logs` | List stored prediction logs (returns only linked predictions). The MCP tool validates the response using Zod, and enriches each prediction with `actualAmount` (predicted vs actual) by fetching linked `drank_milk` rows in a single call. The enrichment avoids per-prediction API calls and returns a compact `[{ id, predictedAmount, actualId, createdAt, actualAmount, ...debug }]` array suitable for downstream agents. |
 
 ### Sleep
 | Tool | Description |
