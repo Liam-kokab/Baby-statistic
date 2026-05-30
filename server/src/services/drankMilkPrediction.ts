@@ -1,190 +1,211 @@
 import type { TDrankMilk } from 'baby-statistic-common';
 import { drankMilkRepository } from '../repositories/drankMilkRepository';
-import { nowOslo, toOsloLocal } from '../utils/time';
-import configFile from '../config/config.json';
+import { toOsloLocal } from '../utils/time';
 
-type TPredictOptions = {
-  lookbackDays?: number;
-  weeks?: number;
-  roundingStep?: number;
-  maxReduction?: number;
-  halfLifeWeeks?: number;
-  minSamplesPerBucket?: number;
-  reductionExponent?: number;
-};
+type TPredictOptions = Record<string, unknown>;
 
-const DRANK_CFG = (configFile && (configFile.drankMilk ?? {})) as Record<string, unknown>;
-const FILE_SETTINGS = (DRANK_CFG && (DRANK_CFG.prediction ?? {})) as Record<string, unknown>;
-const DEFAULTS: Required<TPredictOptions> = {
-  lookbackDays: Number(FILE_SETTINGS.lookbackDays ?? 35),
-  weeks: Number(FILE_SETTINGS.weeks ?? 5),
-  roundingStep: Number(FILE_SETTINGS.roundingStep ?? 10),
-  maxReduction: Number(FILE_SETTINGS.maxReduction ?? 0.3),
-  halfLifeWeeks: Number(FILE_SETTINGS.halfLifeWeeks ?? 2),
-  minSamplesPerBucket: Number(FILE_SETTINGS.minSamplesPerBucket ?? 2),
-  reductionExponent: Number(FILE_SETTINGS.reductionExponent ?? 2),
-};
 
 const msPerDay = 24 * 60 * 60 * 1000;
-const msPerWeek = 7 * msPerDay;
 const msPerHour = 60 * 60 * 1000;
 
-const median = (arr: number[]): number | null => {
+const getAverage = (arr : number[]): number | null => {
   if (!arr || arr.length === 0) return null;
-  const a = [...arr].sort((x, y) => x - y);
-  const m = Math.floor(a.length / 2);
-  return a.length % 2 === 1 ? a[m] : (a[m - 1] + a[m]) / 2;
+  const sum = arr.reduce((s, v) => s + v, 0);
+  return sum / arr.length;
+}
+
+/**
+ * @param arr Array of objects with `value` and `weight` properties, weight >= 0,
+ * @returns Weighted average of the values, or null if input is empty or invalid
+ */
+export const getAverageWithWeight = (arr: { value: number; weight: number }[]): number | null => {
+  if (!arr || arr.length === 0) return null;
+
+  // Keep only valid entries: finite numbers and non-negative weights
+  const valid = arr.filter(
+    (e) => typeof e.value === 'number' && Number.isFinite(e.value) && typeof e.weight === 'number' && Number.isFinite(e.weight) && e.weight >= 0,
+  );
+
+  if (valid.length === 0) return null;
+
+  const totalWeight = valid.reduce((s, v) => s + v.weight, 0);
+  if (totalWeight === 0) return null; // no effective weight
+
+  const weightedSum = valid.reduce((s, v) => s + v.value * v.weight, 0);
+  return weightedSum / totalWeight;
 };
 
 const roundToStep = (value: number, step: number): number =>
   Math.max(0, Math.round(value / step) * step);
 
-const getOsloHourFromCreatedAt = (createdAtIso: string): number => {
-  // createdAtIso is produced by repository as an ISO with offset (e.g. 2026-05-27T12:34:00+02:00)
-  // Extract the local hour portion (positions 11..13 in the string YYYY-MM-DDTHH)
-  // Fallback to parsing if string length unexpected.
-  try {
-    if (createdAtIso.length >= 13) {
-      return Number(createdAtIso.slice(11, 13));
-    }
-    return new Date(createdAtIso).getUTCHours();
-  } catch (_e) {
-    return 0;
-  }
-};
+export const divideDataByHours = (data: TDrankMilk[], hours: number): TDrankMilk[][] => {
+  // Defensive: hours must be a positive number
+  const bucketHours = typeof hours === 'number' && hours > 0 ? hours : 1;
 
-export type TSuggestionDetails = {
-  suggested: number;
-  raw: number;
-  observedMax: number;
-  recencyFactor: number;
-  roundingStep: number;
-  reductionPercent: number;
-};
+  if (!data || data.length === 0) return [];
 
-export const getSuggestedNextDrinkDetails = (opts: TPredictOptions = {}): TSuggestionDetails => {
-  const {
-    lookbackDays,
-    weeks,
-    roundingStep,
-    maxReduction,
-    halfLifeWeeks,
-    minSamplesPerBucket,
-    reductionExponent,
-  } = { ...DEFAULTS, ...opts } as Required<TPredictOptions>;
+  // Sort by createdAt ascending (old -> new)
+  const dataSorted = [...data].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  // Build time window
-  const toLocal = nowOslo();
-  const fromDate = new Date(Date.now() - lookbackDays * msPerDay);
-  const fromLocal = toOsloLocal(fromDate.toISOString());
+  const result: TDrankMilk[][] = [];
 
-  const records: TDrankMilk[] = drankMilkRepository.getBackup(fromLocal, toLocal);
-  if (!records || records.length === 0)
-    return { suggested: 0, raw: 0, observedMax: 0, recencyFactor: 1, roundingStep, reductionPercent: 0 };
+  // Choose the earliest valid timestamp as the anchor for buckets. If no valid
+  // timestamps exist, fall back to the first record's timestamp (may be NaN).
+  const firstValidIdx = dataSorted.findIndex((d) => Number.isFinite(new Date(d.createdAt).getTime()));
+  const startTs = firstValidIdx >= 0
+    ? new Date(dataSorted[firstValidIdx].createdAt).getTime()
+    : new Date(dataSorted[0].createdAt).getTime();
+  const bucketMs = bucketHours * msPerHour;
 
-  // Observed max single-bottle amount in window
-  const observedMax = records.reduce((acc, r) => Math.max(acc, r.amount), 0);
-  if (observedMax <= 0) return { suggested: 0, raw: 0, observedMax: 0, recencyFactor: 1, roundingStep, reductionPercent: 0 };
-
-  // Determine reference bucket from the latest record
-  const latest = records.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
-  const refHour = getOsloHourFromCreatedAt(latest.createdAt);
-  const bucketHours = Number(((DRANK_CFG.bucket as any)?.hours) ?? 2);
-  const refBucket = Math.floor(refHour / bucketHours); // e.g. 0..(24/bucketHours - 1)
-
-  // Build weekly windows (newest first)
-  const nowMs = Date.now();
-  const weekPredictions: (number | null)[] = [];
-
-  for (let i = 0; i < weeks; i++) {
-    const endMs = nowMs - i * msPerWeek;
-    const startMs = endMs - msPerWeek;
-    const weekRecords = records.filter(r => {
-      const d = new Date(r.createdAt).getTime();
-      return d >= startMs && d < endMs;
-    });
-
-    if (weekRecords.length === 0) {
-      weekPredictions.push(null);
+  for (const item of dataSorted) {
+    const ts = new Date(item.createdAt).getTime();
+    // Put item into the bucket based on elapsed time from the first record
+    const idx = Math.floor((ts - startTs) / bucketMs);
+    if (!Number.isFinite(idx) || idx < 0) {
+      // Shouldn't happen for valid dates, but guard anyway by placing into first bucket
+      if (result.length === 0) result.push([]);
+      result[0].push(item);
       continue;
     }
 
-    // Build amounts per bucket
-    const bucketsCount = Math.ceil(24 / bucketHours);
-    const bucketAmounts: number[][] = Array.from({ length: bucketsCount }, () => []);
-    for (const r of weekRecords) {
-      const h = getOsloHourFromCreatedAt(r.createdAt);
-      const idx = Math.floor(h / bucketHours);
-      bucketAmounts[idx]!.push(r.amount);
+    while (result.length <= idx) {
+      result.push([]);
     }
 
-    const refBucketSamples = bucketAmounts[refBucket] ?? [];
-    let predictionForWeek: number | null = null;
-    if (refBucketSamples.length >= minSamplesPerBucket) {
-      const med = median(refBucketSamples as number[]);
-      predictionForWeek = med;
-    } else {
-      // Fallback to week's overall median (robust to outliers)
-      const all = weekRecords.map(r => r.amount);
-      predictionForWeek = median(all);
-    }
-
-    weekPredictions.push(predictionForWeek);
+    result[idx].push(item);
   }
 
-  // If all weeks empty, return 0
-  const available = weekPredictions.filter(v => v !== null) as number[];
-  if (available.length === 0) return { suggested: 0, raw: 0, observedMax: 0, recencyFactor: 1, roundingStep, reductionPercent: 0 };
+  return result;
+};
 
-  // Combine with exponential recency weights (newest week index 0)
-  const lambda = Math.log(2) / halfLifeWeeks;
-  const rawWeights = Array.from({ length: weeks }, (_, i) => Math.exp(-lambda * i));
+const getAndSensitizeData = (): TDrankMilk[] => {
+  // Compute time window: from 36 days ago until now + 3 hours (safety)
+  const now = new Date();
+  const toDate = new Date(now.getTime() + 3 * msPerHour);
+  const fromDate = new Date(now.getTime() - 36 * msPerDay);
 
-  // Normalize weights only across weeks that have data
-  const availableIndices = weekPredictions.map((v, i) => (v !== null ? i : -1)).filter(i => i !== -1) as number[];
-  const availableWeightSum = availableIndices.reduce((s, i) => s + rawWeights[i], 0);
-  let combined = 0;
-  if (availableWeightSum > 0) {
-    for (const i of availableIndices) {
-      const pred = weekPredictions[i] as number;
-      const w = rawWeights[i] / availableWeightSum;
-      combined += pred * w;
-    }
-  }
+  const from = toOsloLocal(fromDate.toISOString());
+  const to = toOsloLocal(toDate.toISOString());
 
-  // Ensure not bigger than observed max
-  combined = Math.min(combined, observedMax);
-  // Apply recency adjustment: if the baby drank recently, expect less next time.
-  const recentSettings = (DRANK_CFG.recency ?? {}) as Record<string, number>;
-  const decayHours = Number(recentSettings.decayHours ?? 4);
-  const minFactor = Number(recentSettings.minFactor ?? 0.5);
-  const latestMs = new Date(latest.createdAt).getTime();
-  const elapsedHours = Math.max(0, (Date.now() - latestMs) / msPerHour);
-  const recencyFrac = Math.min(1, elapsedHours / decayHours);
-  const recencyFactor = minFactor + (1 - minFactor) * recencyFrac;
-  combined = combined * recencyFactor;
+  // Fetch records in the window (repository expects Oslo-local datetime strings)
+  const raw: TDrankMilk[] = drankMilkRepository.findAll({ from, to });
+  if (!raw || raw.length === 0) return [];
 
-  // Shrink amount a bit to avoid waste. Closer to max => larger reduction up to maxReduction.
-  const closeness = Math.max(0, Math.min(1, combined / observedMax));
-  const reductionPercent = maxReduction * Math.pow(closeness, reductionExponent);
-  const adjusted = combined * (1 - reductionPercent);
+  // Ensure old -> new ordering
+  return [...raw].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  };
 
-  const rounded = roundToStep(adjusted, roundingStep);
-  // Final clamp
-  const final = Math.max(0, Math.min(observedMax, rounded));
+const getWeightedAverageForPeriod = (data: TDrankMilk[], hours: number): number | null => {
+  if (!data || data.length === 0) return null;
+
+  // Divide into buckets of the requested hour length (old -> new)
+  const buckets = divideDataByHours(data, hours);
+  if (!buckets || buckets.length === 0) return null;
+
+  // Compute total per bucket
+  const totals: number[] = buckets.map((bucket) =>
+    bucket.reduce((s, r) => s + (typeof r.amount === 'number' && Number.isFinite(r.amount) ? r.amount : 0), 0),
+  );
+
+  const n = totals.length;
+  if (n === 0) return null;
+
+  // Assign weights: oldest = 0.5, newest = 1.5; interpolate linearly
+  const weighted = totals.map((value, i) => {
+    const weight = n === 1 ? 1 : 0.5 + (i / (n - 1)); // range [0.5, 1.5]
+    return { value, weight };
+  });
+
+  return getAverageWithWeight(weighted);
+};
+
+const getLatestHours = (data: TDrankMilk[], hours: number): number => {
+  if (!data || data.length === 0) return 0;
+  const hrs = typeof hours === 'number' && hours > 0 ? hours : 0;
+  if (hrs === 0) return 0;
+
+  const now = new Date();
+  const cutoffMs = now.getTime() - hrs * msPerHour;
+
+  return data.filter((d) => {
+    const ts = new Date(d.createdAt).getTime();
+    return Number.isFinite(ts) && ts >= cutoffMs && ts <= now.getTime();
+  }).reduce((s, r) => s + (typeof r.amount === 'number' && Number.isFinite(r.amount) ? r.amount : 0), 0);
+};
+
+const getPredictionForPeriodLength = (data: TDrankMilk[], hours: number): number | null => {
+  // Get weighted average for the period
+  const wa = getWeightedAverageForPeriod(data, hours);
+  if (wa === null) return null;
+
+  const drankInLastHours = getLatestHours(data, hours);
+
+  // The prediction is the weighted average for the period minus what was already drank in the last X hours, since the average includes that. This way we "reset" the prediction based on recent drinking.
+  const pred = wa - drankInLastHours;
+  // Ensure prediction is not negative
+  return pred > 0 ? pred : 0;
+};
+
+export const reduceSuggestionToAvoidWaste = (data: TDrankMilk[], raw: number): number => {
+  if (!raw || raw <= 0) return raw;
+
+  const fiveBiggestNumbers = [...data]
+    .map((d) => (typeof d.amount === 'number' && Number.isFinite(d.amount) ? d.amount : 0))
+    .sort((a, b) => a - b)
+    .slice(-5);
+
+  const max = getAverage(fiveBiggestNumbers);
+  if (!max) return raw;
+
+  const normalizedRaw = Math.min(raw, max);
+
+  // closeness in [0,1]
+  const closeness = normalizedRaw / max;
+
+  // Reduce up to 33% proportional to closeness
+  const maxReduction = 0.33;
+  const reductionFactor = closeness * maxReduction;
+
+  const adjusted = normalizedRaw * (1 - reductionFactor);
+  return Math.max(0, Math.round(adjusted));
+};
+
+export type TSuggestionDetails = {
+  suggestion: number;
+  raw: number;
+  suggestBasedOnTwoHour: number;
+  suggestBasedOnFourHour: number;
+  suggestBasedOnSixHour: number;
+};
+
+const getSuggestedNextDrinkDetails = (): TSuggestionDetails => {
+  // Get cleaned historical data
+  const data = getAndSensitizeData();
+
+  const suggestBasedOnTwoHour = getPredictionForPeriodLength(data, 2) ?? 0;
+  const suggestBasedOnFourHour = getPredictionForPeriodLength(data, 4) ?? 0;
+  const suggestBasedOnSixHour = getPredictionForPeriodLength(data, 6) ?? 0;
+
+  // Combine the short-term estimates; prefer recent behavior by weighting shorter windows slightly higher
+  const combined = getAverageWithWeight([
+    { value: suggestBasedOnTwoHour, weight: 1.5 },
+    { value: suggestBasedOnFourHour, weight: 1.2 },
+    { value: suggestBasedOnSixHour, weight: 1.0 },
+  ]) ?? 0;
+
+  const reducedValue = reduceSuggestionToAvoidWaste(data, combined);
 
   return {
-    suggested: final,
-    raw: combined,
-    observedMax,
-    recencyFactor,
-    roundingStep,
-    reductionPercent,
+    suggestion: roundToStep(reducedValue, 10),
+    raw: roundToStep(combined, 10),
+    suggestBasedOnTwoHour: roundToStep(suggestBasedOnTwoHour, 10),
+    suggestBasedOnFourHour: roundToStep(suggestBasedOnFourHour, 10),
+    suggestBasedOnSixHour: roundToStep(suggestBasedOnSixHour, 10),
   };
 };
 
-export const getSuggestedNextDrinkAmount = (opts: TPredictOptions = {}): number =>
-  getSuggestedNextDrinkDetails(opts).suggested;
+export const getSuggestedNextDrinkAmount = (_options?: TPredictOptions): number =>
+  getSuggestedNextDrinkDetails().suggestion;
 
 export default getSuggestedNextDrinkDetails;
 

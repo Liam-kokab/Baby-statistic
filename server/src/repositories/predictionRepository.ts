@@ -6,9 +6,9 @@ type TPredictionDb = {
   id: number;
   predicted_amount: number;
   raw_prediction?: number | null;
-  observed_max?: number | null;
-  recency_factor?: number | null;
-  rounding_step?: number | null;
+  suggestBasedOnTwoHour?: number | null;
+  suggestBasedOnFourHour?: number | null;
+  suggestBasedOnSixHour?: number | null;
   actual_id?: number | null;
 };
 
@@ -18,9 +18,9 @@ export type TPrediction = {
   actualId: number;
   createdAt: string;
   rawPrediction?: number | null;
-  observedMax?: number | null;
-  recencyFactor?: number | null;
-  roundingStep?: number | null;
+  suggestBasedOnTwoHour?: number | null;
+  suggestBasedOnFourHour?: number | null;
+  suggestBasedOnSixHour?: number | null;
 };
 
 // Expect query to return prediction_log.* plus drank_milk.created_at AS drank_created_at
@@ -33,19 +33,25 @@ const fromDb = (row: TPredictionRow): TPrediction => ({
   // Use the drank_milk timestamp as the canonical createdAt for the prediction
   createdAt: toOsloIso(row.drank_created_at),
   rawPrediction: row.raw_prediction ?? null,
-  observedMax: row.observed_max ?? null,
-  recencyFactor: row.recency_factor ?? null,
-  roundingStep: row.rounding_step ?? null,
+  suggestBasedOnTwoHour: row.suggestBasedOnTwoHour ?? null,
+  suggestBasedOnFourHour: row.suggestBasedOnFourHour ?? null,
+  suggestBasedOnSixHour: row.suggestBasedOnSixHour ?? null,
 });
 
 export const predictionRepository = {
   insert: (
     predictedAmount: number,
-    debug: { rawPrediction?: number | null; observedMax?: number | null; recencyFactor?: number | null; roundingStep?: number | null } = {}
+    debug: { rawPrediction?: number | null; suggestBasedOnTwoHour?: number | null; suggestBasedOnFourHour?: number | null; suggestBasedOnSixHour?: number | null } = {}
   ): { id: number; predictedAmount: number } => {
     const result = db.prepare(
-      'INSERT INTO prediction_log (predicted_amount, raw_prediction, observed_max, recency_factor, rounding_step) VALUES (?, ?, ?, ?, ?)'
-    ).run(predictedAmount, debug.rawPrediction ?? null, debug.observedMax ?? null, debug.recencyFactor ?? null, debug.roundingStep ?? null);
+      'INSERT INTO prediction_log (predicted_amount, raw_prediction, suggestBasedOnTwoHour, suggestBasedOnFourHour, suggestBasedOnSixHour) VALUES (?, ?, ?, ?, ?)'
+    ).run(
+      predictedAmount,
+      debug.rawPrediction ?? null,
+      debug.suggestBasedOnTwoHour ?? null,
+      debug.suggestBasedOnFourHour ?? null,
+      debug.suggestBasedOnSixHour ?? null,
+    );
     return { id: Number(result.lastInsertRowid), predictedAmount };
   },
 

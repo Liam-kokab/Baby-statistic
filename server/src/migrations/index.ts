@@ -415,6 +415,26 @@ export const migrations: TMigration[] = [
       );
     `,
   },
+  {
+    name: '012_prediction_logs_v2',
+    up: `
+      -- Remove any existing prediction_log data by dropping the table if it exists,
+      -- then recreate it with the requested column set.
+      DROP TABLE IF EXISTS prediction_log;
+
+      CREATE TABLE prediction_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        predicted_amount INTEGER NOT NULL,
+        -- actual_id references a drank_milk row (the 'actual' drink that matched the prediction)
+        actual_id INTEGER NULL REFERENCES drank_milk(id) ON DELETE SET NULL,
+        raw_prediction REAL NULL,
+        suggestBasedOnTwoHour REAL NULL,
+        suggestBasedOnFourHour REAL NULL,
+        suggestBasedOnSixHour REAL NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_prediction_log_actual_id ON prediction_log(actual_id);
+    `,
+  },
 ];
 
 

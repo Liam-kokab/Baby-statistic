@@ -5,7 +5,7 @@ import type { TTimeFilter } from '../types';
 export const predictionService = {
   insert: (
     predictedAmount: number,
-    debug: { rawPrediction?: number | null; observedMax?: number | null; recencyFactor?: number | null; roundingStep?: number | null } = {}
+    debug: { rawPrediction?: number | null; suggestBasedOnTwoHour?: number | null; suggestBasedOnFourHour?: number | null; suggestBasedOnSixHour?: number | null } = {}
   ): { id: number; predictedAmount: number } =>
     predictionRepository.insert(predictedAmount, debug),
 

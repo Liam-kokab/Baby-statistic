@@ -2,7 +2,7 @@ import type { TDrankMilk, TPostDrankMilk, TServedMilkStatus } from 'baby-statist
 import { drankMilkRepository } from '../repositories/drankMilkRepository';
 import { servedMilkRepository } from '../repositories/servedMilkRepository';
 import type { TTimeFilter } from '../types';
-import { getSuggestedNextDrinkDetails, getSuggestedNextDrinkAmount } from './drankMilkPrediction';
+import getSuggestedNextDrinkDetails, { getSuggestedNextDrinkAmount } from './drankMilkPrediction';
 import { predictionService } from './predictionService';
 import { predictionRepository } from '../repositories/predictionRepository';
 
@@ -27,11 +27,11 @@ export const drankMilkService = {
       if (isStored) {
         try {
           const details = getSuggestedNextDrinkDetails();
-          const predRec = predictionRepository.insert(details.suggested, {
+          const predRec = predictionRepository.insert(details.suggestion, {
             rawPrediction: details.raw,
-            observedMax: details.observedMax,
-            recencyFactor: details.recencyFactor,
-            roundingStep: details.roundingStep,
+            suggestBasedOnTwoHour: details.suggestBasedOnTwoHour,
+            suggestBasedOnFourHour: details.suggestBasedOnFourHour,
+            suggestBasedOnSixHour: details.suggestBasedOnSixHour,
           });
 
           predRecId = predRec.id;
@@ -75,13 +75,7 @@ export const drankMilkService = {
   deductWaste: (waste: number): TDrankMilk | null =>
     drankMilkRepository.deductWaste(waste),
 
-  suggestNextDrinkAmount: (options?: {
-    lookbackDays?: number;
-    weeks?: number;
-    roundingStep?: number;
-    maxReduction?: number;
-    halfLifeWeeks?: number;
-  }): number => getSuggestedNextDrinkAmount(options),
+  suggestNextDrinkAmount: (): number => getSuggestedNextDrinkAmount(),
 
   getBackup: (from: string, to: string): TDrankMilk[] =>
     drankMilkRepository.getBackup(from, to),
