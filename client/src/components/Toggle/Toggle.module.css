@@ -1,6 +1,8 @@
 .toggle {
   position: relative;
-  display: grid;
+  /* full width control and flex so children can size proportionally */
+  display: flex;
+  width: 100%;
   gap: var(--space-xxxs);
   background: var(--color-ui-2);
   padding: var(--space-xxs);
@@ -10,15 +12,12 @@
   box-shadow: 0 6px 18px rgba(16,24,40,0.06);
 }
 
+/* legacy equal-column helpers (no longer required) */
 .cols2 {
-  grid-template-columns: repeat(2, 1fr);
+  /* kept for backward compatibility but not used by new layout */
 }
-.cols3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-.cols4 {
-  grid-template-columns: repeat(4, 1fr);
-}
+.cols3 {}
+.cols4 {}
 
 .segment {
   background: transparent;
@@ -34,6 +33,9 @@
   justify-content: center;
   position: relative;
   z-index: 1; /* sit above the animated thumb */
+  /* by default let the content determine size; JS will set flex weights */
+  flex: 0 1 auto;
+  min-width: 0; /* allow shrinking inside flex container */
 }
 
 .segment:not(.active) {
@@ -58,7 +60,8 @@
   left: 0;
   top: var(--space-xxs);
   bottom: var(--space-xxs);
-  border-radius: var(--radius-8);
+  /* match segment radius so the indicator aligns visually */
+  border-radius: var(--radius-6);
   /* subtle gradient: slightly darker primary -> primary */
   background: linear-gradient(180deg, var(--color-primary-dark, #c2185b), var(--color-primary, #ec407a));
   box-shadow: 0 6px 14px rgba(194,24,91,0.12);
@@ -70,5 +73,14 @@
   font-size: 0.9rem;
   line-height: 1;
   white-space: nowrap;
+}
+
+.icon {
+  margin-right: 0.35rem;
+  display: inline-block;
+}
+
+.text {
+  display: inline-block;
 }
 

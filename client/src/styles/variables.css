@@ -522,6 +522,8 @@
   --hero-bg-edit-sleep: var(--hero-bg-indigo);
   --hero-bg-edit-poop: var(--hero-bg-amber);
   --hero-bg-edit-pee: var(--hero-bg-amber);
+  /* Nav overlay for light themes: very subtle white overlay to make the nav slightly lighter */
+  --nav-overlay: rgba(255, 255, 255, 0.06);
 }
 
 .theme-neutral {

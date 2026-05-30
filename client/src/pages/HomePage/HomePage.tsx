@@ -185,7 +185,10 @@ const HomePage = () => {
       });
       if (res.ok) {
         setDrankAmount('');
-        await loadLatestDrank();
+        await Promise.all([
+          loadLatestDrank(),
+          loadSuggested(),
+        ]);
       }
       return res.ok;
     });
