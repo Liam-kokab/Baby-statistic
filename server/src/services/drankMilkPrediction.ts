@@ -95,6 +95,20 @@ const getAndSensitizeData = (): TDrankMilk[] => {
   return [...raw].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   };
 
+/**
+ * Weighted average of a list of bucket totals.
+ * Weights interpolate linearly from oldest = 0.5 to newest = 1.5.
+ */
+const weightedAverageOfTotals = (totals: number[]): number | null => {
+  const n = totals.length;
+  if (n === 0) return null;
+  const weighted = totals.map((value, i) => {
+    const weight = n === 1 ? 1 : 0.5 + (i / (n - 1)); // range [0.5, 1.5]
+    return { value, weight };
+  });
+  return getAverageWithWeight(weighted);
+};
+
 const getWeightedAverageForPeriod = (data: TDrankMilk[], hours: number): number | null => {
   if (!data || data.length === 0) return null;
 
@@ -107,16 +121,19 @@ const getWeightedAverageForPeriod = (data: TDrankMilk[], hours: number): number 
     bucket.reduce((s, r) => s + (typeof r.amount === 'number' && Number.isFinite(r.amount) ? r.amount : 0), 0),
   );
 
-  const n = totals.length;
-  if (n === 0) return null;
+  if (totals.length === 0) return null;
 
-  // Assign weights: oldest = 0.5, newest = 1.5; interpolate linearly
-  const weighted = totals.map((value, i) => {
-    const weight = n === 1 ? 1 : 0.5 + (i / (n - 1)); // range [0.5, 1.5]
-    return { value, weight };
-  });
+  // Two-pass average (added 2026-06-03): empty / barely-fed buckets (e.g. sleep
+  // stretches) count as ~0 and drag the average well below a real feed size.
+  // 1) take the weighted average once, 2) drop every bucket below half of it,
+  // 3) re-take the weighted average over what remains.
+  const firstPass = weightedAverageOfTotals(totals);
+  if (firstPass === null) return null;
 
-  return getAverageWithWeight(weighted);
+  const kept = totals.filter((t) => t >= 0.5 * firstPass);
+  if (kept.length === 0) return firstPass;
+
+  return weightedAverageOfTotals(kept);
 };
 
 const getLatestHours = (data: TDrankMilk[], hours: number): number => {
