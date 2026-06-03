@@ -15,10 +15,10 @@
     }
   },
   "get_current_prediction": {
-    "description": "Get the current suggested next bottle amount from the server. Returns a JSON object { nextDrinkAmount: number }."
+    "description": "Get the AI-suggested bottle amount for the baby's next feed. Returns { nextDrinkAmount: number } calculated from recent drinking history using 2-hour, 4-hour, and 6-hour rolling windows."
   },
   "get_prediction_logs": {
-    "description": "List stored prediction logs that was made before baby drank the milk. Returns predictions already and the actual amount that baby drank. Optionally filter by date range.",
+    "description": "List all historical feed-amount predictions stored before each bottle. Each record shows the final predicted amount, the actual amount the baby drank, and the raw debug signals used to compute it (raw ML value, 2-hour/4-hour/6-hour window suggestions). Useful for evaluating prediction accuracy over time. Optionally filter by the linked drink timestamp.",
     "params": {
       "from": "Oslo local datetime (e.g. \"2026-05-16T00:00:00\") — filter by the linked drink timestamp on or after this time",
       "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter by the linked drink timestamp on or before this time"

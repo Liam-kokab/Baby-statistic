@@ -15,23 +15,25 @@ type TPredictionDb = {
 export type TPrediction = {
   id: number;
   predictedAmount: number;
-  actualId: number;
-  createdAt: string;
+  actualId: number | null;
+  actualAmount: number | null;
+  createdAt: string | null;
   rawPrediction?: number | null;
   suggestBasedOnTwoHour?: number | null;
   suggestBasedOnFourHour?: number | null;
   suggestBasedOnSixHour?: number | null;
 };
 
-// Expect query to return prediction_log.* plus drank_milk.created_at AS drank_created_at
-type TPredictionRow = TPredictionDb & { drank_created_at: string };
+// Expect query to return prediction_log.* plus drank_milk columns via LEFT JOIN
+type TPredictionRow = TPredictionDb & { drank_created_at: string | null; drank_amount: number | null };
 
 const fromDb = (row: TPredictionRow): TPrediction => ({
   id: row.id,
   predictedAmount: row.predicted_amount,
-  actualId: row.actual_id as number,
-  // Use the drank_milk timestamp as the canonical createdAt for the prediction
-  createdAt: toOsloIso(row.drank_created_at),
+  actualId: row.actual_id ?? null,
+  actualAmount: row.drank_amount ?? null,
+  // Use the drank_milk timestamp as the canonical createdAt for the prediction (null if not yet linked)
+  createdAt: row.drank_created_at ? toOsloIso(row.drank_created_at) : null,
   rawPrediction: row.raw_prediction ?? null,
   suggestBasedOnTwoHour: row.suggestBasedOnTwoHour ?? null,
   suggestBasedOnFourHour: row.suggestBasedOnFourHour ?? null,
@@ -60,27 +62,27 @@ export const predictionRepository = {
   },
 
   findAll: (filter: TTimeFilter = {}): TPrediction[] => {
-    // Only return predictions that have been linked to an actual drank_milk (actual_id IS NOT NULL).
-    // Join to drank_milk to use the drank_milk.created_at as the canonical timestamp for filtering and output.
-    const conditions: string[] = ['p.actual_id IS NOT NULL'];
+    // LEFT JOIN so unlinked predictions (actual_id IS NULL) are also included.
+    // Filter by drank_milk.created_at when provided; unlinked rows pass through with null timestamp.
+    const conditions: string[] = [];
     const params: string[] = [];
     if (filter.from) {
-      conditions.push('d.created_at >= ?');
+      conditions.push('(d.created_at >= ? OR p.actual_id IS NULL)');
       params.push(filter.from);
     }
     if (filter.to) {
-      conditions.push('d.created_at <= ?');
+      conditions.push('(d.created_at <= ? OR p.actual_id IS NULL)');
       params.push(filter.to);
     }
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const sql = `SELECT p.*, d.created_at AS drank_created_at FROM prediction_log p JOIN drank_milk d ON p.actual_id = d.id ${where} ORDER BY d.created_at DESC`;
+    const sql = `SELECT p.*, d.created_at AS drank_created_at, d.amount AS drank_amount FROM prediction_log p LEFT JOIN drank_milk d ON p.actual_id = d.id ${where} ORDER BY COALESCE(d.created_at, '0') DESC`;
     const rows = db.prepare<string[], TPredictionRow>(sql).all(...params);
     return rows.map(fromDb);
   },
 
   findLatest: (): TPrediction | null => {
     const row = db.prepare<[], TPredictionRow>(
-      `SELECT p.*, d.created_at AS drank_created_at FROM prediction_log p JOIN drank_milk d ON p.actual_id = d.id WHERE p.actual_id IS NOT NULL ORDER BY d.created_at DESC LIMIT 1`
+      `SELECT p.*, d.created_at AS drank_created_at, d.amount AS drank_amount FROM prediction_log p LEFT JOIN drank_milk d ON p.actual_id = d.id ORDER BY p.id DESC LIMIT 1`
     ).get();
     return row ? fromDb(row) : null;
   },

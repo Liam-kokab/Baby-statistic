@@ -209,6 +209,10 @@ const HomePage = () => {
         body: JSON.stringify({ amount }),
       });
       if (res.ok) setWasteAmount('');
+      await Promise.all([
+        loadLatestDrank(),
+        loadSuggested(),
+      ]);
       return res.ok;
     });
   };
