@@ -2,6 +2,8 @@
   "name": "baby-statistic-mcp-server",
   "private": true,
   "scripts": {
+    "prebuild": "node -e \"const fs=require('fs');const p='../dist/mcp-server/tools';fs.mkdirSync(p,{recursive:true});fs.writeFileSync(p+'/buildTime.json',JSON.stringify({buildTime:new Date().toISOString()}))\"",
+    "predev": "node -e \"const fs=require('fs');fs.writeFileSync('src/tools/buildTime.json',JSON.stringify({buildTime:new Date().toISOString()}))\"",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node ../dist/mcp-server/index.js"

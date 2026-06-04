@@ -25,3 +25,6 @@ data
 # Built static served by Express in prod
 server/public/assets
 
+# Generated build-time metadata
+mcp-server/src/tools/buildTime.json
+
