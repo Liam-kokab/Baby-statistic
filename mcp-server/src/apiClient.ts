@@ -1,6 +1,6 @@
 const BASE_URL = process.env.BABY_API_URL ?? 'http://localhost:3000';
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 type ApiResponse = {
   status: number;

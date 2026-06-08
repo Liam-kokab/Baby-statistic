@@ -208,6 +208,14 @@ Returns all active medicines with their latest log timestamp.
 
 ---
 
+## `GET /api/medicine/all`
+
+Returns all medicines (active and inactive).
+
+**Response `200`**: `TMedicine[]`
+
+---
+
 ## `POST /api/medicine`
 
 Creates a new medicine.
@@ -223,6 +231,16 @@ Creates a new medicine.
 Updates the medicine name.
 
 **Body**: `{ "name": "Vitamin D" }`
+
+**Response `200`**: `TMedicine`
+
+---
+
+## `PATCH /api/medicine/:id/active`
+
+Sets the active state of a medicine.
+
+**Body**: `{ "isActive": true }`
 
 **Response `200`**: `TMedicine`
 

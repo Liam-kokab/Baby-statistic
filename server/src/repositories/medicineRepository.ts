@@ -6,7 +6,7 @@ import type { TTimeFilter } from '../types';
 const fromMedicineDb = (row: TMedicineDb): TMedicine => ({
   id: row.id,
   name: row.name,
-  isActive: row.is_active === 1,
+  isActive: Boolean(row.is_active),
   createdAt: toOsloIso(row.created_at),
 });
 
@@ -20,7 +20,7 @@ const fromLogDb = (row: TMedicineLogDb): TMedicineLog => ({
 export const medicineRepository = {
   findAllActive: (): TMedicineWithLatestLog[] => {
     const medicines = db
-      .prepare<[], TMedicineDb>('SELECT * FROM medicine WHERE is_active = 1 ORDER BY name ASC')
+      .prepare<[], TMedicineDb>('SELECT * FROM medicine WHERE is_active = 1 ORDER BY name')
       .all();
     return medicines.map((m) => {
       const latestLog = db
@@ -43,6 +43,17 @@ export const medicineRepository = {
       )
       .run({ name: data.name, created_at: now });
     const row = db.prepare<[number], TMedicineDb>('SELECT * FROM medicine WHERE rowid = ?').get(result.lastInsertRowid as number);    return fromMedicineDb(row!);
+  },
+
+  findAll: (): TMedicine[] => {
+    const rows = db.prepare<[], TMedicineDb>('SELECT * FROM medicine ORDER BY name').all();
+    return rows.map(fromMedicineDb);
+  },
+
+  setActive: (id: number, isActive: boolean): TMedicine | null => {
+    db.prepare<[number, number]>('UPDATE medicine SET is_active = ? WHERE id = ?').run(isActive ? 1 : 0, id);
+    const row = db.prepare<[number], TMedicineDb>('SELECT * FROM medicine WHERE id = ?').get(id);
+    return row ? fromMedicineDb(row) : null;
   },
 
   softDelete: (id: number): boolean => {

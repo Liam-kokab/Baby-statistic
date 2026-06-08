@@ -714,6 +714,18 @@
         }
       }
     },
+    "/api/medicine/all": {
+      "get": {
+        "tags": ["Medicine"],
+        "summary": "List all medicines (active and inactive)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Medicine" } } } }
+          }
+        }
+      }
+    },
     "/api/medicine/logs": {
       "get": {
         "tags": ["Medicine"],
@@ -732,11 +744,46 @@
     },
     "/api/medicine/{id}": {
       "parameters": [{ "$ref": "#/components/parameters/Id" }],
+      "put": {
+        "tags": ["Medicine"],
+        "summary": "Update medicine name",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicinePost" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Medicine" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
       "delete": {
         "tags": ["Medicine"],
         "summary": "Soft-delete a medicine (logs retained)",
         "responses": {
           "204": { "description": "Deleted" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/medicine/{id}/active": {
+      "parameters": [{ "$ref": "#/components/parameters/Id" }],
+      "patch": {
+        "tags": ["Medicine"],
+        "summary": "Set active state of a medicine",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "isActive": { "type": "boolean" } }, "required": ["isActive"] } } }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Medicine" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
           "404": { "$ref": "#/components/responses/NotFound" }
         }
       }

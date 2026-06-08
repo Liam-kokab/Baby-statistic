@@ -111,6 +111,14 @@ Props: `text?`, `emoji?`, `onClick?`, `disabled?`, `loading?`, `variant?` (`'pri
 - `emoji` renders in a `<span>` before the text
 - Pill-shaped (`border-radius: 9999px`); full gradient for primary variant
 
+### `Checkmark`
+Props: `checked`, `onChange`, `label?`, `disabled?`
+
+- Styled checkbox button using CSS (no emoji, no library)
+- Shows a filled box with a white tick when `checked`, empty border box when unchecked
+- Uses `--color-primary` / `--color-border` design tokens
+- `label` renders an inline text label next to the box
+
 ### `Input`
 Props: `label?`, `value`, `onChange`, `type?` (`'text' | 'tel'`), `placeholder?`, `disabled?`, `error?`, `name?`
 

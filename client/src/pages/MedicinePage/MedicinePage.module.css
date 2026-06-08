@@ -40,6 +40,11 @@
   color: var(--color-primary-dark);
 }
 
+.medicineInactive {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
 .date {
   font-size: 0.8rem;
   color: var(--color-text-muted);

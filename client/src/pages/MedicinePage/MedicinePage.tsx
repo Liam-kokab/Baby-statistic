@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetch2 } from 'baby-statistic-common/util';
-import type { TMedicineLog, TMedicineWithLatestLog } from 'baby-statistic-common';
+import type { TMedicine, TMedicineLog, TMedicineWithLatestLog } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import type { TView } from '../../components/DateRangeFilter/DateRangeFilter';
 import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
+import Checkmark from '../../components/Checkmark/Checkmark';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
-import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
+import { formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import styles from './MedicinePage.module.css';
 
@@ -44,7 +45,7 @@ const MedicinePage = () => {
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
   const [logs, setLogs]             = useState<TLogWithName[]>([]);
-  const [medicines, setMedicines]   = useState<TMedicineWithLatestLog[]>([]);
+  const [allMedicines, setAllMedicines] = useState<TMedicine[]>([]);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
@@ -58,19 +59,20 @@ const MedicinePage = () => {
   const [addError, setAddError]             = useState<string | null>(null);
 
   const loadMedicines = async (): Promise<void> => {
-    const res = await fetch2<TMedicineWithLatestLog[]>('/api/medicine');
-    if (res.ok) setMedicines(res.data);
+    const allRes = await fetch2<TMedicine[]>('/api/medicine/all');
+    if (allRes.ok) setAllMedicines(allRes.data);
   };
 
   const loadLogs = useCallback(async (): Promise<void> => {
     setError(null);
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-    const [logsRes, medsRes] = await Promise.all([
+    const [logsRes, medsRes, allRes] = await Promise.all([
       fetch2<TMedicineLog[]>(`/api/medicine/logs?${params}`),
       fetch2<TMedicineWithLatestLog[]>('/api/medicine'),
+      fetch2<TMedicine[]>('/api/medicine/all'),
     ]);
+    if (allRes.ok) setAllMedicines(allRes.data);
     if (medsRes.ok) {
-      setMedicines(medsRes.data);
       if (logsRes.ok) {
         const nameMap = new Map(medsRes.data.map((m) => [m.id, m.name]));
         setLogs(logsRes.data.map((l) => ({ ...l, medicineName: nameMap.get(l.medicineId) ?? `#${l.medicineId}` })));
@@ -158,6 +160,17 @@ const MedicinePage = () => {
       setAddError(res.error);
     }
     setAddLoading(false);
+  };
+
+  const handleToggleActive = async (id: number, isActive: boolean): Promise<void> => {
+    const res = await fetch2<TMedicine>(`/api/medicine/${id}/active`, {
+      method: 'PATCH',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ isActive }),
+    });
+    if (res.ok) {
+      setAllMedicines((prev) => prev.map((m) => (m.id === id ? { ...m, isActive } : m)));
+    }
   };
 
   const renderItemView = () => {
@@ -275,14 +288,20 @@ const MedicinePage = () => {
 
         {settingsOpen ? (
           <div className={styles.settingsBody}>
-            <h3 className={styles.settingsTitle}>Active medicines</h3>
-            {medicines.length === 0 ? (
+            <h3 className={styles.settingsTitle}>Medicines</h3>
+            {allMedicines.length === 0 ? (
               <p className={styles.empty}>No medicines added yet.</p>
             ) : (
               <div className={styles.medicineList}>
-                {medicines.map((m) => (
+                {allMedicines.map((m) => (
                   <div key={m.id} className={styles.medicineRow}>
-                    <span className={styles.medicineName}>💊 {m.name}</span>
+                    <Checkmark
+                      checked={m.isActive}
+                      onChange={(val) => handleToggleActive(m.id, val)}
+                    />
+                    <span className={`${styles.medicineName} ${m.isActive ? '' : styles.medicineInactive}`}>
+                      💊 {m.name}
+                    </span>
                     <Button
                       emoji="✏️"
                       variant="ghost"

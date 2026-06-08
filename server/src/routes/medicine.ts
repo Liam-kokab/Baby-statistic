@@ -10,6 +10,10 @@ router.get('/', (_req: Request, res: Response): void => {
   res.json(medicineService.findAllActive());
 });
 
+router.get('/all', (_req: Request, res: Response): void => {
+  res.json(medicineService.findAll());
+});
+
 router.post('/', (req: Request, res: Response): void => {
   const { name } = bodyAs<{ name?: string }>(req);
   if (!name) {
@@ -59,6 +63,17 @@ router.put('/:id', (req: Request, res: Response): void => {
     return;
   }
   const med = medicineService.update(Number(req.params.id), { name });
+  if (!med) { res.status(404).json({ error: 'Not found' }); return; }
+  res.json(med);
+});
+
+router.patch('/:id/active', (req: Request, res: Response): void => {
+  const { isActive } = bodyAs<{ isActive?: boolean }>(req);
+  if (typeof isActive !== 'boolean') {
+    res.status(400).json({ error: 'isActive (boolean) is required' });
+    return;
+  }
+  const med = medicineService.setActive(Number(req.params.id), isActive);
   if (!med) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(med);
 });

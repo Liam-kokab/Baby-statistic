@@ -103,7 +103,9 @@ All tool descriptions are stored in `src/descriptions.json` as a flat key-value 
 ### Medicine
 | Tool | Description |
 |---|---|
-| `get_medicines` | List active medicines (discover IDs here) |
+| `get_medicines` | List active medicines with latest dose timestamp (discover IDs here) |
+| `get_all_medicines` | List ALL medicines including inactive ones |
+| `set_medicine_active` | Enable (`isActive: true`) or disable (`isActive: false`) a medicine |
 | `log_medicine_dose` | Record a dose was given |
 
 ### Pumping

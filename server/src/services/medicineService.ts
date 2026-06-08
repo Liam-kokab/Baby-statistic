@@ -7,6 +7,12 @@ export const medicineService = {
   findAllActive: (): TMedicineWithLatestLog[] =>
     medicineRepository.findAllActive(),
 
+  findAll: (): TMedicine[] =>
+    medicineRepository.findAll(),
+
+  setActive: (id: number, isActive: boolean): TMedicine | null =>
+    medicineRepository.setActive(id, isActive),
+
   insert: (data: TPostMedicine): TMedicine =>
     medicineRepository.insert(data),
 

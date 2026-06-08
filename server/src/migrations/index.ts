@@ -435,6 +435,11 @@ export const migrations: TMigration[] = [
       CREATE INDEX IF NOT EXISTS idx_prediction_log_actual_id ON prediction_log(actual_id);
     `,
   },
+
+  {
+    name: '013_medicine_is_active_ensure',
+    up: `UPDATE medicine SET is_active = 1 WHERE is_active IS NULL;`,
+  },
 ];
 
 

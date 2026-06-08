@@ -81,6 +81,16 @@
   "get_medicines": {
     "description": "List all active medicines with their latest dose timestamp. Use this to discover medicine IDs before logging a dose. Shows which medicines exist and when they were last given."
   },
+  "get_all_medicines": {
+    "description": "List ALL medicines, both active and inactive. Use this to see the full medicine catalogue and each medicine's current active state."
+  },
+  "set_medicine_active": {
+    "description": "Enable or disable a medicine. Set isActive to true to make it appear on the home screen and in get_medicines; set to false to hide it without deleting it.",
+    "params": {
+      "id": "The medicine ID (get from get_all_medicines)",
+      "isActive": "true to activate, false to deactivate"
+    }
+  },
   "log_medicine_dose": {
     "description": "Record that a dose of a specific medicine was given. Call get_medicines first to find the correct medicine ID. Defaults to now if takenAt is not provided.",
     "params": {
