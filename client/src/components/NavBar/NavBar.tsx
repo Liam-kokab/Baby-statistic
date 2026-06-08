@@ -9,14 +9,14 @@ type TNavItem = {
 };
 
 const MAIN_ITEMS: TNavItem[] = [
-  { path: '/poop-pee',   emoji: '💩', label: 'Poop & Pee' },
+  { path: '/pumping',    emoji: '🥛', label: 'Pumping'   },
   { path: '/',           emoji: '🏠', label: 'Home'       },
   { path: '/milk-drank', emoji: '🍼', label: 'Milk Drank' },
   { path: '/sleep',      emoji: '🌙', label: 'Sleep'      },
 ];
 
 const MENU_ITEMS: TNavItem[] = [
-  { path: '/pumping',    emoji: '🥛', label: 'Pumping'   },
+  { path: '/poop-pee',   emoji: '💩', label: 'Poop & Pee' },
   { path: '/medicine',   emoji: '💊', label: 'Medicine'  },
   { path: '/milk-saved', emoji: '🧊', label: 'Milk Saved'},
   { path: '/settings',   emoji: '⚙️', label: 'Settings'  },
