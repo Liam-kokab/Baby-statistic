@@ -23,6 +23,7 @@ export const peeRepository = {
     return rows.map(fromDb);
   },
 
+
   findById: (id: number): TPee | null => {
     const row = db.prepare<[number], TPeeDb>('SELECT * FROM pee WHERE id = ?').get(id);
     return row ? fromDb(row) : null;

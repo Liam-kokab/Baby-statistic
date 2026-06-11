@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetch2 } from 'baby-statistic-common/util';
-import type { TDrankMilk, TDrankMilkSource } from 'baby-statistic-common';
+import type { TDrankMilk, TDrankMilkSource, TDrankMilkSummary, TWishedResult } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import type { TView } from '../../components/DateRangeFilter/DateRangeFilter';
@@ -10,6 +10,8 @@ import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useTimeWindowScroll, { getWindowEnd } from '../../utils/useInfiniteScroll';
+import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import styles from './MilkDrankPage.module.css';
 
 const getTopCardAgeClass = (createdAt: string): string => {
@@ -33,11 +35,7 @@ const getDefaultFrom = (): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const getDefaultTo = (): string => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-};
+const getDefaultTo = (): string => getWindowEnd(new Date().toISOString().slice(0, 10));
 
 const MilkDrankPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -51,79 +49,68 @@ const MilkDrankPage = () => {
   const setTo   = (v: string) => setSearchParams((p) => { p.set('to',   v); return p; });
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
-  const [data, setData] = useState<TDrankMilk[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState<TDrankMilkSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
 
-  const load = useCallback(async () => {
-    setError(null);
+  const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-    const result = await fetch2<TDrankMilk[]>(`/api/drank-milk?${params}`);
-    if (result.ok) {
-      setData(result.data);
-    } else {
-      setError(result.error);
-    }
+    const result = await fetch2<TDrankMilkSummary>(`/api/drank-milk/summary?${params}`);
+    if (result.ok) setSummary(result.data);
   }, [from, to]);
 
-  const visibilityRef = useRefetchOnVisible(load);
+  useEffect(() => { loadSummary(); }, [loadSummary]);
 
-  useEffect(() => {
-    const initialLoad = async () => {
-      setLoading(true);
-      await load();
-      setLoading(false);
-    };
-    initialLoad();
-  }, [load]);
+  const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TDrankMilk>> => {
+    setError(null);
+    const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
+    const result = await fetch2<TWishedResult<TDrankMilk>>(`/api/drank-milk?${params}`);
+    if (result.ok) return result.data;
+    setError(result.error);
+    return { items: [], actualFrom: winFrom.slice(0, 10) };
+  }, []);
 
-  const periodTotal    = data.reduce((sum, d) => sum + d.amount, 0);
-  const daysWithData   = new Set(data.map((d) => d.createdAt.slice(0, 10))).size;
-  const periodAvg      = daysWithData > 0 ? Math.round(periodTotal / daysWithData) : 0;
-  const periodHasBoob  = hasBoob(data);
+  const hasEnough = useCallback(
+    (items: TDrankMilk[]) => hasEnoughForView(items, view, (i) => i.createdAt),
+    [view],
+  );
+
+  const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
+
+  const visibilityRef = useRefetchOnVisible(() => { loadSummary(); refresh(); });
 
   const toggleDay = (date: string): void =>
-    setOpenDays((prev) => {
-      const next = new Set(prev);
-      next.has(date) ? next.delete(date) : next.add(date);
-      return next;
-    });
+    setOpenDays((prev) => { const n = new Set(prev); n.has(date) ? n.delete(date) : n.add(date); return n; });
 
   const toggleWeek = (weekKey: string): void =>
-    setOpenWeeks((prev) => {
-      const next = new Set(prev);
-      next.has(weekKey) ? next.delete(weekKey) : next.add(weekKey);
-      return next;
-    });
+    setOpenWeeks((prev) => { const n = new Set(prev); n.has(weekKey) ? n.delete(weekKey) : n.add(weekKey); return n; });
 
   const renderItemView = () => {
-    const sorted = [...data].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const sentinelIdx = Math.max(0, data.length - 10);
     return (
       <div className={styles.list}>
-        {sorted.length === 0 ? (
+        {data.length === 0 && !loading ? (
           <p className={styles.empty}>No records found 🍼</p>
         ) : (
-          sorted.map((item, idx) => {
+          data.map((item, idx) => {
             const ageClass = idx === 0 ? getTopCardAgeClass(item.createdAt) : '';
             return (
-            <div key={item.id} className={`${styles.card}${ageClass ? ` ${styles[ageClass]}` : ''}`}>
-              <span className={styles.sourceEmoji}>{sourceEmoji(item.source)}</span>
-              <span className={styles.amount}>{item.amount} ml</span>
-              <span className={styles.date}>
-                {formatDateTime(item.createdAt)}
-              </span>
-              <Button
-                emoji="✏️"
-                variant="ghost"
-                className={styles.editBtn}
-                onClick={() => navigate(`/drank-milk/${item.id}`)}
-              />
-            </div>
+              <div
+                key={item.id}
+                ref={idx === sentinelIdx ? sentinelRef : undefined}
+                className={`${styles.card}${ageClass ? ` ${styles[ageClass]}` : ''}`}
+              >
+                <span className={styles.sourceEmoji}>{sourceEmoji(item.source)}</span>
+                <span className={styles.amount}>{item.amount} ml</span>
+                <span className={styles.date}>{formatDateTime(item.createdAt)}</span>
+                <Button emoji="✏️" variant="ghost" className={styles.editBtn} onClick={() => navigate(`/drank-milk/${item.id}`)} />
+              </div>
             );
           })
         )}
+        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
+        {!hasMore && data.length > 0 && !loading ? <p className={styles.endMsg}>All {data.length} records loaded</p> : null}
       </div>
     );
   };
@@ -132,20 +119,18 @@ const MilkDrankPage = () => {
     const groups = groupByDay(data);
     return (
       <div className={styles.list}>
-        {groups.length === 0 ? (
+        {groups.length === 0 && !loading ? (
           <p className={styles.empty}>No records found 🍼</p>
         ) : (
-          groups.map(({ date, items }) => {
+          groups.map(({ date, items }, idx) => {
             const dayTotal = items.reduce((sum, i) => sum + i.amount, 0);
             const dayHasBoob = hasBoob(items);
             const isOpen = openDays.has(date);
+            const isSentinel = idx === Math.max(0, groups.length - 10);
             return (
-              <div key={date} className={styles.dayGroup}>
+              <div key={date} ref={isSentinel && hasMore ? sentinelRef : undefined} className={styles.dayGroup}>
                 <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
-                  <span>
-                    <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅{' '}
-                    {formatDateWithWeekday(date)}
-                  </span>
+                  <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date)}</span>
                   <span className={styles.dayTotal}>{dayTotal}{dayHasBoob ? '*' : ''} ml</span>
                 </div>
                 {isOpen ? (
@@ -153,9 +138,7 @@ const MilkDrankPage = () => {
                     <div key={item.id} className={styles.dayItem}>
                       <span className={styles.dayItemSource}>{sourceEmoji(item.source)}</span>
                       <span className={styles.dayItemAmount}>{item.amount} ml</span>
-                      <span className={styles.time}>
-                        {formatTime(item.createdAt)}
-                      </span>
+                      <span className={styles.time}>{formatTime(item.createdAt)}</span>
                     </div>
                   ))
                 ) : null}
@@ -163,6 +146,8 @@ const MilkDrankPage = () => {
             );
           })
         )}
+        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
+        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>Scroll up to load earlier weeks</p> : null}
       </div>
     );
   };
@@ -171,16 +156,17 @@ const MilkDrankPage = () => {
     const weeks = groupByWeek(data);
     return (
       <div className={styles.list}>
-        {weeks.length === 0 ? (
+        {weeks.length === 0 && !loading ? (
           <p className={styles.empty}>No records found 🍼</p>
         ) : (
-          weeks.map(({ weekKey, weekLabel, days }) => {
+          weeks.map(({ weekKey, weekLabel, days }, idx) => {
             const weekTotal  = days.reduce((sum, { items }) => sum + items.reduce((s, i) => s + i.amount, 0), 0);
             const weekAvg    = Math.round(weekTotal / 7);
             const weekHasBoob = days.some(({ items }) => hasBoob(items));
             const isWeekOpen = openWeeks.has(weekKey);
+            const isLast = idx === weeks.length - 1;
             return (
-              <div key={weekKey} className={styles.weekGroup}>
+              <div key={weekKey} ref={isLast && hasMore ? sentinelRef : undefined} className={styles.weekGroup}>
                 <div className={styles.weekHeader} onClick={() => toggleWeek(weekKey)}>
                   <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
                   <div className={styles.weekStats}>
@@ -196,10 +182,7 @@ const MilkDrankPage = () => {
                     return (
                       <div key={date} className={styles.dayGroup}>
                         <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
-                          <span>
-                            <span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅{' '}
-                            {formatDateWithWeekday(date, false)}
-                          </span>
+                          <span><span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date, false)}</span>
                           <span className={styles.dayTotal}>{dayTotal}{dayHasBoob ? '*' : ''} ml</span>
                         </div>
                         {isDayOpen ? (
@@ -207,9 +190,7 @@ const MilkDrankPage = () => {
                             <div key={item.id} className={styles.dayItem}>
                               <span className={styles.dayItemSource}>{sourceEmoji(item.source)}</span>
                               <span className={styles.dayItemAmount}>{item.amount} ml</span>
-                              <span className={styles.time}>
-                                {formatTime(item.createdAt)}
-                              </span>
+                              <span className={styles.time}>{formatTime(item.createdAt)}</span>
                             </div>
                           ))
                         ) : null}
@@ -221,6 +202,8 @@ const MilkDrankPage = () => {
             );
           })
         )}
+        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
+        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
       </div>
     );
   };
@@ -228,21 +211,12 @@ const MilkDrankPage = () => {
   return (
     <div ref={visibilityRef}>
     <PageLayout title="Milk Drank" emoji="🍼" gradient="green">
-      <DateRangeFilter
-        from={from}
-        to={to}
-        view={view}
-        onFromChange={setFrom}
-        onToChange={setTo}
-        onViewChange={setView}
-      />
+      <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
-        <div className={styles.statChip}>🍼 Total: <strong>{periodTotal}{periodHasBoob ? '*' : ''} ml</strong></div>
-        <div className={styles.statChip}>📊 Avg/day: <strong>~{periodAvg}{periodHasBoob ? '*' : ''} ml</strong></div>
+        <div className={styles.statChip}>🍼 Total: <strong>{summary ? `${summary.totalMl}${summary.hasBoob ? '*' : ''} ml` : '—'}</strong></div>
+        <div className={styles.statChip}>📊 Avg/day: <strong>{summary ? `~${summary.avgPerDay}${summary.hasBoob ? '*' : ''} ml` : '—'}</strong></div>
       </div>
-      {loading ? (
-        <p className={styles.loadingMsg}>Loading… ⏳</p>
-      ) : error ? (
+      {error ? (
         <p className={styles.errorMsg}>⚠️ {error}</p>
       ) : (
         <>
@@ -255,4 +229,3 @@ const MilkDrankPage = () => {
 };
 
 export default MilkDrankPage;
-

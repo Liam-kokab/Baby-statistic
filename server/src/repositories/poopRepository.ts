@@ -23,6 +23,7 @@ export const poopRepository = {
     return rows.map(fromDb);
   },
 
+
   findById: (id: number): TPoop | null => {
     const row = db.prepare<[number], TPoopDb>('SELECT * FROM poop WHERE id = ?').get(id);
     return row ? fromDb(row) : null;

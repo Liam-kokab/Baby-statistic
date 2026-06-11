@@ -30,6 +30,46 @@ export const sleepRepository = {
     return rows.map(fromDb);
   },
 
+  findSummaryAgg: (filter: TTimeFilter): { count: number; totalMs: number; activeDays: number } => {
+    const conditions = [
+      ...(filter.from ? ['created_at >= ?'] : []),
+      ...(filter.to ? ['created_at <= ?'] : []),
+    ];
+    const params = [
+      ...(filter.from ? [filter.from] : []),
+      ...(filter.to ? [filter.to] : []),
+    ];
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const row = db.prepare<string[], { count: number; totalMs: number; activeDays: number }>(
+      `SELECT COUNT(*) AS count,
+       COALESCE(SUM(CASE WHEN "end" IS NOT NULL
+         THEN CAST((julianday("end") - julianday(start)) * 86400000 AS INTEGER)
+         ELSE 0 END), 0) AS totalMs,
+       COUNT(DISTINCT date(created_at)) AS activeDays
+       FROM sleep ${where}`
+    ).get(...params)!;
+    const { count, totalMs, activeDays } = row;
+    return { count, totalMs, activeDays };
+  },
+
+  findOrderedForRange: (filter: TTimeFilter): { start: string; end: string | null }[] => {
+    const conditions = [
+      ...(filter.from ? ['created_at >= ?'] : []),
+      ...(filter.to ? ['created_at <= ?'] : []),
+    ];
+    const params = [
+      ...(filter.from ? [filter.from] : []),
+      ...(filter.to ? [filter.to] : []),
+    ];
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    return db.prepare<string[], { start: string; end: string | null }>(
+      `SELECT start, "end" FROM sleep ${where} ORDER BY start ASC`
+    ).all(...params).map((r) => ({
+      start: toOsloIso(r.start),
+      end: r.end ? toOsloIsoNullable(r.end) : null,
+    }));
+  },
+
   findLatest: (): TSleep | null => {
     const row = db.prepare<[], TSleepDb>('SELECT * FROM sleep ORDER BY start DESC LIMIT 1').get();
     return row ? fromDb(row) : null;

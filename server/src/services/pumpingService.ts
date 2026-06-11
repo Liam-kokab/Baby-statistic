@@ -1,10 +1,13 @@
-import type { TPumping } from 'baby-statistic-common';
+import type { TPumping, TPumpingSummary } from 'baby-statistic-common';
 import { pumpingRepository } from '../repositories/pumpingRepository';
 import type { TTimeFilter } from '../types';
 
 export const pumpingService = {
   findAll: (filter: TTimeFilter = {}): TPumping[] =>
     pumpingRepository.findAll(filter),
+
+  findSummary: (filter: TTimeFilter = {}): TPumpingSummary =>
+    pumpingRepository.findSummary(filter),
 
   findLatest: (): TPumping | null =>
     pumpingRepository.findLatest(),

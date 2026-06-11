@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { medicineService } from '../services/medicineService';
 import { bodyAs } from '../utils/bodyAs';
+import { expandToWished } from '../utils/expandToWished';
 
 const router = Router();
 
@@ -25,8 +26,13 @@ router.post('/', (req: Request, res: Response): void => {
 
 // ── Logs (literal paths first, before /:id) ───────────────────────────────────
 router.get('/logs', (req: Request, res: Response): void => {
-  const { from, to } = req.query as { from?: string; to?: string };
-  res.json(medicineService.findLogs({ from, to }));
+  const { from, to, wished } = req.query as { from?: string; to?: string; wished?: string };
+  const wishedNum = wished ? Number(wished) : undefined;
+  if (wishedNum && to) {
+    res.json(expandToWished(wishedNum, from ?? '', to, (f, t) => medicineService.findLogs({ from: f, to: t })));
+  } else {
+    res.json(medicineService.findLogs({ from, to }));
+  }
 });
 
 router.get('/logs/:id', (req: Request, res: Response): void => {

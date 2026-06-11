@@ -3,12 +3,23 @@ import type { Request, Response } from 'express';
 import type { TPostSleep } from 'baby-statistic-common';
 import { sleepService } from '../services/sleepService';
 import { bodyAs } from '../utils/bodyAs';
+import { expandToWished } from '../utils/expandToWished';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response): void => {
+router.get('/summary', (req: Request, res: Response): void => {
   const { from, to } = req.query as { from?: string; to?: string };
-  res.json(sleepService.findAll({ from, to }));
+  res.json(sleepService.findSummary({ from, to }));
+});
+
+router.get('/', (req: Request, res: Response): void => {
+  const { from, to, wished } = req.query as { from?: string; to?: string; wished?: string };
+  const wishedNum = wished ? Number(wished) : undefined;
+  if (wishedNum && to) {
+    res.json(expandToWished(wishedNum, from ?? '', to, (f, t) => sleepService.findAll({ from: f, to: t })));
+  } else {
+    res.json(sleepService.findAll({ from, to }));
+  }
 });
 
 router.get('/latest', (_req: Request, res: Response): void => {

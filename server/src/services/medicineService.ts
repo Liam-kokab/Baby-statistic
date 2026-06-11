@@ -31,6 +31,7 @@ export const medicineService = {
   findLogs: (filter: TTimeFilter = {}): TMedicineLog[] =>
     medicineRepository.findLogs(filter),
 
+
   findLogById: (id: number): TMedicineLog | null =>
     medicineRepository.findLogById(id),
 

@@ -105,6 +105,7 @@ export const medicineRepository = {
     return rows.map(fromLogDb);
   },
 
+
   findLogById: (id: number): TMedicineLog | null => {
     const row = db.prepare<[number], TMedicineLogDb>('SELECT * FROM medicine_log WHERE id = ?').get(id);
     return row ? fromLogDb(row) : null;

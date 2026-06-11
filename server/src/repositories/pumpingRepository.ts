@@ -1,4 +1,4 @@
-import type { TPumping, TPumpingDb } from 'baby-statistic-common';
+import type { TPumping, TPumpingDb, TPumpingSummary } from 'baby-statistic-common';
 import { db } from '../db';
 import type { TTimeFilter } from '../types';
 import { nowOslo, toOsloIso, toOsloLocal } from '../utils/time';
@@ -21,6 +21,25 @@ export const pumpingRepository = {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const rows = db.prepare<string[], TPumpingDb>(`SELECT * FROM pumping ${where} ORDER BY created_at DESC`).all(...params);
     return rows.map(fromDb);
+  },
+
+  findSummary: (filter: TTimeFilter): TPumpingSummary => {
+    const conditions = [
+      ...(filter.from ? ['created_at >= ?'] : []),
+      ...(filter.to ? ['created_at <= ?'] : []),
+    ];
+    const params = [
+      ...(filter.from ? [filter.from] : []),
+      ...(filter.to ? [filter.to] : []),
+    ];
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const row = db.prepare<string[], { count: number; activeDays: number }>(
+      `SELECT COUNT(*) AS count, COUNT(DISTINCT date(created_at)) AS activeDays FROM pumping ${where}`
+    ).get(...params)!;
+    return {
+      count: row.count,
+      avgPerDay: row.activeDays > 0 ? Math.round((row.count / row.activeDays) * 10) / 10 : 0,
+    };
   },
 
   findLatest: (): TPumping | null => {

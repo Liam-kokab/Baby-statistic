@@ -34,6 +34,7 @@ export const servedMilkRepository = {
     return rows.map(fromDb);
   },
 
+
   findById: (id: number): TServedMilk | null => {
     const row = db.prepare<[number], TServedMilkDb>('SELECT * FROM served_milk WHERE id = ?').get(id);
     return row ? fromDb(row) : null;
@@ -104,7 +105,7 @@ export const servedMilkRepository = {
   deductStock: (source: TServedMilkStatus, amount: number): void => {
     const run = db.transaction(() => {
       const records = db.prepare<[string], TServedMilkDb>(
-        `SELECT * FROM served_milk WHERE status = ? ORDER BY created_at ASC`
+        `SELECT * FROM served_milk WHERE status = ? ORDER BY created_at`
       ).all(source);
 
       const updateStmt = db.prepare<{ amount: number; status: TServedMilkStatus; id: number }>(

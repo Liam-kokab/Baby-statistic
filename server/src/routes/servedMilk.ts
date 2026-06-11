@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import type { TPostServedMilk, TServedMilkStatus } from 'baby-statistic-common';
 import { servedMilkService } from '../services/servedMilkService';
 import { bodyAs } from '../utils/bodyAs';
+import { expandToWished } from '../utils/expandToWished';
 
 const router = Router();
 
@@ -10,8 +11,13 @@ const INITIAL_STATUSES: TServedMilkStatus[] = ['FRIDGE', 'FREEZER'];
 const VALID_STATUSES: TServedMilkStatus[]   = ['FRIDGE', 'FREEZER', 'USED', 'EXPIRED'];
 
 router.get('/', (req: Request, res: Response): void => {
-  const { from, to } = req.query as { from?: string; to?: string };
-  res.json(servedMilkService.findAll({ from, to }));
+  const { from, to, wished } = req.query as { from?: string; to?: string; wished?: string };
+  const wishedNum = wished ? Number(wished) : undefined;
+  if (wishedNum && to) {
+    res.json(expandToWished(wishedNum, from ?? '', to, (f, t) => servedMilkService.findAll({ from: f, to: t })));
+  } else {
+    res.json(servedMilkService.findAll({ from, to }));
+  }
 });
 
 router.get('/total', (_req: Request, res: Response): void => {

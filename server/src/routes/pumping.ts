@@ -2,12 +2,23 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { pumpingService } from '../services/pumpingService';
 import { bodyAs } from '../utils/bodyAs';
+import { expandToWished } from '../utils/expandToWished';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response): void => {
+router.get('/summary', (req: Request, res: Response): void => {
   const { from, to } = req.query as { from?: string; to?: string };
-  res.json(pumpingService.findAll({ from, to }));
+  res.json(pumpingService.findSummary({ from, to }));
+});
+
+router.get('/', (req: Request, res: Response): void => {
+  const { from, to, wished } = req.query as { from?: string; to?: string; wished?: string };
+  const wishedNum = wished ? Number(wished) : undefined;
+  if (wishedNum && to) {
+    res.json(expandToWished(wishedNum, from ?? '', to, (f, t) => pumpingService.findAll({ from: f, to: t })));
+  } else {
+    res.json(pumpingService.findAll({ from, to }));
+  }
 });
 
 router.get('/latest', (_req: Request, res: Response): void => {

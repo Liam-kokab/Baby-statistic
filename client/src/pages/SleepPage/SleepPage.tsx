@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetch2 } from 'baby-statistic-common/util';
-import type { TSleep } from 'baby-statistic-common';
+import type { TSleep, TSleepSummary, TWishedResult } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import type { TView } from '../../components/DateRangeFilter/DateRangeFilter';
@@ -10,6 +10,8 @@ import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/f
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useTimeWindowScroll, { getWindowEnd } from '../../utils/useInfiniteScroll';
+import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import styles from './SleepPage.module.css';
 
 const getDefaultFrom = (): string => {
@@ -18,11 +20,7 @@ const getDefaultFrom = (): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const getDefaultTo = (): string => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-};
+const getDefaultTo = (): string => getWindowEnd(new Date().toISOString().slice(0, 10));
 
 const formatMs = (ms: number): string => {
   const totalMinutes = Math.round(ms / 60000);
@@ -42,12 +40,8 @@ const totalDurationMs = (items: TSleep[]): number =>
     return sum + (new Date(s.end).getTime() - new Date(s.start).getTime());
   }, 0);
 
-// items must be sorted descending by start (as produced by groupSleepByDay)
-const totalAwakeMsForItems = (items: TSleep[]): number =>
-  // reuse calcAwakeStats to ensure consistent awake calculation (including ongoing awake)
-  calcAwakeStats(items).totalMs;
-
-const calcAwakeStats = (items: TSleep[]): { totalMs: number; avgMs: number } => {
+/** Awake gaps between completed sleep sessions only — no "currently awake" gap. */
+const calcCompletedAwakeStats = (items: TSleep[]): { totalMs: number; avgMs: number } => {
   const sorted = [...items].sort((a, b) => a.start.localeCompare(b.start));
   const gaps = sorted.reduce<number[]>((acc, item, i) => {
     if (i === 0) return acc;
@@ -56,16 +50,6 @@ const calcAwakeStats = (items: TSleep[]): { totalMs: number; avgMs: number } => 
     const gap = new Date(item.start).getTime() - new Date(prev.end).getTime();
     return gap > 0 ? [...acc, gap] : acc;
   }, []);
-  // If there is no ongoing sleep (no item with end === null) but we have sleeps,
-  // include the gap from the last sleep end to now as an ongoing awake period.
-  const hasOngoingSleep = sorted.some((s) => s.end === null);
-  if (!hasOngoingSleep && sorted.length > 0) {
-    const last = sorted[sorted.length - 1];
-    if (last.end) {
-      const gapNow = Date.now() - new Date(last.end).getTime();
-      if (gapNow > 0) gaps.push(gapNow);
-    }
-  }
   const totalMs = gaps.reduce((s, g) => s + g, 0);
   const avgMs = gaps.length > 0 ? Math.round(totalMs / gaps.length) : 0;
   return { totalMs, avgMs };
@@ -85,85 +69,43 @@ const SleepPage = () => {
   const setTo   = (v: string) => setSearchParams((p) => { p.set('to',   v); return p; });
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
-  const [data, setData] = useState<TSleep[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<TSleepSummary | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
 
-  const load = useCallback(async () => {
-    setError(null);
+  const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-    const sleepResult = await fetch2<TSleep[]>(`/api/sleep?${params}`);
-    if (sleepResult.ok) {
-      setData(sleepResult.data);
-    } else {
-      setError(sleepResult.error);
-    }
+    const result = await fetch2<TSleepSummary>(`/api/sleep/summary?${params}`);
+    if (result.ok) setSummary(result.data);
   }, [from, to]);
 
-  const visibilityRef = useRefetchOnVisible(load);
+  useEffect(() => { loadSummary(); }, [loadSummary]);
 
-  useEffect(() => {
-    const initialLoad = async () => {
-      setLoading(true);
-      await load();
-      setLoading(false);
-    };
-    initialLoad();
-  }, [load]);
+  const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TSleep>> => {
+    const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
+    const result = await fetch2<TWishedResult<TSleep>>(`/api/sleep?${params}`);
+    if (result.ok) return result.data;
+    return { items: [], actualFrom: winFrom.slice(0, 10) };
+  }, []);
 
-  // Augment data with an ongoing "awake" pseudo-entry when appropriate:
-  // If there is no ongoing sleep (no item.end === null) and we have at least one sleep
-  // whose end is set, create a synthetic awake item starting at the last sleep end.
-  const augmentedData = useMemo(() => {
-    if (data.length === 0) return data;
-    const hasOngoing = data.some((d) => d.end === null);
-    if (hasOngoing) return data;
-    const latest = data.reduce((a, b) => (a.start > b.start ? a : b));
-    if (!latest.end) return data;
-    const awakeSynthetic: TSleep = {
-      id: -1,
-      start: latest.end,
-      end: null,
-      createdAt: latest.end,
-    };
-    return [...data, awakeSynthetic];
-  }, [data]);
+  const hasEnough = useCallback(
+    (items: TSleep[]) => hasEnoughForView(items, view, sleepKeyFn),
+    [view],
+  );
 
-  const totalMs = totalDurationMs(data);
-  const daysWithData = new Set(data.map((d) => d.start.slice(0, 10))).size;
-  const avgMs = daysWithData > 0 ? Math.round(totalMs / daysWithData) : 0;
+  const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const { totalMs: awakeTotalMs, avgMs: awakeAvgMs } = calcAwakeStats(data);
+  const visibilityRef = useRefetchOnVisible(() => { loadSummary(); refresh(); });
 
   const toggleDay = (date: string): void =>
-    setOpenDays((prev) => {
-      const next = new Set(prev);
-      next.has(date) ? next.delete(date) : next.add(date);
-      return next;
-    });
+    setOpenDays((prev) => { const n = new Set(prev); n.has(date) ? n.delete(date) : n.add(date); return n; });
 
   const toggleWeek = (weekKey: string): void =>
-    setOpenWeeks((prev) => {
-      const next = new Set(prev);
-      next.has(weekKey) ? next.delete(weekKey) : next.add(weekKey);
-      return next;
-    });
+    setOpenWeeks((prev) => { const n = new Set(prev); n.has(weekKey) ? n.delete(weekKey) : n.add(weekKey); return n; });
 
+  /** Renders sleep cards with awake gaps between completed sessions — no ongoing awake. */
   const renderSleepItems = (items: TSleep[]) =>
     items.flatMap((item, i) => {
-      // synthetic awake entry (id < 0)
-      if (item.id < 0) {
-        const awakeMs = Date.now() - new Date(item.start).getTime();
-        return [
-          <div key={`awake-${item.id}`} className={`${styles.dayItem} ${styles.awakeDayItem}`}>
-            <span className={styles.dayItemDuration}>☀️ {formatMs(awakeMs)}</span>
-            <span className={styles.time}>{formatTime(item.start)} → Ongoing</span>
-          </div>,
-        ];
-      }
-
       const next = items[i + 1];
       const awakeMs =
         next?.end
@@ -173,20 +115,14 @@ const SleepPage = () => {
         <div key={item.id} className={styles.dayItem}>
           <span className={styles.dayItemDuration}>😴 {formatDuration(item.start, item.end)}</span>
           <span className={styles.time}>
-            {formatTime(item.start)}
-            {item.end
-              ? ` → ${formatTime(item.end)}`
-              : ' → Ongoing'}
+            {formatTime(item.start)}{item.end ? ` → ${formatTime(item.end)}` : ' → Ongoing'}
           </span>
         </div>,
         ...(awakeMs !== null && awakeMs > 0
           ? [
               <div key={`awake-${item.id}`} className={`${styles.dayItem} ${styles.awakeDayItem}`}>
                 <span className={styles.dayItemDuration}>☀️ {formatMs(awakeMs)}</span>
-                <span className={styles.time}>
-                  {formatTime(next.end!)}
-                  {` → ${formatTime(item.start)}`}
-                </span>
+                <span className={styles.time}>{formatTime(next.end!)} {`→ ${formatTime(item.start)}`}</span>
               </div>,
             ]
           : []),
@@ -194,89 +130,67 @@ const SleepPage = () => {
     });
 
   const renderItemView = () => {
-    const sorted = [...augmentedData].sort((a, b) => b.start.localeCompare(a.start));
+    const sorted = [...data].sort((a, b) => b.start.localeCompare(a.start));
+    const sentinelIdx = Math.max(0, sorted.length - 10);
     return (
       <div className={styles.list}>
-        {sorted.length === 0 ? (
+        {sorted.length === 0 && !loading ? (
           <p className={styles.empty}>No records found 😴</p>
         ) : (
           sorted.flatMap((item, i) => {
-              // synthetic awake entry
-              if (item.id < 0) {
-                const awakeMs = Date.now() - new Date(item.start).getTime();
-                return [
-                  <div key={`awake-${item.id}`} className={`${styles.card} ${styles.awakeCard}`}>
-                    <span className={styles.cardEmoji}>☀️</span>
-                    <div className={styles.cardBody}>
-                      <span className={styles.duration}>{formatMs(awakeMs)}</span>
-                      <span className={styles.timeRange}>{formatDateTime(item.start)} → Ongoing</span>
-                    </div>
-                  </div>,
-                ];
-              }
-
-              const next = sorted[i + 1];
-              const awakeMs =
-                next?.end
-                  ? Math.max(0, new Date(item.start).getTime() - new Date(next.end).getTime())
-                  : null;
-              return [
-                <div key={item.id} className={styles.card}>
-                  <span className={styles.cardEmoji}>😴</span>
-                  <div className={styles.cardBody}>
-                    <span className={styles.duration}>{formatDuration(item.start, item.end)}</span>
-                    <span className={styles.timeRange}>
-                      {formatDateTime(item.start)}
-                      {item.end ? ` → ${formatTime(item.end)}` : ''}
-                    </span>
-                  </div>
-                  <Button
-                    emoji="✏️"
-                    variant="ghost"
-                    className={styles.editBtn}
-                    onClick={() => navigate(`/sleep/${item.id}`)}
-                  />
-                </div>,
-                ...(awakeMs !== null && awakeMs > 0
-                  ? [
-                      <div key={`awake-${item.id}`} className={`${styles.card} ${styles.awakeCard}`}>
-                        <span className={styles.cardEmoji}>☀️</span>
-                        <div className={styles.cardBody}>
-                          <span className={styles.duration}>{formatMs(awakeMs)}</span>
-                          <span className={styles.timeRange}>
-                            {formatDateTime(next.end!)}
-                            {` → ${formatTime(item.start)}`}
-                          </span>
-                        </div>
-                      </div>,
-                    ]
-                  : []),
-              ];
-            })
-          )
-        }
+            const isSentinel = i === sentinelIdx;
+            const next = sorted[i + 1];
+            const awakeMs =
+              next?.end
+                ? Math.max(0, new Date(item.start).getTime() - new Date(next.end).getTime())
+                : null;
+            return [
+              <div key={item.id} ref={isSentinel ? sentinelRef : undefined} className={styles.card}>
+                <span className={styles.cardEmoji}>😴</span>
+                <div className={styles.cardBody}>
+                  <span className={styles.duration}>{formatDuration(item.start, item.end)}</span>
+                  <span className={styles.timeRange}>
+                    {formatDateTime(item.start)}{item.end ? ` → ${formatTime(item.end)}` : ''}
+                  </span>
+                </div>
+                <Button emoji="✏️" variant="ghost" className={styles.editBtn} onClick={() => navigate(`/sleep/${item.id}`)} />
+              </div>,
+              ...(awakeMs !== null && awakeMs > 0
+                ? [
+                    <div key={`awake-${item.id}`} className={`${styles.card} ${styles.awakeCard}`}>
+                      <span className={styles.cardEmoji}>☀️</span>
+                      <div className={styles.cardBody}>
+                        <span className={styles.duration}>{formatMs(awakeMs)}</span>
+                        <span className={styles.timeRange}>{formatDateTime(next.end!)} {`→ ${formatTime(item.start)}`}</span>
+                      </div>
+                    </div>,
+                  ]
+                : []),
+            ];
+          })
+        )}
+        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
+        {!hasMore && sorted.length > 0 && !loading ? <p className={styles.endMsg}>All {sorted.length} records loaded</p> : null}
       </div>
     );
   };
 
   const renderDayView = () => {
-    const groups = groupByDay(augmentedData, sleepKeyFn);
+    const groups = groupByDay(data, sleepKeyFn);
     return (
       <div className={styles.list}>
-        {groups.length === 0 ? (
+        {groups.length === 0 && !loading ? (
           <p className={styles.empty}>No records found 😴</p>
         ) : (
-          groups.map(({ date, items }) => {
+          groups.map(({ date, items }, idx) => {
             const dayMs    = totalDurationMs(items);
-            const dayAwake = totalAwakeMsForItems(items);
+            const { totalMs: dayAwake } = calcCompletedAwakeStats(items);
             const isOpen = openDays.has(date);
+            const isSentinel = idx === Math.max(0, groups.length - 10);
             return (
-              <div key={date} className={styles.dayGroup}>
+              <div key={date} ref={isSentinel && hasMore ? sentinelRef : undefined} className={styles.dayGroup}>
                 <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
-                  <span>
-                    <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅{' '}
-                    {formatDateWithWeekday(date)}
-                  </span>
+                  <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date)}</span>
                   <div className={styles.dayTotals}>
                     <span className={styles.dayTotal}>😴 {formatMs(dayMs)} ({items.length})</span>
                     {dayAwake > 0 ? <span className={styles.dayAwake}>☀️ {formatMs(dayAwake)}</span> : null}
@@ -287,26 +201,29 @@ const SleepPage = () => {
             );
           })
         )}
+        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
+        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>All days loaded</p> : null}
       </div>
     );
   };
 
   const renderWeekView = () => {
-    const weeks = groupByWeek(augmentedData, sleepKeyFn);
+    const weeks = groupByWeek(data, sleepKeyFn);
     return (
       <div className={styles.list}>
-        {weeks.length === 0 ? (
+        {weeks.length === 0 && !loading ? (
           <p className={styles.empty}>No records found 😴</p>
         ) : (
-          weeks.map(({ weekKey, weekLabel, days }) => {
+          weeks.map(({ weekKey, weekLabel, days }, idx) => {
             const weekMs      = days.reduce((sum, { items }) => sum + totalDurationMs(items), 0);
             const weekAvgMs   = days.length > 0 ? Math.round(weekMs / days.length) : 0;
             const allItems    = days.flatMap(({ items }) => items);
-            const { totalMs: weekAwakeMs } = calcAwakeStats(allItems);
+            const isLast = idx === weeks.length - 1;
+            const { totalMs: weekAwakeMs } = calcCompletedAwakeStats(allItems);
             const weekAwakeAvgMs = days.length > 0 ? Math.round(weekAwakeMs / days.length) : 0;
             const isWeekOpen = openWeeks.has(weekKey);
             return (
-              <div key={weekKey} className={styles.weekGroup}>
+              <div key={weekKey} ref={isLast && hasMore ? sentinelRef : undefined} className={styles.weekGroup}>
                 <div className={styles.weekHeader} onClick={() => toggleWeek(weekKey)}>
                   <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
                   <div className={styles.weekStats}>
@@ -325,15 +242,12 @@ const SleepPage = () => {
                 {isWeekOpen ? (
                   days.map(({ date, items }) => {
                     const dayMs    = totalDurationMs(items);
-                    const dayAwake = totalAwakeMsForItems(items);
+                    const { totalMs: dayAwake } = calcCompletedAwakeStats(items);
                     const isDayOpen = openDays.has(date);
                     return (
                       <div key={date} className={styles.dayGroup}>
                         <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
-                          <span>
-                            <span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅{' '}
-                    {formatDateWithWeekday(date)}
-                          </span>
+                          <span><span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date)}</span>
                           <div className={styles.dayTotals}>
                             <span className={styles.dayTotal}>😴 {formatMs(dayMs)}</span>
                             {dayAwake > 0 ? <span className={styles.dayAwake}>☀️ {formatMs(dayAwake)}</span> : null}
@@ -348,35 +262,24 @@ const SleepPage = () => {
             );
           })
         )}
+        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
+        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
       </div>
     );
   };
 
   return (
     <PageLayout title="Sleep" emoji="😴" gradient="indigo" ref={visibilityRef}>
-      <DateRangeFilter
-        from={from}
-        to={to}
-        view={view}
-        onFromChange={setFrom}
-        onToChange={setTo}
-        onViewChange={setView}
-      />
+      <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
-        <div className={styles.statChip}>😴 Total: <strong>{formatMs(totalMs)}</strong></div>
-        <div className={styles.statChip}>📊 Avg/day: <strong>~{formatMs(avgMs)}</strong></div>
-        <div className={styles.statChip}>⏳ Awake Total: <strong>{formatMs(awakeTotalMs)}</strong></div>
-        <div className={styles.statChip}>📈 Avg Awake: <strong>~{formatMs(awakeAvgMs)}</strong></div>
+        <div className={styles.statChip}>😴 Total: <strong>{summary ? formatMs(summary.totalMs) : '—'}</strong></div>
+        <div className={styles.statChip}>📊 Avg/day: <strong>{summary ? `~${formatMs(summary.avgMs)}` : '—'}</strong></div>
+        <div className={styles.statChip}>⏳ Awake Total: <strong>{summary ? formatMs(summary.totalAwakeMs) : '—'}</strong></div>
+        <div className={styles.statChip}>📈 Avg Awake: <strong>{summary ? `~${formatMs(summary.avgAwakeMs)}` : '—'}</strong></div>
       </div>
-      {loading ? (
-        <p className={styles.loadingMsg}>Loading… ⏳</p>
-      ) : error ? (
-        <p className={styles.errorMsg}>⚠️ {error}</p>
-      ) : (
-        <>
-          {view === 'item' ? renderItemView() : view === 'day' ? renderDayView() : renderWeekView()}
-        </>
-      )}
+      <>
+        {view === 'item' ? renderItemView() : view === 'day' ? renderDayView() : renderWeekView()}
+      </>
     </PageLayout>
   );
 };

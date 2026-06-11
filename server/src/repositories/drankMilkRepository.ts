@@ -1,4 +1,4 @@
-import type { TDrankMilk, TDrankMilkDb, TPostDrankMilk } from 'baby-statistic-common';
+import type { TDrankMilk, TDrankMilkDb, TPostDrankMilk, TDrankMilkSummary } from 'baby-statistic-common';
 import { db } from '../db';
 import type { TTimeFilter } from '../types';
 import { nowOslo, toOsloIso, toOsloLocal } from '../utils/time';
@@ -28,6 +28,30 @@ export const drankMilkRepository = {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const rows = db.prepare<string[], TDrankMilkDb>(`SELECT * FROM drank_milk ${where} ORDER BY created_at DESC`).all(...params);
     return rows.map(fromDb);
+  },
+
+  findSummary: (filter: TTimeFilter): TDrankMilkSummary => {
+    const conditions = [
+      ...(filter.from ? ['created_at >= ?'] : []),
+      ...(filter.to ? ['created_at <= ?'] : []),
+    ];
+    const params = [
+      ...(filter.from ? [filter.from] : []),
+      ...(filter.to ? [filter.to] : []),
+    ];
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const row = db.prepare<string[], { count: number; totalMl: number; activeDays: number; hasBoob: number }>(
+      `SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0) AS totalMl,
+       COUNT(DISTINCT date(created_at)) AS activeDays,
+       MAX(CASE WHEN source = 'BOOB' THEN 1 ELSE 0 END) AS hasBoob
+       FROM drank_milk ${where}`
+    ).get(...params)!;
+    return {
+      count: row.count,
+      totalMl: row.totalMl,
+      avgPerDay: row.activeDays > 0 ? Math.round(row.totalMl / row.activeDays) : 0,
+      hasBoob: row.hasBoob === 1,
+    };
   },
 
   findById: (id: number): TDrankMilk | null => {

@@ -6,6 +6,8 @@ export const peeService = {
   findAll: (filter: TTimeFilter = {}): TPee[] =>
     peeRepository.findAll(filter),
 
+
+  // ...existing code...
   findById: (id: number): TPee | null =>
     peeRepository.findById(id),
 
