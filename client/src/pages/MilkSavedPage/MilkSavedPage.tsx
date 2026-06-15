@@ -23,7 +23,11 @@ const getDefaultFrom = (): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const getDefaultTo = (): string => getWindowEnd(new Date().toISOString().slice(0, 10));
+const getDefaultTo = (): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + 2);
+  return d.toISOString().slice(0, 10);
+};
 
 const MilkSavedPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();

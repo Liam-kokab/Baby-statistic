@@ -24,7 +24,11 @@ const getDefaultFrom = (): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const getDefaultTo = (): string => getWindowEnd(new Date().toISOString().slice(0, 10));
+const getDefaultTo = (): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + 2);
+  return d.toISOString().slice(0, 10);
+};
 
 type TLogWithName = TMedicineLog & { medicineName: string };
 
@@ -44,7 +48,7 @@ const MedicinePage = () => {
   const [error, setError]               = useState<string | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
-  const [openMeds,  setOpenMeds]  = useState<Set<string>>(new Set());
+  const [openMed,   setOpenMed]   = useState<string | null>(null);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [newName, setNewName]           = useState('');
@@ -93,7 +97,7 @@ const MedicinePage = () => {
     setOpenWeeks((prev) => { const n = new Set(prev); n.has(weekKey) ? n.delete(weekKey) : n.add(weekKey); return n; });
 
   const toggleMed = (key: string): void =>
-    setOpenMeds((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+    setOpenMed((prev) => (prev === key ? null : key));
 
   const groupByMedicine = (items: TLogWithName[]): { name: string; items: TLogWithName[] }[] => {
     const map = new Map<string, TLogWithName[]>();
@@ -105,18 +109,22 @@ const MedicinePage = () => {
     return Array.from(map.entries()).map(([name, its]) => ({ name, items: its }));
   };
 
-  const renderMedItems = (items: TLogWithName[], medKey: string, sentinelIdx?: number) => {
-    const isOpen = openMeds.has(medKey);
+  const renderMedItems = (items: TLogWithName[], medKey: string, sentinelOnHeader?: boolean) => {
+    const isOpen = openMed === medKey;
     const sorted = [...items].sort((a, b) => b.takenAt.localeCompare(a.takenAt));
     return (
       <div key={medKey} className={styles.medGroup}>
-        <div className={styles.medGroupHeader} onClick={() => toggleMed(medKey)}>
+        <div
+          ref={sentinelOnHeader ? sentinelRef : undefined}
+          className={styles.medGroupHeader}
+          onClick={() => toggleMed(medKey)}
+        >
           <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}💊 {items[0].medicineName}</span>
           <span className={styles.dayTotal}>{items.length} dose{items.length !== 1 ? 's' : ''}</span>
         </div>
         {isOpen ? (
-          sorted.map((item, idx) => (
-            <div key={item.id} ref={sentinelIdx !== undefined && idx === sentinelIdx ? sentinelRef : undefined} className={styles.dayItem}>
+          sorted.map((item) => (
+            <div key={item.id} className={styles.dayItem}>
               <span className={styles.time}>{formatDateTime(item.takenAt)}</span>
               <Button emoji="✏️" variant="ghost" className={styles.editBtn} onClick={() => navigate(`/medicine/log/${item.id}`)} />
             </div>
@@ -143,13 +151,14 @@ const MedicinePage = () => {
 
   const renderItemView = () => {
     const groups = groupByMedicine(logs);
-    const sentinelIdx = Math.max(0, logs.length - 10);
     return (
       <div className={styles.list}>
         {logs.length === 0 && !loading ? (
           <p className={styles.empty}>No records found 💊</p>
         ) : (
-          groups.map(({ name, items }) => renderMedItems(items, `item-${name}`, sentinelIdx))
+          groups.map(({ name, items }, idx) =>
+            renderMedItems(items, `item-${name}`, hasMore && idx === Math.max(0, groups.length - 5))
+          )
         )}
         {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
         {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>All {logs.length} records loaded</p> : null}
@@ -158,59 +167,44 @@ const MedicinePage = () => {
   };
 
   const renderDayView = () => {
-    const days = groupByDay(logs, (l) => l.takenAt);
+    const groups = groupByMedicine(logs);
     return (
       <div className={styles.list}>
-        {days.length === 0 && !loading ? (
+        {logs.length === 0 && !loading ? (
           <p className={styles.empty}>No records found 💊</p>
         ) : (
-          days.map(({ date, items }, idx) => {
-            const isOpen = openDays.has(date);
-            const isSentinel = idx === Math.max(0, days.length - 10);
+          groups.map(({ name, items }, idx) => {
+            const medKey = `day-med-${name}`;
+            const isOpen = openMed === medKey;
+            const days = groupByDay(items, (l) => l.takenAt);
+            const isSentinel = hasMore && idx === Math.max(0, groups.length - 5);
             return (
-              <div key={date} ref={isSentinel && hasMore ? sentinelRef : undefined} className={styles.dayGroup}>
-                <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
-                  <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date)}</span>
+              <div key={medKey} className={styles.medGroup}>
+                <div
+                  ref={isSentinel ? sentinelRef : undefined}
+                  className={styles.medGroupHeader}
+                  onClick={() => toggleMed(medKey)}
+                >
+                  <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}💊 {name}</span>
                   <span className={styles.dayTotal}>{items.length} dose{items.length !== 1 ? 's' : ''}</span>
                 </div>
-                {isOpen ? groupByMedicine(items).map(({ name, items: meds }) => renderMedItems(meds, `day-${date}-${name}`)) : null}
-              </div>
-            );
-          })
-        )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && days.length > 0 && !loading ? <p className={styles.endMsg}>All days loaded</p> : null}
-      </div>
-    );
-  };
-
-  const renderWeekView = () => {
-    const weeks = groupByWeek(logs, (l) => l.takenAt);
-    return (
-      <div className={styles.list}>
-        {weeks.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 💊</p>
-        ) : (
-          weeks.map(({ weekKey, weekLabel, days }, idx) => {
-            const weekCount = days.reduce((sum, { items }) => sum + items.length, 0);
-            const isWeekOpen = openWeeks.has(weekKey);
-            const isLast = idx === weeks.length - 1;
-            return (
-              <div key={weekKey} ref={isLast && hasMore ? sentinelRef : undefined} className={styles.weekGroup}>
-                <div className={styles.weekHeader} onClick={() => toggleWeek(weekKey)}>
-                  <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
-                  <span className={styles.weekTotal}>{weekCount} doses</span>
-                </div>
-                {isWeekOpen ? (
-                  days.map(({ date, items }) => {
+                {isOpen ? (
+                  days.map(({ date, items: dayItems }) => {
                     const isDayOpen = openDays.has(date);
                     return (
                       <div key={date} className={styles.dayGroup}>
                         <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
-                          <span><span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date, false)}</span>
-                          <span className={styles.dayTotal}>{items.length} dose{items.length !== 1 ? 's' : ''}</span>
+                          <span><span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date)}</span>
+                          <span className={styles.dayTotal}>{dayItems.length} dose{dayItems.length !== 1 ? 's' : ''}</span>
                         </div>
-                        {isDayOpen ? groupByMedicine(items).map(({ name, items: meds }) => renderMedItems(meds, `week-${weekKey}-${date}-${name}`)) : null}
+                        {isDayOpen ? (
+                          dayItems.map((item) => (
+                            <div key={item.id} className={styles.dayItem}>
+                              <span className={styles.time}>{formatDateTime(item.takenAt)}</span>
+                              <Button emoji="✏️" variant="ghost" className={styles.editBtn} onClick={() => navigate(`/medicine/log/${item.id}`)} />
+                            </div>
+                          ))
+                        ) : null}
                       </div>
                     );
                   })
@@ -220,7 +214,74 @@ const MedicinePage = () => {
           })
         )}
         {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
+        {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>All days loaded</p> : null}
+      </div>
+    );
+  };
+
+  const renderWeekView = () => {
+    const groups = groupByMedicine(logs);
+    return (
+      <div className={styles.list}>
+        {logs.length === 0 && !loading ? (
+          <p className={styles.empty}>No records found 💊</p>
+        ) : (
+          groups.map(({ name, items }, idx) => {
+            const medKey = `week-med-${name}`;
+            const isOpen = openMed === medKey;
+            const weeks = groupByWeek(items, (l) => l.takenAt);
+            const isSentinel = hasMore && idx === Math.max(0, groups.length - 5);
+            return (
+              <div key={medKey} className={styles.medGroup}>
+                <div
+                  ref={isSentinel ? sentinelRef : undefined}
+                  className={styles.medGroupHeader}
+                  onClick={() => toggleMed(medKey)}
+                >
+                  <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}💊 {name}</span>
+                  <span className={styles.dayTotal}>{items.length} dose{items.length !== 1 ? 's' : ''}</span>
+                </div>
+                {isOpen ? (
+                  weeks.map(({ weekKey, weekLabel, days }) => {
+                    const weekCount = days.reduce((sum, { items: d }) => sum + d.length, 0);
+                    const isWeekOpen = openWeeks.has(weekKey);
+                    return (
+                      <div key={weekKey} className={styles.weekGroup}>
+                        <div className={styles.weekHeader} onClick={() => toggleWeek(weekKey)}>
+                          <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
+                          <span className={styles.weekTotal}>{weekCount} doses</span>
+                        </div>
+                        {isWeekOpen ? (
+                          days.map(({ date, items: dayItems }) => {
+                            const isDayOpen = openDays.has(date);
+                            return (
+                              <div key={date} className={styles.dayGroup}>
+                                <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
+                                  <span><span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date, false)}</span>
+                                  <span className={styles.dayTotal}>{dayItems.length} dose{dayItems.length !== 1 ? 's' : ''}</span>
+                                </div>
+                                {isDayOpen ? (
+                                  dayItems.map((item) => (
+                                    <div key={item.id} className={styles.dayItem}>
+                                      <span className={styles.time}>{formatDateTime(item.takenAt)}</span>
+                                      <Button emoji="✏️" variant="ghost" className={styles.editBtn} onClick={() => navigate(`/medicine/log/${item.id}`)} />
+                                    </div>
+                                  ))
+                                ) : null}
+                              </div>
+                            );
+                          })
+                        ) : null}
+                      </div>
+                    );
+                  })
+                ) : null}
+              </div>
+            );
+          })
+        )}
+        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
+        {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
       </div>
     );
   };
