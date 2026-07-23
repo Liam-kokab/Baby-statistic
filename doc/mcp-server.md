@@ -37,7 +37,8 @@ npm run start -w mcp-server    # production (requires build first)
 npm run build -w mcp-server    # compile TypeScript
 ```
 
-In production (Docker), the MCP server is started automatically by `index.js` in SSE-only mode.
+In production, the MCP server is started automatically by `index.js` in SSE-only mode.
+
 
 ## Environment Variables
 

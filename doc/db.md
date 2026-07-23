@@ -7,7 +7,8 @@ SQLite via `better-sqlite3` (synchronous API).
 ```
 data/baby.db    # at project root; auto-created on first startup; gitignored
 ```
-Override with `DB_PATH` environment variable. In Docker, this resolves to `/app/data/baby.db` inside a named volume (`baby-statistic-data`) so it persists across rebuilds.
+Override with `DB_PATH` environment variable.
+
 
 ## Singleton (`server/src/db.ts`)
 Exports a single `db: Database.Database` instance. Importing `'./db'` initialises the database and runs all pending migrations. Never instantiate `new Database()` elsewhere.

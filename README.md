@@ -25,7 +25,6 @@ A simple self-hosted baby statistics tracker that logs daily events for your new
  - 🔮 **Next-bottle prediction** — the server suggests a rounded `nextDrinkAmount` for the next bottle based on recent drinking patterns (configurable lookback). Predictions are logged so you can compare predicted vs actual consumption and improve the model over time.
 - 🔄 **Backup & restore** — full DB export/import via REST API
 - 📖 **Swagger UI** — interactive API docs at `/api-docs`
-- 🐳 **Docker ready** — single-container deployment with persistent volume
 
 ## Tech Stack
 
@@ -35,7 +34,7 @@ A simple self-hosted baby statistics tracker that logs daily events for your new
 | Server   | Express 5, TypeScript, better-sqlite3                  |
 | Database | SQLite (file-based, zero config)                       |
 | Shared   | npm workspaces monorepo with a `common/` types package |
-| Deploy   | Docker (Node 22 Alpine)                                |
+| Process  | PM2 (crash restart + health-check watchdog)            |
 
 ## Getting Started
 
@@ -62,17 +61,19 @@ npm run dev:server   # Express server only (nodemon + ts-node)
 
 The Vite dev server proxies all `/api/*` requests to `http://localhost:3000`.
 
-### Production (Docker)
+### Production (PM2)
 
 ```bash
-# Build the image
-docker build -t baby-statistic .
-
-# Run (mounts ./data for persistent SQLite storage)
-docker run -d -p 80:80 -v ./data:/app/data baby-statistic
+npm start           # builds, then starts server + MCP server + healthcheck under PM2
+npm run restart      # restart everything (picks up new env vars)
+npm run stop         # stop everything
+npm run pm2:status   # check process status
+npm run pm2:logs     # tail logs
 ```
 
-The container exposes port **80** and persists the database in the `/app/data` volume.
+See [`doc/pm2.md`](doc/pm2.md) for the full process-management setup, including the health-check watchdog that restarts the server if it stops responding.
+
+On the production machine, `./deploy.sh` (or `npm run deploy`) pulls the latest code, rebuilds, and restarts everything under PM2 in one step.
 
 ## How to Use
 
@@ -88,11 +89,11 @@ The container exposes port **80** and persists the database in the `/app/data` v
 | File                                 | Description                                    |
 |--------------------------------------|------------------------------------------------|
 | [`doc/rest-api.md`](doc/rest-api.md) | Full REST endpoint reference                   |
-| [`doc/server.md`](doc/server.md)     | Express setup, file structure, scripts, Docker |
+| [`doc/server.md`](doc/server.md)     | Express setup, file structure, scripts         |
 | [`doc/client.md`](doc/client.md)     | React app structure, components, Vite config   |
 | [`doc/db.md`](doc/db.md)             | SQLite schema, migrations, triggers            |
 | [`doc/common.md`](doc/common.md)     | Shared types package, exports, usage           |
-| [`doc/deploy.md`](doc/deploy.md)     | Deployment guide                               |
+| [`doc/pm2.md`](doc/pm2.md)           | PM2 process management, health check, restart  |
 | [`doc/userGuid.md`](doc/userGuid.md) | End-user guide                                 |
 
 Interactive Swagger UI is available at `http://<host>/api-docs` when the server is running.
@@ -112,9 +113,10 @@ baby-statistic/
 ├── common/          # Shared TypeScript types & utilities
 ├── client/          # React + Vite frontend
 ├── server/          # Express + SQLite backend
-├── doc/             # Documentation (API, DB schema, deploy guide)
-├── scripts/         # Build & deploy helper scripts
-├── Dockerfile       # Multi-stage production build
+├── doc/             # Documentation (API, DB schema)
+├── ecosystem.config.js  # PM2 process definitions
+├── healthcheck.js       # PM2-managed health-check watchdog
+├── deploy.sh            # Pull + build + PM2 restart in one step
 └── data/            # SQLite database (gitignored in prod)
 ```
 

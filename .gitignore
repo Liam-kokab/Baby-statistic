@@ -28,3 +28,7 @@ server/public/assets
 # Generated build-time metadata
 mcp-server/src/tools/buildTime.json
 
+# PM2
+.pm2
+logs
+

@@ -126,12 +126,14 @@ The `doc/` folder contains living documentation for each layer of the project:
 
 | File | Covers |
 |---|---|
-| `doc/server.md` | Express setup, file structure, scripts, Docker |
+| `doc/server.md` | Express setup, file structure, scripts |
+
 | `doc/client.md` | React app structure, components, Vite config |
 | `doc/db.md` | SQLite schema, migrations, triggers |
 | `doc/common.md` | Shared types package, exports, usage |
 | `doc/rest-api.md` | All REST endpoints with request/response shapes |
 | `doc/openAPI.json` | OpenAPI 3.0.3 spec — served as Swagger UI at `/api-docs` |
+| `doc/pm2.md` | PM2 process management: ecosystem config, health check, start/restart scripts |
 
 **Before any change consider the documentation**
 

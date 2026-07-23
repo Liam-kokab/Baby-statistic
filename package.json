@@ -9,17 +9,28 @@
   ],
   "scripts": {
     "dev": "concurrently -n client,server,mcp -c cyan,yellow,magenta \"npm run dev -w client\" \"npm run dev -w server\" \"npm run dev -w mcp-server\"",
-    "build": "docker build -t baby-statistic",
-    "build:local": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run build -w client && npm run build -w server && npm run build -w mcp-server && node -e \"const fs=require('fs');const t=JSON.stringify({buildTime:new Date().toISOString()});fs.writeFileSync('dist/buildTime.json',t);fs.writeFileSync('dist/mcp-server/buildTime.json',t);fs.copyFileSync('mcp-server/src/descriptions.json','dist/mcp-server/descriptions.json')\"",
-    "start": "node scripts/docker-run.js",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run build -w client && npm run build -w server && npm run build -w mcp-server && node -e \"const fs=require('fs');const t=JSON.stringify({buildTime:new Date().toISOString()});fs.writeFileSync('dist/buildTime.json',t);fs.writeFileSync('dist/mcp-server/buildTime.json',t);fs.copyFileSync('mcp-server/src/descriptions.json','dist/mcp-server/descriptions.json')\"",
     "dev:client": "npm run dev -w client",
     "dev:server": "npm run dev -w server",
-    "dev:mcp": "npm run dev -w mcp-server"
+    "dev:mcp": "npm run dev -w mcp-server",
+    "start": "npm run build && npm run pm2:start",
+    "restart": "npm run pm2:restart",
+    "stop": "npm run pm2:stop",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:restart": "pm2 restart ecosystem.config.js --update-env",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:delete": "pm2 delete ecosystem.config.js",
+    "pm2:status": "pm2 status",
+    "pm2:logs": "pm2 logs",
+    "deploy": "bash deploy.sh"
+  },
+  "dependencies": {
+    "pm2": "^7.0.3"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
+    "concurrently": "^9.0.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",

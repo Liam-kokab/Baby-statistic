@@ -61,12 +61,14 @@ server/
 ## Scripts
 | Command | Description |
 |---|---|
-| `npm run build` | Docker build → stop old container → start new on port 80 |
-| `npm start` | Re-run the already-built Docker image (no rebuild) |
-| `npm run build:local` | Local build: cleans `dist/`, builds client + server |
+| `npm run build` | Local build: cleans `dist/`, builds client + server + mcp-server |
 | `npm run dev` | Vite dev server (port 5173) + nodemon server (port 3000) concurrently |
 | `npm run dev:client` | Vite dev server only |
 | `npm run dev:server` | nodemon server only |
+| `npm start` | Build then start server + MCP server + healthcheck under PM2 |
+| `npm run restart` | Restart all PM2-managed apps |
+
+See [`doc/pm2.md`](./pm2.md) for the full PM2 process-management setup (crash restart + health check).
 
 ## Build Output (`dist/`)
 ```
@@ -84,20 +86,6 @@ data/               ← database lives here (never wiped by build)
 ## Static File Serving
 Express serves `dist/public/` as static files when `dist/public/index.html` exists (checked with `fs.existsSync`). No `NODE_ENV` check — it always serves the frontend if it has been built. This route is registered **outside** the `/api` prefix, so it is never gated by `authenticate` — the SPA shell, JS/CSS bundles, and `manifest.json` are always publicly servable. Auth is enforced client-side by `ProtectedRoute`, which redirects to `/login` if no token is stored.
 
-## Docker
-`npm run build` runs a two-stage Docker build:
-
-| Stage | What it does |
-|---|---|
-| `builder` | Installs all deps, runs `npm run build -w client && npm run build -w server` |
-| `production` | Installs prod deps only, copies `dist/` + `doc/` + `index.js`, exposes port 80 |
-
-The database volume `baby-statistic-data` is mounted at `/app/data` — persists across container restarts and rebuilds.
-
-```powershell
-npm run build   # build image + restart container
-npm start       # restart container without rebuild
-```
 
 ## Adding a Route
 1. Create `server/src/routes/<name>.ts` — define handlers inline and wire them to `Router()`
