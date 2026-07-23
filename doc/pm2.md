@@ -17,6 +17,8 @@ Production runs under [PM2](https://pm2.keymetrics.io/), a Node.js process manag
 
 All three apps have `autorestart: true`, `max_restarts: 10`, `min_uptime: '10s'`, and `exp_backoff_restart_delay` so a crash-looping process backs off instead of hammering restarts. This is PM2's built-in **crash restart** behaviour — no extra code needed for it.
 
+Each app also declares an explicit `out_file` / `error_file` (under `logs/` at the repo root, gitignored) plus `merge_logs: true` and `time: true`. This guarantees each app's stdout/stderr goes to its own dedicated, timestamped file — `pm2 logs <name>` reads from these directly, so if one app's log looks empty it's genuinely producing no output (see Troubleshooting below), not a log-routing artifact.
+
 ## Health Check & Auto-Restart
 `healthcheck.js` runs as its own PM2 process. Every `HEALTHCHECK_INTERVAL_MS` (default `30000`) it sends a `GET` to `HEALTHCHECK_URL` (default `http://localhost:80/api/ping`, the existing `server/src/routes/ping.ts` endpoint). If the request fails or doesn't return `2xx` for `HEALTHCHECK_MAX_FAILURES` consecutive checks (default `3`), it calls the PM2 API (`pm2.restart('baby-statistic-server')`) to force a restart — this catches cases where the process is alive but unresponsive (e.g. deadlocked), which a crash-only restart wouldn't catch.
 
@@ -107,4 +109,12 @@ This usually means the healthcheck is failing (and restarting the target) faster
 - **Slow to respond under load, not actually down**: if the log shows timeouts (`The operation was aborted`) rather than connection refusals, raise `HEALTHCHECK_TIMEOUT_MS` (default 8000).
 - **`HEALTHCHECK_URL` / `PORT` mismatch**: if you moved the server off port 80 (see above), make sure `HEALTHCHECK_URL` in `ecosystem.config.js` points at the same port the server actually listens on.
 - After changing any of these, apply with `pm2 restart ecosystem.config.js --update-env` (plain `pm2 restart` does **not** pick up new `env` values from the config file).
+
+### `pm2 logs baby-statistic-server` shows nothing at all (not even startup lines)
+This means the process is dying before its first `console.log` ever flushes, or PM2 is reading stale log files from a previous registration. Check, in order:
+1. **Is the app actually running?** `pm2 status` — if restarts (`↺`) is pegged at `max_restarts` (10) and status is `errored`/`stopped`, PM2 gave up; it won't retry or log anything further until you manually restart it.
+2. **Read the log files directly** (bypasses `pm2 logs`' tailing/buffering): `pm2 describe baby-statistic-server` to confirm the exact `out_file` / `error_file` paths, then `cat logs/server-error.log` and `cat logs/server-out.log` at the repo root.
+3. **Confirm the build actually happened on this machine**: `ls -la dist/index.js`. If it's missing (build failed or was never run), Node exits instantly with `Cannot find module`.
+4. **Stale PM2 registration**: if `ecosystem.config.js` changed (e.g. added `out_file`) but PM2 still has an old process definition saved (`pm2 save`), delete and recreate it: `pm2 delete ecosystem.config.js && pm2 start ecosystem.config.js && pm2 save`.
+5. Most common root cause is still the `EACCES` port-80 case above — check that first.
 

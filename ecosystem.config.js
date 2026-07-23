@@ -2,6 +2,10 @@
 // Usage: npm run start / npm run restart / npm run stop (see package.json)
 // Docs: doc/pm2.md
 
+const path = require('path');
+
+const LOG_DIR = path.join(__dirname, 'logs');
+
 module.exports = {
   apps: [
     {
@@ -17,6 +21,12 @@ module.exports = {
       min_uptime: '10s',
       restart_delay: 3000,
       exp_backoff_restart_delay: 100,
+      // Explicit log paths + timestamps so `pm2 logs` / the raw files are
+      // never ambiguous about which app produced (or failed to produce) output.
+      out_file: path.join(LOG_DIR, 'server-out.log'),
+      error_file: path.join(LOG_DIR, 'server-error.log'),
+      merge_logs: true,
+      time: true,
     },
     {
       name: 'baby-statistic-mcp',
@@ -33,6 +43,10 @@ module.exports = {
       min_uptime: '10s',
       restart_delay: 3000,
       exp_backoff_restart_delay: 100,
+      out_file: path.join(LOG_DIR, 'mcp-out.log'),
+      error_file: path.join(LOG_DIR, 'mcp-error.log'),
+      merge_logs: true,
+      time: true,
     },
     {
       name: 'baby-statistic-healthcheck',
@@ -49,6 +63,10 @@ module.exports = {
       autorestart: true,
       max_restarts: 10,
       min_uptime: '10s',
+      out_file: path.join(LOG_DIR, 'healthcheck-out.log'),
+      error_file: path.join(LOG_DIR, 'healthcheck-error.log'),
+      merge_logs: true,
+      time: true,
     },
   ],
 };
