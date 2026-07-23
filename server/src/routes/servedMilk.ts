@@ -4,8 +4,12 @@ import type { TPostServedMilk, TServedMilkStatus } from 'baby-statistic-common';
 import { servedMilkService } from '../services/servedMilkService';
 import { bodyAs } from '../utils/bodyAs';
 import { expandToWished } from '../utils/expandToWished';
+import { requireUser } from '../middleware/requireAdmin';
+import type { TBabyContext } from '../types';
 
 const router = Router();
+router.use(requireUser);
+const ctx = (req: Request): TBabyContext => ({ babyId: req.user!.babyId!, userId: req.user!.id });
 
 const INITIAL_STATUSES: TServedMilkStatus[] = ['FRIDGE', 'FREEZER'];
 const VALID_STATUSES: TServedMilkStatus[]   = ['FRIDGE', 'FREEZER', 'USED', 'EXPIRED'];
@@ -14,22 +18,19 @@ router.get('/', (req: Request, res: Response): void => {
   const { from, to, wished } = req.query as { from?: string; to?: string; wished?: string };
   const wishedNum = wished ? Number(wished) : undefined;
   if (wishedNum && to) {
-    res.json(expandToWished(wishedNum, from ?? '', to, (f, t) => servedMilkService.findAll({ from: f, to: t })));
+    res.json(expandToWished(wishedNum, from ?? '', to, (f, t) => servedMilkService.findAll({ from: f, to: t }, ctx(req))));
   } else {
-    res.json(servedMilkService.findAll({ from, to }));
+    res.json(servedMilkService.findAll({ from, to }, ctx(req)));
   }
 });
 
-router.get('/total', (_req: Request, res: Response): void => {
-  res.json(servedMilkService.getTotal());
+router.get('/total', (req: Request, res: Response): void => {
+  res.json(servedMilkService.getTotal(ctx(req)));
 });
 
 router.get('/:id', (req: Request, res: Response): void => {
-  const data = servedMilkService.findById(Number(req.params.id));
-  if (!data) {
-    res.status(404).json({ error: 'Not found' });
-    return;
-  }
+  const data = servedMilkService.findById(Number(req.params.id), ctx(req));
+  if (!data) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(data);
 });
 
@@ -43,44 +44,31 @@ router.post('/', (req: Request, res: Response): void => {
     res.status(400).json({ error: `status on create must be one of: ${INITIAL_STATUSES.join(', ')}` });
     return;
   }
-  res.status(201).json(servedMilkService.insert({ amount, originalAmount: amount, status, expiryDate: null }));
+  res.status(201).json(servedMilkService.insert({ amount, originalAmount: amount, status, expiryDate: null }, ctx(req)));
 });
 
 router.put('/:id', (req: Request, res: Response): void => {
   const id = Number(req.params.id);
   const body = bodyAs<Partial<TPostServedMilk> & { createdAt?: string }>(req);
-
   if (body.status !== undefined && !VALID_STATUSES.includes(body.status)) {
     res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
     return;
   }
-
-  const existing = servedMilkService.findById(id);
-  if (!existing) {
-    res.status(404).json({ error: 'Not found' });
-    return;
-  }
-
+  const existing = servedMilkService.findById(id, ctx(req));
+  if (!existing) { res.status(404).json({ error: 'Not found' }); return; }
   const TERMINAL_STATUSES: TServedMilkStatus[] = ['USED', 'EXPIRED'];
   if (TERMINAL_STATUSES.includes(existing.status)) {
     res.status(409).json({ error: `Cannot update milk with status ${existing.status}` });
     return;
   }
-
-  const data = servedMilkService.update(id, body);
-  if (!data) {
-    res.status(404).json({ error: 'Not found' });
-    return;
-  }
+  const data = servedMilkService.update(id, body, ctx(req));
+  if (!data) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(data);
 });
 
 router.delete('/:id', (req: Request, res: Response): void => {
-  const deleted = servedMilkService.delete(Number(req.params.id));
-  if (!deleted) {
-    res.status(404).json({ error: 'Not found' });
-    return;
-  }
+  const deleted = servedMilkService.delete(Number(req.params.id), ctx(req));
+  if (!deleted) { res.status(404).json({ error: 'Not found' }); return; }
   res.status(204).send();
 });
 

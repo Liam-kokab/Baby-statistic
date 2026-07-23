@@ -15,7 +15,14 @@
   padding-bottom: calc(var(--navbar-height) + 1.5rem);
 }
 
-.content::-webkit-scrollbar {
+.contentLogin {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.content::-webkit-scrollbar,
+.contentLogin::-webkit-scrollbar {
   display: none;
 }
 

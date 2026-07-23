@@ -2,8 +2,6 @@ import type { TDrankMilk } from 'baby-statistic-common';
 import { drankMilkRepository } from '../repositories/drankMilkRepository';
 import { toOsloLocal } from '../utils/time';
 
-type TPredictOptions = Record<string, unknown>;
-
 
 const msPerDay = 24 * 60 * 60 * 1000;
 const msPerHour = 60 * 60 * 1000;
@@ -78,7 +76,7 @@ export const divideDataByHours = (data: TDrankMilk[], hours: number): TDrankMilk
   return result;
 };
 
-const getAndSensitizeData = (): TDrankMilk[] => {
+const getAndSensitizeData = (babyId: number): TDrankMilk[] => {
   // Compute time window: from 36 days ago until now + 3 hours (safety)
   const now = new Date();
   const toDate = new Date(now.getTime() + 3 * msPerHour);
@@ -88,12 +86,12 @@ const getAndSensitizeData = (): TDrankMilk[] => {
   const to = toOsloLocal(toDate.toISOString());
 
   // Fetch records in the window (repository expects Oslo-local datetime strings)
-  const raw: TDrankMilk[] = drankMilkRepository.findAll({ from, to });
+  const raw: TDrankMilk[] = drankMilkRepository.findAll({ from, to }, babyId);
   if (!raw || raw.length === 0) return [];
 
   // Ensure old -> new ordering
   return [...raw].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  };
+};
 
 /**
  * Weighted average of a list of bucket totals.
@@ -195,9 +193,9 @@ export type TSuggestionDetails = {
   suggestBasedOnSixHour: number;
 };
 
-const getSuggestedNextDrinkDetails = (): TSuggestionDetails => {
+const getSuggestedNextDrinkDetails = (babyId: number): TSuggestionDetails => {
   // Get cleaned historical data
-  const data = getAndSensitizeData();
+  const data = getAndSensitizeData(babyId);
 
   const suggestBasedOnTwoHour = getPredictionForPeriodLength(data, 2) ?? 0;
   const suggestBasedOnFourHour = getPredictionForPeriodLength(data, 4) ?? 0;
@@ -221,8 +219,8 @@ const getSuggestedNextDrinkDetails = (): TSuggestionDetails => {
   };
 };
 
-export const getSuggestedNextDrinkAmount = (_options?: TPredictOptions): number =>
-  getSuggestedNextDrinkDetails().suggestion;
+export const getSuggestedNextDrinkAmount = (babyId: number): number =>
+  getSuggestedNextDrinkDetails(babyId).suggestion;
 
 export default getSuggestedNextDrinkDetails;
 

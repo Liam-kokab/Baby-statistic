@@ -1,27 +1,26 @@
 import type { TPumping, TPumpingSummary } from 'baby-statistic-common';
 import { pumpingRepository } from '../repositories/pumpingRepository';
-import type { TTimeFilter } from '../types';
+import type { TTimeFilter, TBabyContext } from '../types';
 
 export const pumpingService = {
-  findAll: (filter: TTimeFilter = {}): TPumping[] =>
-    pumpingRepository.findAll(filter),
+  findAll: (filter: TTimeFilter = {}, ctx: TBabyContext): TPumping[] =>
+    pumpingRepository.findAll(filter, ctx.babyId),
 
-  findSummary: (filter: TTimeFilter = {}): TPumpingSummary =>
-    pumpingRepository.findSummary(filter),
+  findSummary: (filter: TTimeFilter = {}, ctx: TBabyContext): TPumpingSummary =>
+    pumpingRepository.findSummary(filter, ctx.babyId),
 
-  findLatest: (): TPumping | null =>
-    pumpingRepository.findLatest(),
+  findLatest: (ctx: TBabyContext): TPumping | null =>
+    pumpingRepository.findLatest(ctx.babyId),
 
-  findById: (id: number): TPumping | null =>
-    pumpingRepository.findById(id),
+  findById: (id: number, ctx: TBabyContext): TPumping | null =>
+    pumpingRepository.findById(id, ctx.babyId),
 
-  insert: (): TPumping =>
-    pumpingRepository.insert(),
+  insert: (ctx: TBabyContext): TPumping =>
+    pumpingRepository.insert(ctx.babyId, ctx.userId),
 
-  update: (id: number, data: { createdAt?: string }): TPumping | null =>
-    pumpingRepository.update(id, data),
+  update: (id: number, data: { createdAt?: string }, ctx: TBabyContext): TPumping | null =>
+    pumpingRepository.update(id, data, ctx.babyId),
 
-  delete: (id: number): boolean =>
-    pumpingRepository.delete(id),
+  delete: (id: number, ctx: TBabyContext): boolean =>
+    pumpingRepository.delete(id, ctx.babyId),
 };
-

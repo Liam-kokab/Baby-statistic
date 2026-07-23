@@ -1,44 +1,42 @@
 import type { TMedicine, TMedicineLog, TMedicineWithLatestLog, TPostMedicine } from 'baby-statistic-common';
 import { medicineRepository } from '../repositories/medicineRepository';
 import { nowOslo } from '../utils/time';
-import type { TTimeFilter } from '../types';
+import type { TTimeFilter, TBabyContext } from '../types';
 
 export const medicineService = {
-  findAllActive: (): TMedicineWithLatestLog[] =>
-    medicineRepository.findAllActive(),
+  findAllActive: (ctx: TBabyContext): TMedicineWithLatestLog[] =>
+    medicineRepository.findAllActive(ctx.babyId),
 
-  findAll: (): TMedicine[] =>
-    medicineRepository.findAll(),
+  findAll: (ctx: TBabyContext): TMedicine[] =>
+    medicineRepository.findAll(ctx.babyId),
 
-  setActive: (id: number, isActive: boolean): TMedicine | null =>
-    medicineRepository.setActive(id, isActive),
+  setActive: (id: number, isActive: boolean, ctx: TBabyContext): TMedicine | null =>
+    medicineRepository.setActive(id, isActive, ctx.babyId),
 
-  insert: (data: TPostMedicine): TMedicine =>
-    medicineRepository.insert(data),
+  insert: (data: TPostMedicine, ctx: TBabyContext): TMedicine =>
+    medicineRepository.insert(data, ctx.babyId, ctx.userId),
 
-  softDelete: (id: number): boolean =>
-    medicineRepository.softDelete(id),
+  softDelete: (id: number, ctx: TBabyContext): boolean =>
+    medicineRepository.softDelete(id, ctx.babyId),
 
-  findById: (id: number): TMedicine | null =>
-    medicineRepository.findById(id),
+  findById: (id: number, ctx: TBabyContext): TMedicine | null =>
+    medicineRepository.findById(id, ctx.babyId),
 
-  update: (id: number, data: TPostMedicine): TMedicine | null =>
-    medicineRepository.update(id, data),
+  update: (id: number, data: TPostMedicine, ctx: TBabyContext): TMedicine | null =>
+    medicineRepository.update(id, data, ctx.babyId),
 
-  logTaken: (medicineId: number, takenAt?: string): TMedicineLog =>
-    medicineRepository.insertLog(medicineId, takenAt ?? nowOslo()),
+  logTaken: (medicineId: number, ctx: TBabyContext, takenAt?: string): TMedicineLog =>
+    medicineRepository.insertLog(medicineId, takenAt ?? nowOslo(), ctx.babyId, ctx.userId),
 
-  findLogs: (filter: TTimeFilter = {}): TMedicineLog[] =>
-    medicineRepository.findLogs(filter),
+  findLogs: (filter: TTimeFilter = {}, ctx: TBabyContext): TMedicineLog[] =>
+    medicineRepository.findLogs(filter, ctx.babyId),
 
+  findLogById: (id: number, ctx: TBabyContext): TMedicineLog | null =>
+    medicineRepository.findLogById(id, ctx.babyId),
 
-  findLogById: (id: number): TMedicineLog | null =>
-    medicineRepository.findLogById(id),
+  updateLog: (id: number, takenAt: string, ctx: TBabyContext): TMedicineLog | null =>
+    medicineRepository.updateLog(id, takenAt, ctx.babyId),
 
-  updateLog: (id: number, takenAt: string): TMedicineLog | null =>
-    medicineRepository.updateLog(id, takenAt),
-
-  deleteLog: (id: number): boolean =>
-    medicineRepository.deleteLog(id),
+  deleteLog: (id: number, ctx: TBabyContext): boolean =>
+    medicineRepository.deleteLog(id, ctx.babyId),
 };
-

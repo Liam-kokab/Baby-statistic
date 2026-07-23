@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import Toggle from '../../components/Toggle/Toggle';
 import styles from './SettingsPage.module.css';
@@ -23,7 +23,7 @@ const SettingsPage = () => {
 
   useEffect(() => {
     const load = async (): Promise<void> => {
-      const res = await fetch2<TBuildTimeResponse>('/api/build-time');
+      const res = await authFetch<TBuildTimeResponse>('/api/build-time');
       if (res.ok) {
         setServerBuildTime(res.data.buildTime);
       } else {

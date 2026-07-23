@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TServedMilk, TServedMilkStatus } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
@@ -43,7 +43,7 @@ const EditStoredMilkPage = () => {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const result = await fetch2<TServedMilk>(`/api/served-milk/${id}`);
+      const result = await authFetch<TServedMilk>(`/api/served-milk/${id}`);
       if (result.ok) {
         const { data } = result;
         setAmount(String(data.amount));
@@ -72,7 +72,7 @@ const EditStoredMilkPage = () => {
     }
     setSaving(true);
     setError(null);
-    const result = await fetch2<TServedMilk>(`/api/served-milk/${id}`, {
+    const result = await authFetch<TServedMilk>(`/api/served-milk/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -180,7 +180,7 @@ const EditStoredMilkPage = () => {
                   onClick={async () => {
                     setDeleting(true);
                     setError(null);
-                    const res = await fetch2<null>(`/api/served-milk/${id}`, { method: 'DELETE' });
+                    const res = await authFetch<null>(`/api/served-milk/${id}`, { method: 'DELETE' });
                     if (res.ok) {
                       goBack();
                     } else {

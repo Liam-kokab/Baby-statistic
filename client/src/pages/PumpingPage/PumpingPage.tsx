@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TPumping, TPumpingSummary, TWishedResult } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
@@ -44,7 +44,7 @@ const PumpingPage = () => {
 
   const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-    const result = await fetch2<TPumpingSummary>(`/api/pumping/summary?${params}`);
+    const result = await authFetch<TPumpingSummary>(`/api/pumping/summary?${params}`);
     if (result.ok) setSummary(result.data);
   }, [from, to]);
 
@@ -52,7 +52,7 @@ const PumpingPage = () => {
 
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TPumping>> => {
     const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
-    const result = await fetch2<TWishedResult<TPumping>>(`/api/pumping?${params}`);
+    const result = await authFetch<TWishedResult<TPumping>>(`/api/pumping?${params}`);
     if (result.ok) return result.data;
     return { items: [], actualFrom: winFrom.slice(0, 10) };
   }, []);

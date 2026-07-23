@@ -1,25 +1,23 @@
 import type { TPee } from 'baby-statistic-common';
 import { peeRepository } from '../repositories/peeRepository';
-import type { TTimeFilter } from '../types';
+import type { TTimeFilter, TBabyContext } from '../types';
 
 export const peeService = {
-  findAll: (filter: TTimeFilter = {}): TPee[] =>
-    peeRepository.findAll(filter),
+  findAll: (filter: TTimeFilter = {}, ctx: TBabyContext): TPee[] =>
+    peeRepository.findAll(filter, ctx.babyId),
 
+  findById: (id: number, ctx: TBabyContext): TPee | null =>
+    peeRepository.findById(id, ctx.babyId),
 
-  // ...existing code...
-  findById: (id: number): TPee | null =>
-    peeRepository.findById(id),
+  insert: (ctx: TBabyContext): TPee =>
+    peeRepository.insert(ctx.babyId, ctx.userId),
 
-  insert: (): TPee =>
-    peeRepository.insert(),
+  update: (id: number, data: { createdAt?: string }, ctx: TBabyContext): TPee | null =>
+    peeRepository.update(id, data, ctx.babyId),
 
-  update: (id: number, data: { createdAt?: string } = {}): TPee | null =>
-    peeRepository.update(id, data),
+  delete: (id: number, ctx: TBabyContext): boolean =>
+    peeRepository.delete(id, ctx.babyId),
 
-  delete: (id: number): boolean =>
-    peeRepository.delete(id),
-
-  getBackup: (from: string, to: string): TPee[] =>
-    peeRepository.getBackup(from, to),
+  getBackup: (from: string, to: string, ctx: TBabyContext): TPee[] =>
+    peeRepository.getBackup(from, to, ctx.babyId),
 };

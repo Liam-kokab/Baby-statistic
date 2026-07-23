@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TPumping } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
@@ -30,7 +30,7 @@ const EditPumpingPage = () => {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const result = await fetch2<TPumping>(`/api/pumping/${id}`);
+      const result = await authFetch<TPumping>(`/api/pumping/${id}`);
       if (result.ok) {
         setCreatedAt(toInputValue(result.data.createdAt));
       } else {
@@ -44,7 +44,7 @@ const EditPumpingPage = () => {
   const handleSubmit = async (): Promise<void> => {
     setSaving(true);
     setError(null);
-    const result = await fetch2<TPumping>(`/api/pumping/${id}`, {
+    const result = await authFetch<TPumping>(`/api/pumping/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ createdAt }),
@@ -98,7 +98,7 @@ const EditPumpingPage = () => {
                   onClick={async () => {
                     setDeleting(true);
                     setError(null);
-                    const res = await fetch2<null>(`/api/pumping/${id}`, { method: 'DELETE' });
+                    const res = await authFetch<null>(`/api/pumping/${id}`, { method: 'DELETE' });
                     if (res.ok) {
                       goBack();
                     } else {

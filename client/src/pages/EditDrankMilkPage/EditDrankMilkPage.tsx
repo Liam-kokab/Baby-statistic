@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TDrankMilk, TDrankMilkSource } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
@@ -32,7 +32,7 @@ const EditDrankMilkPage = () => {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const result = await fetch2<TDrankMilk>(`/api/drank-milk/${id}`);
+      const result = await authFetch<TDrankMilk>(`/api/drank-milk/${id}`);
       if (result.ok) {
         setAmount(String(result.data.amount));
         setSource(result.data.source);
@@ -53,7 +53,7 @@ const EditDrankMilkPage = () => {
     }
     setSaving(true);
     setError(null);
-    const result = await fetch2<TDrankMilk>(`/api/drank-milk/${id}`, {
+    const result = await authFetch<TDrankMilk>(`/api/drank-milk/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: parsedAmount, source, createdAt }),
@@ -131,7 +131,7 @@ const EditDrankMilkPage = () => {
                   onClick={async () => {
                     setDeleting(true);
                     setError(null);
-                    const res = await fetch2<null>(`/api/drank-milk/${id}`, { method: 'DELETE' });
+                    const res = await authFetch<null>(`/api/drank-milk/${id}`, { method: 'DELETE' });
                     if (res.ok) {
                       goBack();
                     } else {

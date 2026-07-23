@@ -5,28 +5,49 @@
 - **Framework**: Express 5
 - **Language**: TypeScript (compiled via `tsc`, dev via `ts-node` + `nodemon`)
 - **Database**: `better-sqlite3` (SQLite)
+- **Auth**: `jsonwebtoken` (JWT — access token 15 min, refresh token 7 days), `bcryptjs` (password hashing, 12 rounds)
 - **Port**: `80` (overridable via `PORT` env var)
+
+## Environment Variables
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `80` (prod) / `3000` (dev) | HTTP listen port |
+| `DB_PATH` | `./data/baby.db` | SQLite file path |
+| `JWT_ACCESS_SECRET` | `dev-access-secret-...` | Secret for signing 15-min access tokens |
+| `JWT_REFRESH_SECRET` | `dev-refresh-secret-...` | Secret for signing 7-day refresh tokens |
+| `BCRYPT_ROUNDS` | `12` | bcrypt salt rounds for password hashing |
+| `SEED_ADMIN_USERNAME` | — | Auto-create admin user on first startup if no admin exists |
+| `SEED_ADMIN_PASSWORD` | — | Password for the auto-created admin user |
+
+> ⚠️ Always set `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` in production.
 
 ## File Structure
 ```
 server/
   src/
     index.ts          # app entry — mounts middleware, routes, static serving
-    db.ts             # DB singleton + migration runner + now_oslo() UDF
+    db.ts             # DB singleton + migration runner + admin seed
+    types.ts          # TTimeFilter, TAuthUser, TBabyContext + Express Request augmentation
     routes/           # one file per resource
-    repositories/     # CRUD per table
-    services/         # business logic per table
+      auth.ts         # POST /api/auth/login|refresh|logout, GET /api/auth/me
+      admin.ts        # /api/admin/* (admin-only)
+      baby.ts         # /api/baby (user-only)
+      ...             # existing data routes
+    repositories/
+      userRepository.ts   # users + refresh_tokens
+      babyRepository.ts   # babies
+      ...             # existing data repositories (all now scoped by baby_id)
+    services/
+      authService.ts  # bcrypt + JWT sign/verify
+      ...             # existing services (all now accept TBabyContext)
+    middleware/
+      authenticate.ts   # verify Bearer access token → set req.user
+      requireAdmin.ts   # guard: role must be 'admin' (or 'user' + babyId)
     migrations/
-      index.ts        # ordered migrations array (env-conditional for seed/clear)
+      index.ts        # migrations 001–015
     utils/
       bodyAs.ts       # casts req.body to Partial<T>
-      time.ts         # Oslo timezone helpers: nowOslo(), toOsloLocal(), toOsloIso()
-data/
-  baby.db             # SQLite database (auto-created; gitignored; outside dist/)
-dist/                 # tsc output (gitignored) — server JS + dist/public/ (client)
-index.js              # production entry point: require('./dist/index.js')
-scripts/
-  docker-run.js       # stops old container + starts new one
+      time.ts         # Oslo timezone helpers
 ```
 
 ## Entry Point (`src/index.ts`)
@@ -34,6 +55,7 @@ scripts/
 - Registers `express.json()` middleware
 - Mounts Swagger UI at `/api-docs` (reads `doc/openAPI.json` at startup)
 - Mounts all API routers under `/api/<name>`
+- `authenticate` middleware is mounted on the `/api` prefix only (`app.use('/api', authenticate)`) — it never gates static assets or the SPA shell, since the browser can't send a Bearer token on page navigation and the login page itself must load before any token exists
 - In `NODE_ENV=production`: serves `server/public/` as static files and falls back to `index.html` for all non-API routes
 
 ## Scripts
@@ -60,7 +82,7 @@ data/               ← database lives here (never wiped by build)
 ```
 
 ## Static File Serving
-Express serves `dist/public/` as static files when `dist/public/index.html` exists (checked with `fs.existsSync`). No `NODE_ENV` check — it always serves the frontend if it has been built.
+Express serves `dist/public/` as static files when `dist/public/index.html` exists (checked with `fs.existsSync`). No `NODE_ENV` check — it always serves the frontend if it has been built. This route is registered **outside** the `/api` prefix, so it is never gated by `authenticate` — the SPA shell, JS/CSS bundles, and `manifest.json` are always publicly servable. Auth is enforced client-side by `ProtectedRoute`, which redirects to `/login` if no token is stored.
 
 ## Docker
 `npm run build` runs a two-stage Docker build:
@@ -114,6 +136,9 @@ All timestamps are stored and returned as **Oslo local time** (`Europe/Oslo`). S
 
 ## Server settings
 The server reads runtime settings from `server/src/config/config.json`. Prediction-related tuning values for the drank-milk service live under the `drankMilk.prediction` key (see also `drankMilk.bucket`, `drankMilk.recency`, and `drankMilk.logging`). Adjust those values and restart the server to change behaviour of endpoints such as `/api/drank-milk/suggested`.
+## Auth & Authorisation
+See [`doc/auth.md`](./auth.md) for the full authentication architecture, token flow, permission table, and security notes.
+
 ## MCP Server
 
 See [`doc/mcp-server.md`](./mcp-server.md) for full documentation on the MCP server package (`mcp-server/`).

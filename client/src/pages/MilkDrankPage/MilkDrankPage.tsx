@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TDrankMilk, TDrankMilkSource, TDrankMilkSummary, TWishedResult } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
@@ -60,7 +60,7 @@ const MilkDrankPage = () => {
 
   const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-    const result = await fetch2<TDrankMilkSummary>(`/api/drank-milk/summary?${params}`);
+    const result = await authFetch<TDrankMilkSummary>(`/api/drank-milk/summary?${params}`);
     if (result.ok) setSummary(result.data);
   }, [from, to]);
 
@@ -69,7 +69,7 @@ const MilkDrankPage = () => {
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TDrankMilk>> => {
     setError(null);
     const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
-    const result = await fetch2<TWishedResult<TDrankMilk>>(`/api/drank-milk?${params}`);
+    const result = await authFetch<TWishedResult<TDrankMilk>>(`/api/drank-milk?${params}`);
     if (result.ok) return result.data;
     setError(result.error);
     return { items: [], actualFrom: winFrom.slice(0, 10) };

@@ -44,6 +44,11 @@ A custom SQLite function `now_oslo()` is registered on the connection at startup
 | `008b_fix_primary_keys` | Recreates all tables with proper `INTEGER PRIMARY KEY AUTOINCREMENT` | all |
 | `009_pumping` | Creates `pumping` table | all |
 | `010_simplify_medicine` | Drops `interval_hours` and `start_time` from `medicine` — each medicine is now taken once per calendar day | all |
+| `011_prediction_logs` | Creates `prediction_log` table (v1) | all |
+| `012_prediction_logs_v2` | Drops and recreates `prediction_log` with rolling-window debug columns | all |
+| `013_medicine_is_active_ensure` | Ensures `is_active` is not NULL in `medicine` | all |
+| `014_auth` | Creates `babies`, `users`, `baby_users`, and `refresh_tokens` tables | all |
+| `015_add_baby_and_user_cols` | Inserts default baby (id=1), adds `baby_id` + `created_by` to all data tables | all |
 
 `002_seed_test_data` and `004_clear_test_data` are conditionally included in the migrations array based on `process.env.NODE_ENV`, so they never cross-pollute environments.
 
@@ -146,3 +151,51 @@ All server-generated timestamps (`created_at`, and sleep `start`/`end`) are stor
 
 All `fromDb()` functions in repositories call `toOsloIso()` on timestamps before returning them to callers.
 
+## Auth Tables (migration `014_auth`)
+> See [`doc/auth.md`](./auth.md) for the full authentication architecture, permission table, and security notes.
+
+### `babies`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | autoincrement |
+| `name` | TEXT | display name of the baby |
+| `created_at` | TEXT | Oslo local datetime |
+
+### `users`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | autoincrement |
+| `username` | TEXT UNIQUE | login identifier |
+| `password_hash` | TEXT | bcrypt hash (12 rounds by default) |
+| `role` | TEXT | `user` \| `admin` |
+| `baby_id` | INTEGER \| NULL | FK → `babies.id`; NULL for admins |
+| `config` | TEXT | JSON string (default `{}`); reserved for future per-user config |
+| `created_at` | TEXT | Oslo local datetime |
+
+### `baby_users`
+Join table — many users per baby.
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | INTEGER PK | FK → `users.id` ON DELETE CASCADE |
+| `baby_id` | INTEGER PK | FK → `babies.id` ON DELETE CASCADE |
+
+### `refresh_tokens`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | autoincrement |
+| `user_id` | INTEGER | FK → `users.id` ON DELETE CASCADE |
+| `token_hash` | TEXT UNIQUE | SHA-256 hash of the raw refresh token |
+| `expires_at` | TEXT | UTC datetime of expiry (7 days from issue) |
+| `created_at` | TEXT | Oslo local datetime |
+
+## Data table extensions (migration `015_add_baby_and_user_cols`)
+Every data table (`served_milk`, `drank_milk`, `sleep`, `pee`, `poop`, `medicine`, `medicine_log`, `pumping`, `prediction_log`) gains two columns:
+| Column | Type | Notes |
+|---|---|---|
+| `baby_id` | INTEGER NOT NULL DEFAULT 1 | Which baby this record belongs to |
+| `created_by` | INTEGER NOT NULL DEFAULT 0 | Which user created this record |
+
+Existing data is automatically assigned to the default baby (id=1, name="Default Baby") created by the same migration.
+
+## Admin Seed
+On every startup, `server/src/db.ts` checks whether an admin user exists. If none is found and `SEED_ADMIN_USERNAME` + `SEED_ADMIN_PASSWORD` env vars are set, an admin is created automatically. If the env vars are missing a warning is printed but startup continues normally.

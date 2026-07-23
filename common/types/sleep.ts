@@ -3,6 +3,8 @@ export type TSleepDb = {
   start: string;
   end: string | null;
   created_at: string;
+  baby_id: number;
+  created_by: number;
 };
 
 export type TSleep = {

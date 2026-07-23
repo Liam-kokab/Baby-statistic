@@ -1,23 +1,23 @@
 import { predictionRepository, TPrediction } from '../repositories/predictionRepository';
-import type { TTimeFilter } from '../types';
+import type { TTimeFilter, TBabyContext } from '../types';
 
 
 export const predictionService = {
   insert: (
     predictedAmount: number,
-    debug: { rawPrediction?: number | null; suggestBasedOnTwoHour?: number | null; suggestBasedOnFourHour?: number | null; suggestBasedOnSixHour?: number | null } = {}
+    debug: { rawPrediction?: number | null; suggestBasedOnTwoHour?: number | null; suggestBasedOnFourHour?: number | null; suggestBasedOnSixHour?: number | null } = {},
+    ctx: TBabyContext
   ): { id: number; predictedAmount: number } =>
-    predictionRepository.insert(predictedAmount, debug),
+    predictionRepository.insert(predictedAmount, debug, ctx.babyId),
 
-  findAll: (filter: TTimeFilter = {}): TPrediction[] =>
-    predictionRepository.findAll(filter),
+  findAll: (filter: TTimeFilter = {}, ctx: TBabyContext): TPrediction[] =>
+    predictionRepository.findAll(filter, ctx.babyId),
 
-  findLatest: (): TPrediction | null =>
-    predictionRepository.findLatest(),
+  findLatest: (ctx: TBabyContext): TPrediction | null =>
+    predictionRepository.findLatest(ctx.babyId),
 
   linkActual: (predictionId: number, actualId: number): void =>
     predictionRepository.updateActualId(predictionId, actualId),
 };
 
 export default predictionService;
-

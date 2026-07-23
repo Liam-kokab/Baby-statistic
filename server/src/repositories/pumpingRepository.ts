@@ -9,67 +9,52 @@ const fromDb = (row: TPumpingDb): TPumping => ({
 });
 
 export const pumpingRepository = {
-  findAll: (filter: TTimeFilter = {}): TPumping[] => {
-    const conditions = [
-      ...(filter.from ? ['created_at >= ?'] : []),
-      ...(filter.to ? ['created_at <= ?'] : []),
-    ];
-    const params = [
-      ...(filter.from ? [filter.from] : []),
-      ...(filter.to ? [filter.to] : []),
-    ];
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const rows = db.prepare<string[], TPumpingDb>(`SELECT * FROM pumping ${where} ORDER BY created_at DESC`).all(...params);
+  findAll: (filter: TTimeFilter = {}, babyId: number): TPumping[] => {
+    const conditions = ['baby_id = ?', ...(filter.from ? ['created_at >= ?'] : []), ...(filter.to ? ['created_at <= ?'] : [])];
+    const params = [babyId, ...(filter.from ? [filter.from] : []), ...(filter.to ? [filter.to] : [])];
+    const rows = db.prepare<unknown[], TPumpingDb>(
+      `SELECT * FROM pumping WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC`
+    ).all(...params);
     return rows.map(fromDb);
   },
 
-  findSummary: (filter: TTimeFilter): TPumpingSummary => {
-    const conditions = [
-      ...(filter.from ? ['created_at >= ?'] : []),
-      ...(filter.to ? ['created_at <= ?'] : []),
-    ];
-    const params = [
-      ...(filter.from ? [filter.from] : []),
-      ...(filter.to ? [filter.to] : []),
-    ];
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const row = db.prepare<string[], { count: number; activeDays: number }>(
-      `SELECT COUNT(*) AS count, COUNT(DISTINCT date(created_at)) AS activeDays FROM pumping ${where}`
+  findSummary: (filter: TTimeFilter, babyId: number): TPumpingSummary => {
+    const conditions = ['baby_id = ?', ...(filter.from ? ['created_at >= ?'] : []), ...(filter.to ? ['created_at <= ?'] : [])];
+    const params = [babyId, ...(filter.from ? [filter.from] : []), ...(filter.to ? [filter.to] : [])];
+    const row = db.prepare<unknown[], { count: number; activeDays: number }>(
+      `SELECT COUNT(*) AS count, COUNT(DISTINCT date(created_at)) AS activeDays FROM pumping WHERE ${conditions.join(' AND ')}`
     ).get(...params)!;
-    return {
-      count: row.count,
-      avgPerDay: row.activeDays > 0 ? Math.round((row.count / row.activeDays) * 10) / 10 : 0,
-    };
+    return { count: row.count, avgPerDay: row.activeDays > 0 ? Math.round((row.count / row.activeDays) * 10) / 10 : 0 };
   },
 
-  findLatest: (): TPumping | null => {
-    const row = db.prepare<[], TPumpingDb>('SELECT * FROM pumping ORDER BY created_at DESC LIMIT 1').get();
+  findLatest: (babyId: number): TPumping | null => {
+    const row = db.prepare<[number], TPumpingDb>('SELECT * FROM pumping WHERE baby_id = ? ORDER BY created_at DESC LIMIT 1').get(babyId);
     return row ? fromDb(row) : null;
   },
 
-  findById: (id: number): TPumping | null => {
-    const row = db.prepare<[number], TPumpingDb>('SELECT * FROM pumping WHERE id = ?').get(id);
+  findById: (id: number, babyId: number): TPumping | null => {
+    const row = db.prepare<[number, number], TPumpingDb>('SELECT * FROM pumping WHERE id = ? AND baby_id = ?').get(id, babyId);
     return row ? fromDb(row) : null;
   },
 
-  insert: (): TPumping => {
+  insert: (babyId: number, createdBy: number): TPumping => {
     const now = nowOslo();
-    const result = db.prepare<[string]>('INSERT INTO pumping (created_at) VALUES (?)').run(now);
+    const result = db.prepare<[string, number, number]>('INSERT INTO pumping (created_at, baby_id, created_by) VALUES (?, ?, ?)').run(now, babyId, createdBy);
     const row = db.prepare<[number], TPumpingDb>('SELECT * FROM pumping WHERE rowid = ?').get(result.lastInsertRowid as number);
     return fromDb(row!);
   },
 
-  update: (id: number, data: { createdAt?: string }): TPumping | null => {
+  update: (id: number, data: { createdAt?: string }, babyId: number): TPumping | null => {
     if (data.createdAt) {
-      db.prepare<[string, number]>('UPDATE pumping SET created_at = ? WHERE id = ?')
-        .run(toOsloLocal(data.createdAt), id);
+      db.prepare<[string, number, number]>('UPDATE pumping SET created_at = ? WHERE id = ? AND baby_id = ?')
+        .run(toOsloLocal(data.createdAt), id, babyId);
     }
     const updated = db.prepare<[number], TPumpingDb>('SELECT * FROM pumping WHERE id = ?').get(id);
     return updated ? fromDb(updated) : null;
   },
 
-  delete: (id: number): boolean => {
-    const result = db.prepare<[number]>('DELETE FROM pumping WHERE id = ?').run(id);
+  delete: (id: number, babyId: number): boolean => {
+    const result = db.prepare<[number, number]>('DELETE FROM pumping WHERE id = ? AND baby_id = ?').run(id, babyId);
     return result.changes > 0;
   },
 };

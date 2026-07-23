@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TServedMilk, TServedMilkTotal, TServedMilkStatus, TWishedResult } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
@@ -47,7 +47,7 @@ const MilkSavedPage = () => {
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
 
   const loadTotals = useCallback(async (): Promise<void> => {
-    const result = await fetch2<TServedMilkTotal>('/api/served-milk/total');
+    const result = await authFetch<TServedMilkTotal>('/api/served-milk/total');
     if (result.ok) setTotals(result.data);
   }, []);
 
@@ -55,7 +55,7 @@ const MilkSavedPage = () => {
 
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TServedMilk>> => {
     const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
-    const result = await fetch2<TWishedResult<TServedMilk>>(`/api/served-milk?${params}`);
+    const result = await authFetch<TWishedResult<TServedMilk>>(`/api/served-milk?${params}`);
     if (result.ok) return result.data;
     return { items: [], actualFrom: winFrom.slice(0, 10) };
   }, []);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TPee, TPoop } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
@@ -36,7 +36,7 @@ const EditPoopPeePage = ({ type }: TProps) => {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const result = await fetch2<TPee | TPoop>(`/api/${type}/${id}`);
+      const result = await authFetch<TPee | TPoop>(`/api/${type}/${id}`);
       if (result.ok) {
         setCreatedAt(toInputValue(result.data.createdAt));
       } else {
@@ -50,7 +50,7 @@ const EditPoopPeePage = ({ type }: TProps) => {
   const handleSubmit = async () => {
     setSaving(true);
     setError(null);
-    const result = await fetch2<TPee | TPoop>(`/api/${type}/${id}`, {
+    const result = await authFetch<TPee | TPoop>(`/api/${type}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ createdAt }),
@@ -107,7 +107,7 @@ const EditPoopPeePage = ({ type }: TProps) => {
                   onClick={async () => {
                     setDeleting(true);
                     setError(null);
-                    const res = await fetch2<null>(`/api/${type}/${id}`, { method: 'DELETE' });
+                    const res = await authFetch<null>(`/api/${type}/${id}`, { method: 'DELETE' });
                     if (res.ok) {
                       goBack();
                     } else {

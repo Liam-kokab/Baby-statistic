@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 import { migrations } from './migrations';
@@ -11,6 +12,28 @@ const ensureDir = (filePath: string): void => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
+};
+
+const seedAdminUser = (db: Database.Database): void => {
+  const username = process.env.SEED_ADMIN_USERNAME;
+  const password = process.env.SEED_ADMIN_PASSWORD;
+
+  const existing = db.prepare<[], { count: number }>(`SELECT COUNT(*) as count FROM users WHERE role = 'admin'`).get();
+  if ((existing?.count ?? 0) > 0) return;
+
+  if (!username || !password) {
+    console.warn('[db] No admin user exists. Set SEED_ADMIN_USERNAME and SEED_ADMIN_PASSWORD env vars to auto-create one.');
+    return;
+  }
+
+  // Lazy-hash password using bcryptjs
+  const rounds = Number(process.env.BCRYPT_ROUNDS ?? 12);
+  const hash = bcrypt.hashSync(password, rounds);
+  const now = nowOslo();
+  db.prepare<{ username: string; password_hash: string; created_at: string }>(
+    `INSERT INTO users (username, password_hash, role, baby_id, name, created_at) VALUES (@username, @password_hash, 'admin', NULL, '', @created_at)`
+  ).run({ username, password_hash: hash, created_at: now });
+  console.log(`[db] Admin user '${username}' created.`);
 };
 
 const initDb = (): Database.Database => {
@@ -45,8 +68,9 @@ const initDb = (): Database.Database => {
       console.log(`[db] migration applied: ${name}`);
     });
 
+  seedAdminUser(db);
+
   return db;
 };
 
 export const db = initDb();
-

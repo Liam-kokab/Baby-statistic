@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TMedicine } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import Input from '../../components/Input/Input';
@@ -27,7 +27,7 @@ const EditMedicinePage = () => {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const res = await fetch2<TMedicine>(`/api/medicine/${id}`);
+      const res = await authFetch<TMedicine>(`/api/medicine/${id}`);
       if (res.ok) {
         setName(res.data.name);
       } else {
@@ -42,7 +42,7 @@ const EditMedicinePage = () => {
     if (!name.trim()) return;
     setSaving(true);
     setError(null);
-    const res = await fetch2<TMedicine>(`/api/medicine/${id}`, {
+    const res = await authFetch<TMedicine>(`/api/medicine/${id}`, {
       method: 'PUT',
       headers: JSON_HEADERS,
       body: JSON.stringify({ name: name.trim() }),
@@ -58,7 +58,7 @@ const EditMedicinePage = () => {
   const handleDelete = async (): Promise<void> => {
     setDeleting(true);
     setError(null);
-    const res = await fetch2<null>(`/api/medicine/${id}`, { method: 'DELETE' });
+    const res = await authFetch<null>(`/api/medicine/${id}`, { method: 'DELETE' });
     if (res.ok) {
       goBack();
     } else {

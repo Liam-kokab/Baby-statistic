@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { authStore } from '../../utils/authStore';
+import { authFetch } from '../../utils/authFetch';
 import styles from './NavBar.module.css';
 
 type TNavItem = {
@@ -8,32 +10,43 @@ type TNavItem = {
   label: string;
 };
 
-const MAIN_ITEMS: TNavItem[] = [
+// ── User nav ──────────────────────────────────────────────────────────────────
+const USER_MAIN_ITEMS: TNavItem[] = [
   { path: '/pumping',    emoji: '🥛', label: 'Pumping'   },
   { path: '/',           emoji: '🏠', label: 'Home'       },
   { path: '/milk-drank', emoji: '🍼', label: 'Milk Drank' },
   { path: '/sleep',      emoji: '🌙', label: 'Sleep'      },
 ];
 
-const MENU_ITEMS: TNavItem[] = [
+const USER_MENU_ITEMS: TNavItem[] = [
   { path: '/poop-pee',   emoji: '💩', label: 'Poop & Pee' },
-  { path: '/medicine',   emoji: '💊', label: 'Medicine'  },
-  { path: '/milk-saved', emoji: '🧊', label: 'Milk Saved'},
-  { path: '/settings',   emoji: '⚙️', label: 'Settings'  },
+  { path: '/medicine',   emoji: '💊', label: 'Medicine'   },
+  { path: '/milk-saved', emoji: '🧊', label: 'Milk Saved' },
+  { path: '/settings',   emoji: '⚙️', label: 'Settings'   },
+];
+
+// ── Admin nav ─────────────────────────────────────────────────────────────────
+const ADMIN_MAIN_ITEMS: TNavItem[] = [
+  { path: '/admin/babies', emoji: '👶', label: 'Babies' },
+  { path: '/admin',        emoji: '🔑', label: 'Admin'  },
+  { path: '/admin/users',  emoji: '👥', label: 'Users'  },
+];
+
+const ADMIN_MENU_ITEMS: TNavItem[] = [
+  { path: '/settings', emoji: '⚙️', label: 'Settings' },
 ];
 
 const NavBar = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const isAdmin = authStore.getUser()?.role === 'admin';
 
-  const toggleMenu = useCallback(() => {
-    setMenuOpen((prev) => !prev);
-  }, []);
+  const mainItems  = isAdmin ? ADMIN_MAIN_ITEMS  : USER_MAIN_ITEMS;
+  const menuItems  = isAdmin ? ADMIN_MENU_ITEMS  : USER_MENU_ITEMS;
 
-  const closeMenu = useCallback(() => {
-    setMenuOpen(false);
-  }, []);
+  const toggleMenu = useCallback(() => setMenuOpen((prev) => !prev), []);
+  const closeMenu  = useCallback(() => setMenuOpen(false), []);
 
   const handleMenuNavigate = useCallback((path: string) => {
     navigate(path);
@@ -44,6 +57,16 @@ const NavBar = () => {
     navigate(path);
     closeMenu();
   }, [navigate, closeMenu]);
+
+  const handleLogout = useCallback(async () => {
+    const refreshToken = authStore.getRefreshToken();
+    await authFetch('/api/auth/logout', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+    authStore.clear();
+    navigate('/login', { replace: true });
+  }, [navigate]);
 
   return (
     <>
@@ -60,7 +83,7 @@ const NavBar = () => {
             ☰
           </button>
 
-          {MENU_ITEMS.map(({ path, emoji, label }, index) => (
+          {menuItems.map(({ path, emoji, label }, index) => (
             <button
               key={path}
               type="button"
@@ -73,9 +96,19 @@ const NavBar = () => {
               {emoji}
             </button>
           ))}
+          <button
+            type="button"
+            aria-label="Log out"
+            data-tooltip="Log out"
+            className={`${styles.menuItem} ${menuOpen ? styles.menuItemOpen : ''}`}
+            style={{ '--i': menuItems.length } as React.CSSProperties}
+            onClick={handleLogout}
+          >
+            🚪
+          </button>
         </div>
 
-        {MAIN_ITEMS.map(({ path, emoji, label }) => (
+        {mainItems.map(({ path, emoji, label }) => (
           <button
             key={path}
             type="button"

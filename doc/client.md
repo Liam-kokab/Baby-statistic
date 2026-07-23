@@ -33,9 +33,11 @@ client/
       DateTimeInput/                # DateTimeInput.tsx + DateTimeInput.module.css
       Input/                        # Input.tsx + Input.module.css
       InstallBanner/                # PWA install prompt banner
-      NavBar/                       # NavBar.tsx + NavBar.module.css
+      NavBar/                       # NavBar.tsx + NavBar.module.css (includes logout 🚪)
       PageLayout/                   # PageLayout.tsx + PageLayout.module.css
+      ProtectedRoute/               # ProtectedRoute.tsx — redirects to /login if unauthenticated
     pages/
+      LoginPage/                    # LoginPage.tsx + LoginPage.module.css — username/password form
       HomePage/
       PoopPeePage/
       MilkSavedPage/
@@ -48,6 +50,10 @@ client/
       EditPoopPeePage/
       EditPumpingPage/
     utils/
+      authStore.ts   # localStorage helpers: getAccessToken/getRefreshToken/setTokens/clear/isAuthenticated
+      authFetch.ts   # typed fetch wrapper: attaches Bearer token, auto-refreshes on 401, redirects to /login on failure
+
+> See [`doc/auth.md`](./auth.md) for full client auth architecture documentation.
       groupByDay.ts                 # groups items by calendar day (descending)
       groupByWeek.ts                # groups items by Mon–Sun week (descending); uses format.ts for week label
       format.ts                     # date/time formatting helpers (Oslo tz, 24h, DD-MM-YYYY)
@@ -164,6 +170,23 @@ Props: `title`, `emoji`, `children`, `gradient?` (`'pink' | 'blue' | 'green' | '
 Wraps every secondary page with a gradient header banner (curved bottom edge) and a scrollable content area.
 
 ## Pages
+
+### Admin pages
+
+#### `AdminBabiesPage` (`/admin/babies`)
+- Lists all babies from `GET /api/admin/babies`
+- Inline form to create a new baby (`POST /api/admin/babies`)
+- Delete button per row (`DELETE /api/admin/babies/:id`) with a confirmation prompt
+- Shows baby id alongside name
+
+#### `AdminUsersPage` (`/admin`, `/admin/users`)
+- Lists all users from `GET /api/admin/users` — shows role emoji (🔑 admin / 👤 user), username, and assigned baby name
+- Inline form to create a new user (`POST /api/admin/users`):
+  - Fields: username, password, role selector (`user` / `admin`)
+  - When `role = "user"` a baby dropdown appears (populated from `GET /api/admin/babies`), required
+- Delete button per row with a confirmation prompt
+
+### User pages
 
 | Page | Path | Gradient | Emoji |
 |---|---|---|---|

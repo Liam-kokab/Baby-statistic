@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TSleep, TSleepSummary, TWishedResult } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
@@ -79,7 +79,7 @@ const SleepPage = () => {
 
   const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-    const result = await fetch2<TSleepSummary>(`/api/sleep/summary?${params}`);
+    const result = await authFetch<TSleepSummary>(`/api/sleep/summary?${params}`);
     if (result.ok) setSummary(result.data);
   }, [from, to]);
 
@@ -87,7 +87,7 @@ const SleepPage = () => {
 
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TSleep>> => {
     const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
-    const result = await fetch2<TWishedResult<TSleep>>(`/api/sleep?${params}`);
+    const result = await authFetch<TWishedResult<TSleep>>(`/api/sleep?${params}`);
     if (result.ok) return result.data;
     return { items: [], actualFrom: winFrom.slice(0, 10) };
   }, []);

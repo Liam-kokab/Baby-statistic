@@ -10,41 +10,37 @@ const fromDb = (row: TDrankMilkDb): TDrankMilk => ({
   createdAt: toOsloIso(row.created_at),
 });
 
-const toDb = (data: Omit<TPostDrankMilk, 'isNewBottle'>): Omit<TDrankMilkDb, 'id' | 'created_at'> => ({
+const toDb = (data: Omit<TPostDrankMilk, 'isNewBottle'>): Omit<TDrankMilkDb, 'id' | 'created_at' | 'baby_id' | 'created_by'> => ({
   amount: data.amount,
   source: data.source,
 });
 
 export const drankMilkRepository = {
-  findAll: (filter: TTimeFilter = {}): TDrankMilk[] => {
+  findAll: (filter: TTimeFilter = {}, babyId: number): TDrankMilk[] => {
     const conditions = [
+      'baby_id = ?',
       ...(filter.from ? ['created_at >= ?'] : []),
       ...(filter.to ? ['created_at <= ?'] : []),
     ];
-    const params = [
-      ...(filter.from ? [filter.from] : []),
-      ...(filter.to ? [filter.to] : []),
-    ];
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const rows = db.prepare<string[], TDrankMilkDb>(`SELECT * FROM drank_milk ${where} ORDER BY created_at DESC`).all(...params);
+    const params = [babyId, ...(filter.from ? [filter.from] : []), ...(filter.to ? [filter.to] : [])];
+    const rows = db.prepare<unknown[], TDrankMilkDb>(
+      `SELECT * FROM drank_milk WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC`
+    ).all(...params);
     return rows.map(fromDb);
   },
 
-  findSummary: (filter: TTimeFilter): TDrankMilkSummary => {
+  findSummary: (filter: TTimeFilter, babyId: number): TDrankMilkSummary => {
     const conditions = [
+      'baby_id = ?',
       ...(filter.from ? ['created_at >= ?'] : []),
       ...(filter.to ? ['created_at <= ?'] : []),
     ];
-    const params = [
-      ...(filter.from ? [filter.from] : []),
-      ...(filter.to ? [filter.to] : []),
-    ];
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const row = db.prepare<string[], { count: number; totalMl: number; activeDays: number; hasBoob: number }>(
+    const params = [babyId, ...(filter.from ? [filter.from] : []), ...(filter.to ? [filter.to] : [])];
+    const row = db.prepare<unknown[], { count: number; totalMl: number; activeDays: number; hasBoob: number }>(
       `SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0) AS totalMl,
        COUNT(DISTINCT date(created_at)) AS activeDays,
        MAX(CASE WHEN source = 'BOOB' THEN 1 ELSE 0 END) AS hasBoob
-       FROM drank_milk ${where}`
+       FROM drank_milk WHERE ${conditions.join(' AND ')}`
     ).get(...params)!;
     return {
       count: row.count,
@@ -54,71 +50,74 @@ export const drankMilkRepository = {
     };
   },
 
-  findById: (id: number): TDrankMilk | null => {
-    const row = db.prepare<[number], TDrankMilkDb>('SELECT * FROM drank_milk WHERE id = ?').get(id);
+  findById: (id: number, babyId: number): TDrankMilk | null => {
+    const row = db.prepare<[number, number], TDrankMilkDb>('SELECT * FROM drank_milk WHERE id = ? AND baby_id = ?').get(id, babyId);
     return row ? fromDb(row) : null;
   },
 
-  insert: (data: TPostDrankMilk): TDrankMilk => {
+  insert: (data: TPostDrankMilk, babyId: number, createdBy: number): TDrankMilk => {
     const now = nowOslo();
     const mapped = toDb(data);
-    const result = db.prepare<Omit<TDrankMilkDb, 'id' | 'created_at'> & { created_at: string }>(`
-      INSERT INTO drank_milk (amount, source, created_at) VALUES (@amount, @source, @created_at)
-    `).run({ ...mapped, created_at: now });
+    const result = db.prepare<{ amount: number; source: string; created_at: string; baby_id: number; created_by: number }>(
+      'INSERT INTO drank_milk (amount, source, created_at, baby_id, created_by) VALUES (@amount, @source, @created_at, @baby_id, @created_by)'
+    ).run({ ...mapped, created_at: now, baby_id: babyId, created_by: createdBy });
     const row = db.prepare<[number], TDrankMilkDb>('SELECT * FROM drank_milk WHERE rowid = ?').get(result.lastInsertRowid as number);
     return fromDb(row!);
   },
 
-  update: (id: number, data: Partial<TPostDrankMilk> & { createdAt?: string }): TDrankMilk | null => {
-    const existing = db.prepare<[number], TDrankMilkDb>('SELECT * FROM drank_milk WHERE id = ?').get(id);
+  update: (id: number, data: Partial<TPostDrankMilk> & { createdAt?: string }, babyId: number): TDrankMilk | null => {
+    const existing = db.prepare<[number, number], TDrankMilkDb>('SELECT * FROM drank_milk WHERE id = ? AND baby_id = ?').get(id, babyId);
     if (!existing) return null;
     const { createdAt, isNewBottle: _, ...rest } = data;
     const merged = toDb({ ...fromDb(existing), ...rest });
     if (createdAt) {
-      db.prepare<Omit<TDrankMilkDb, 'id'> & { id: number }>(`
-        UPDATE drank_milk SET amount = @amount, source = @source, created_at = @created_at WHERE id = @id
-      `).run({ ...merged, created_at: toOsloLocal(createdAt), id });
+      db.prepare<{ amount: number; source: string; created_at: string; id: number }>(
+        'UPDATE drank_milk SET amount = @amount, source = @source, created_at = @created_at WHERE id = @id'
+      ).run({ ...merged, created_at: toOsloLocal(createdAt), id });
     } else {
-      db.prepare<Omit<TDrankMilkDb, 'id' | 'created_at'> & { id: number }>(`
-        UPDATE drank_milk SET amount = @amount, source = @source WHERE id = @id
-      `).run({ ...merged, id });
+      db.prepare<{ amount: number; source: string; id: number }>(
+        'UPDATE drank_milk SET amount = @amount, source = @source WHERE id = @id'
+      ).run({ ...merged, id });
     }
     const updated = db.prepare<[number], TDrankMilkDb>('SELECT * FROM drank_milk WHERE id = ?').get(id);
     return updated ? fromDb(updated) : null;
   },
 
-  delete: (id: number): boolean => {
-    const result = db.prepare<[number]>('DELETE FROM drank_milk WHERE id = ?').run(id);
+  delete: (id: number, babyId: number): boolean => {
+    const result = db.prepare<[number, number]>('DELETE FROM drank_milk WHERE id = ? AND baby_id = ?').run(id, babyId);
     return result.changes > 0;
   },
 
-  deductWaste: (waste: number): TDrankMilk | null => {
-    const latest = db.prepare<[], TDrankMilkDb>(
-      `SELECT * FROM drank_milk WHERE source IN ('FRIDGE', 'FREEZER') ORDER BY created_at DESC LIMIT 1`
-    ).get();
+  deductWaste: (waste: number, babyId: number): TDrankMilk | null => {
+    const latest = db.prepare<[number], TDrankMilkDb>(
+      `SELECT * FROM drank_milk WHERE source IN ('FRIDGE', 'FREEZER') AND baby_id = ? ORDER BY created_at DESC LIMIT 1`
+    ).get(babyId);
     if (!latest) return null;
     const newAmount = Math.max(0, latest.amount - waste);
     db.prepare<{ amount: number; id: number }>(
       'UPDATE drank_milk SET amount = @amount WHERE id = @id'
     ).run({ amount: newAmount, id: latest.id });
-    const updated = db.prepare<[number], TDrankMilkDb>(
-      'SELECT * FROM drank_milk WHERE id = ?'
-    ).get(latest.id);
+    const updated = db.prepare<[number], TDrankMilkDb>('SELECT * FROM drank_milk WHERE id = ?').get(latest.id);
     return updated ? fromDb(updated) : null;
   },
 
-  findLatest: (): TDrankMilk | null => {
-    const row = db.prepare<[], TDrankMilkDb>(
-      `SELECT * FROM drank_milk ORDER BY created_at DESC LIMIT 1`
-    ).get();
+  findLatest: (babyId: number): TDrankMilk | null => {
+    const row = db.prepare<[number], TDrankMilkDb>(
+      'SELECT * FROM drank_milk WHERE baby_id = ? ORDER BY created_at DESC LIMIT 1'
+    ).get(babyId);
     return row ? fromDb(row) : null;
   },
 
-
-  getBackup: (from: string, to: string): TDrankMilk[] => {
-    const rows = db.prepare<[string, string], TDrankMilkDb>(
-      `SELECT * FROM drank_milk WHERE created_at >= ? AND created_at <= ?`
-    ).all(from, to);
+  getBackup: (from: string, to: string, babyId: number): TDrankMilk[] => {
+    const rows = db.prepare<[string, string, number], TDrankMilkDb>(
+      'SELECT * FROM drank_milk WHERE created_at >= ? AND created_at <= ? AND baby_id = ?'
+    ).all(from, to, babyId);
     return rows.map(fromDb);
   },
+
+  // Used internally by prediction service — no baby scope needed (joins handle it)
+  findRecentForPrediction: (babyId: number): TDrankMilkDb[] =>
+    db.prepare<[number], TDrankMilkDb>(
+      `SELECT * FROM drank_milk WHERE source IN ('FRIDGE','FREEZER') AND baby_id = ? ORDER BY created_at DESC LIMIT 20`
+    ).all(babyId),
 };

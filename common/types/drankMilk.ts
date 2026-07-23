@@ -5,6 +5,8 @@ export type TDrankMilkDb = {
   amount: number;
   source: TDrankMilkSource;
   created_at: string;
+  baby_id: number;
+  created_by: number;
 };
 
 export type TDrankMilk = {

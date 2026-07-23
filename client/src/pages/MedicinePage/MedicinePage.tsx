@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TMedicine, TMedicineLog, TWishedResult } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
@@ -56,7 +56,7 @@ const MedicinePage = () => {
   const [addError, setAddError]         = useState<string | null>(null);
 
   const loadMedicines = useCallback(async (): Promise<void> => {
-    const allRes = await fetch2<TMedicine[]>('/api/medicine/all');
+    const allRes = await authFetch<TMedicine[]>('/api/medicine/all');
     if (allRes.ok) setAllMedicines(allRes.data);
   }, []);
 
@@ -65,7 +65,7 @@ const MedicinePage = () => {
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TMedicineLog>> => {
     setError(null);
     const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
-    const result = await fetch2<TWishedResult<TMedicineLog>>(`/api/medicine/logs?${params}`);
+    const result = await authFetch<TWishedResult<TMedicineLog>>(`/api/medicine/logs?${params}`);
     if (result.ok) return result.data;
     setError(result.error);
     return { items: [], actualFrom: winFrom.slice(0, 10) };
@@ -138,14 +138,14 @@ const MedicinePage = () => {
     if (!newName.trim()) return;
     setAddLoading(true);
     setAddError(null);
-    const res = await fetch2('/api/medicine', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ name: newName.trim() }) });
+    const res = await authFetch('/api/medicine', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ name: newName.trim() }) });
     if (res.ok) { setNewName(''); await loadMedicines(); }
     else setAddError(res.error);
     setAddLoading(false);
   };
 
   const handleToggleActive = async (id: number, isActive: boolean): Promise<void> => {
-    const res = await fetch2<TMedicine>(`/api/medicine/${id}/active`, { method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify({ isActive }) });
+    const res = await authFetch<TMedicine>(`/api/medicine/${id}/active`, { method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify({ isActive }) });
     if (res.ok) setAllMedicines((prev) => prev.map((m) => (m.id === id ? { ...m, isActive } : m)));
   };
 

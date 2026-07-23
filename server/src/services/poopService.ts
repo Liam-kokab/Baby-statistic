@@ -1,23 +1,23 @@
 import type { TPoop } from 'baby-statistic-common';
 import { poopRepository } from '../repositories/poopRepository';
-import type { TTimeFilter } from '../types';
+import type { TTimeFilter, TBabyContext } from '../types';
 
 export const poopService = {
-  findAll: (filter: TTimeFilter = {}): TPoop[] =>
-    poopRepository.findAll(filter),
+  findAll: (filter: TTimeFilter = {}, ctx: TBabyContext): TPoop[] =>
+    poopRepository.findAll(filter, ctx.babyId),
 
-  findById: (id: number): TPoop | null =>
-    poopRepository.findById(id),
+  findById: (id: number, ctx: TBabyContext): TPoop | null =>
+    poopRepository.findById(id, ctx.babyId),
 
-  insert: (): TPoop =>
-    poopRepository.insert(),
+  insert: (ctx: TBabyContext): TPoop =>
+    poopRepository.insert(ctx.babyId, ctx.userId),
 
-  update: (id: number, data: { createdAt?: string } = {}): TPoop | null =>
-    poopRepository.update(id, data),
+  update: (id: number, data: { createdAt?: string }, ctx: TBabyContext): TPoop | null =>
+    poopRepository.update(id, data, ctx.babyId),
 
-  delete: (id: number): boolean =>
-    poopRepository.delete(id),
+  delete: (id: number, ctx: TBabyContext): boolean =>
+    poopRepository.delete(id, ctx.babyId),
 
-  getBackup: (from: string, to: string): TPoop[] =>
-    poopRepository.getBackup(from, to),
+  getBackup: (from: string, to: string, ctx: TBabyContext): TPoop[] =>
+    poopRepository.getBackup(from, to, ctx.babyId),
 };

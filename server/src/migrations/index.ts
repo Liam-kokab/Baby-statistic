@@ -440,6 +440,76 @@ export const migrations: TMigration[] = [
     name: '013_medicine_is_active_ensure',
     up: `UPDATE medicine SET is_active = 1 WHERE is_active IS NULL;`,
   },
+
+  {
+    name: '014_auth',
+    up: `
+      CREATE TABLE IF NOT EXISTS babies (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT    NOT NULL,
+        created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS users (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        username      TEXT    NOT NULL UNIQUE,
+        password_hash TEXT    NOT NULL,
+        role          TEXT    NOT NULL DEFAULT 'user'
+                        CHECK(role IN ('user', 'admin')),
+        baby_id       INTEGER REFERENCES babies(id) ON DELETE SET NULL,
+        config        TEXT    NOT NULL DEFAULT '{}',
+        created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS baby_users (
+        user_id  INTEGER NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
+        baby_id  INTEGER NOT NULL REFERENCES babies(id) ON DELETE CASCADE,
+        PRIMARY KEY (user_id, baby_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash TEXT    NOT NULL UNIQUE,
+        expires_at TEXT    NOT NULL,
+        created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+    `,
+  },
+
+  {
+    name: '015_add_baby_and_user_cols',
+    up: `
+      -- Insert default baby so existing data can reference it
+      INSERT INTO babies (id, name, created_at) VALUES (1, 'Default Baby', datetime('now'));
+
+      ALTER TABLE served_milk  ADD COLUMN baby_id    INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE served_milk  ADD COLUMN created_by INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE drank_milk   ADD COLUMN baby_id    INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE drank_milk   ADD COLUMN created_by INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE sleep        ADD COLUMN baby_id    INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE sleep        ADD COLUMN created_by INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE pee          ADD COLUMN baby_id    INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE pee          ADD COLUMN created_by INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE poop         ADD COLUMN baby_id    INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE poop         ADD COLUMN created_by INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE medicine     ADD COLUMN baby_id    INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE medicine     ADD COLUMN created_by INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE medicine_log ADD COLUMN baby_id    INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE medicine_log ADD COLUMN created_by INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE pumping      ADD COLUMN baby_id    INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE pumping      ADD COLUMN created_by INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE prediction_log ADD COLUMN baby_id INTEGER NOT NULL DEFAULT 1;
+    `,
+  },
+
+  {
+    name: '016_add_user_display_name',
+    up: `ALTER TABLE users ADD COLUMN name TEXT NOT NULL DEFAULT '';`,
+  },
 ];
 
 

@@ -2,13 +2,12 @@ import type {
   TServedMilk,
   TPostServedMilk,
   TServedMilkTotal,
-  TServedMilkStatus,
 } from 'baby-statistic-common';
 import { servedMilkRepository } from '../repositories/servedMilkRepository';
-import type { TTimeFilter } from '../types';
+import type { TTimeFilter, TBabyContext } from '../types';
 import { nowOslo } from '../utils/time';
 
-const calcExpiryDate = (status: TServedMilkStatus): string => {
+const calcExpiryDate = (status: 'FRIDGE' | 'FREEZER'): string => {
   const now = new Date(`${nowOslo()}Z`);
   if (status === 'FRIDGE') {
     now.setUTCDate(now.getUTCDate() + 4);
@@ -25,34 +24,33 @@ const calcExpiryDate = (status: TServedMilkStatus): string => {
 };
 
 export const servedMilkService = {
-  findAll: (filter: TTimeFilter = {}): TServedMilk[] =>
-    servedMilkRepository.findAll(filter),
+  findAll: (filter: TTimeFilter = {}, ctx: TBabyContext): TServedMilk[] =>
+    servedMilkRepository.findAll(filter, ctx.babyId),
 
+  findById: (id: number, ctx: TBabyContext): TServedMilk | null =>
+    servedMilkRepository.findById(id, ctx.babyId),
 
-  findById: (id: number): TServedMilk | null =>
-    servedMilkRepository.findById(id),
-
-  insert: (data: TPostServedMilk): TServedMilk => {
-    const record = servedMilkRepository.insert({ ...data, expiryDate: calcExpiryDate(data.status) });
-    servedMilkRepository.expireOverdue();
+  insert: (data: TPostServedMilk, ctx: TBabyContext): TServedMilk => {
+    const record = servedMilkRepository.insert(
+      { ...data, expiryDate: calcExpiryDate(data.status as 'FRIDGE' | 'FREEZER') },
+      ctx.babyId, ctx.userId
+    );
+    servedMilkRepository.expireOverdue(ctx.babyId);
     return record;
   },
 
-  update: (id: number, data: Partial<TPostServedMilk> & { createdAt?: string }): TServedMilk | null => {
-    const record = servedMilkRepository.update(id, data);
-    servedMilkRepository.expireOverdue();
+  update: (id: number, data: Partial<TPostServedMilk> & { createdAt?: string }, ctx: TBabyContext): TServedMilk | null => {
+    const record = servedMilkRepository.update(id, data, ctx.babyId);
+    servedMilkRepository.expireOverdue(ctx.babyId);
     return record;
   },
 
-  delete: (id: number): boolean =>
-    servedMilkRepository.delete(id),
+  delete: (id: number, ctx: TBabyContext): boolean =>
+    servedMilkRepository.delete(id, ctx.babyId),
 
-  getTotal: (): TServedMilkTotal =>
-    servedMilkRepository.getTotal(),
+  getTotal: (ctx: TBabyContext): TServedMilkTotal =>
+    servedMilkRepository.getTotal(ctx.babyId),
 
-  getBackup: (from: string, to: string): TServedMilk[] =>
-    servedMilkRepository.getBackup(from, to),
+  getBackup: (from: string, to: string, ctx: TBabyContext): TServedMilk[] =>
+    servedMilkRepository.getBackup(from, to, ctx.babyId),
 };
-
-
-

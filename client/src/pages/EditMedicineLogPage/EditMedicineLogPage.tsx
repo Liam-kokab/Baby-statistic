@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TMedicineLog } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
@@ -30,7 +30,7 @@ const EditMedicineLogPage = () => {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const result = await fetch2<TMedicineLog>(`/api/medicine/logs/${id}`);
+      const result = await authFetch<TMedicineLog>(`/api/medicine/logs/${id}`);
       if (result.ok) {
         setTakenAt(toInputValue(result.data.takenAt));
       } else {
@@ -44,7 +44,7 @@ const EditMedicineLogPage = () => {
   const handleSave = async (): Promise<void> => {
     setSaving(true);
     setError(null);
-    const result = await fetch2<TMedicineLog>(`/api/medicine/logs/${id}`, {
+    const result = await authFetch<TMedicineLog>(`/api/medicine/logs/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ takenAt }),
@@ -60,7 +60,7 @@ const EditMedicineLogPage = () => {
   const handleDelete = async (): Promise<void> => {
     setDeleting(true);
     setError(null);
-    const result = await fetch2<null>(`/api/medicine/logs/${id}`, { method: 'DELETE' });
+    const result = await authFetch<null>(`/api/medicine/logs/${id}`, { method: 'DELETE' });
     if (result.ok) {
       goBack();
     } else {

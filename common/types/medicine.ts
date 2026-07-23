@@ -3,6 +3,8 @@ export type TMedicineDb = {
   name: string;
   is_active: boolean;
   created_at: string;
+  baby_id: number;
+  created_by: number;
 };
 
 export type TMedicine = {
@@ -21,6 +23,8 @@ export type TMedicineLogDb = {
   medicine_id: number;
   taken_at: string;
   created_at: string;
+  baby_id: number;
+  created_by: number;
 };
 
 export type TMedicineLog = {

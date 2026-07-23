@@ -11,6 +11,7 @@ Holds TypeScript types and shared runtime utilities used across `client` and `se
 common/
   types/
     index.ts        # barrel re-export of all types
+    auth.ts         # auth types (TUser, TBaby, TJwtPayload, TLoginRequest, TLoginResponse, ...)
     servedMilk.ts   # served_milk types (TServedMilkDb, TServedMilk, TPostServedMilk)
     drankMilk.ts    # drank_milk types (TDrankMilkDb, TDrankMilk, TPostDrankMilk)
     sleep.ts        # sleep types (TSleepDb, TSleep, TPostSleep)

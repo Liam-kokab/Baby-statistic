@@ -7,6 +7,8 @@ export type TServedMilkDb = {
   status: TServedMilkStatus;
   expiry_date: string | null;
   created_at: string;
+  baby_id: number;
+  created_by: number;
 };
 
 export type TServedMilk = {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TSleep, TPostSleep } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
@@ -31,7 +31,7 @@ const EditSleepPage = () => {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const result = await fetch2<TSleep>(`/api/sleep/${id}`);
+      const result = await authFetch<TSleep>(`/api/sleep/${id}`);
       if (result.ok) {
         setStart(toInputValue(result.data.start));
         setEnd(result.data.end ? toInputValue(result.data.end) : '');
@@ -51,7 +51,7 @@ const EditSleepPage = () => {
     setSaving(true);
     setError(null);
     const body: TPostSleep = { start, end: end || null };
-    const result = await fetch2<TSleep>(`/api/sleep/${id}`, {
+    const result = await authFetch<TSleep>(`/api/sleep/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -118,7 +118,7 @@ const EditSleepPage = () => {
                   onClick={async () => {
                     setDeleting(true);
                     setError(null);
-                    const res = await fetch2<null>(`/api/sleep/${id}`, { method: 'DELETE' });
+                    const res = await authFetch<null>(`/api/sleep/${id}`, { method: 'DELETE' });
                     if (res.ok) {
                       goBack();
                     } else {

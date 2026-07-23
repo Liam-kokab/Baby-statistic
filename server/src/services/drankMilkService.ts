@@ -1,63 +1,56 @@
 import type { TDrankMilk, TPostDrankMilk, TServedMilkStatus, TDrankMilkSummary } from 'baby-statistic-common';
 import { drankMilkRepository } from '../repositories/drankMilkRepository';
 import { servedMilkRepository } from '../repositories/servedMilkRepository';
-import type { TTimeFilter } from '../types';
+import type { TTimeFilter, TBabyContext } from '../types';
 import getSuggestedNextDrinkDetails, { getSuggestedNextDrinkAmount } from './drankMilkPrediction';
 import { predictionService } from './predictionService';
 import { predictionRepository } from '../repositories/predictionRepository';
 
 export const drankMilkService = {
-  findAll: (filter: TTimeFilter = {}): TDrankMilk[] =>
-    drankMilkRepository.findAll(filter),
+  findAll: (filter: TTimeFilter = {}, ctx: TBabyContext): TDrankMilk[] =>
+    drankMilkRepository.findAll(filter, ctx.babyId),
 
-  findSummary: (filter: TTimeFilter = {}): TDrankMilkSummary =>
-    drankMilkRepository.findSummary(filter),
+  findSummary: (filter: TTimeFilter = {}, ctx: TBabyContext): TDrankMilkSummary =>
+    drankMilkRepository.findSummary(filter, ctx.babyId),
 
-  findLatest: (): TDrankMilk | null =>
-    drankMilkRepository.findLatest(),
+  findLatest: (ctx: TBabyContext): TDrankMilk | null =>
+    drankMilkRepository.findLatest(ctx.babyId),
 
-  findById: (id: number): TDrankMilk | null =>
-    drankMilkRepository.findById(id),
+  findById: (id: number, ctx: TBabyContext): TDrankMilk | null =>
+    drankMilkRepository.findById(id, ctx.babyId),
 
-  insert: (data: TPostDrankMilk): TDrankMilk => {
-    // If this is a new bottle, and it's from stored milk (FRIDGE/FREEZER), record the current prediction,
-    // then insert the drank record and link the prediction. Skip prediction logging/linking for BOOB.
+  insert: (data: TPostDrankMilk, ctx: TBabyContext): TDrankMilk => {
     let predRecId: number | null = null;
     if (data.isNewBottle && data.source !== 'BOOB') {
-      // Only treat FRIDGE/FREEZER as "stored milk" for prediction logging/linking and stock deduction.
       const isStored = data.source === 'FRIDGE' || data.source === 'FREEZER';
-
       if (isStored) {
         try {
-          const details = getSuggestedNextDrinkDetails();
+          const details = getSuggestedNextDrinkDetails(ctx.babyId);
           const predRec = predictionRepository.insert(details.suggestion, {
             rawPrediction: details.raw,
             suggestBasedOnTwoHour: details.suggestBasedOnTwoHour,
             suggestBasedOnFourHour: details.suggestBasedOnFourHour,
             suggestBasedOnSixHour: details.suggestBasedOnSixHour,
-          });
-
+          }, ctx.babyId);
           predRecId = predRec.id;
         } catch (e) {
-          // Do not fail the insert if prediction logging fails
           console.error('Failed to log prediction:', e);
         }
-        servedMilkRepository.deductStock(data.source as TServedMilkStatus, data.amount);
+        servedMilkRepository.deductStock(data.source as TServedMilkStatus, data.amount, ctx.babyId);
       }
     }
 
     if (data.source !== 'BOOB') {
-      servedMilkRepository.deductStock(data.source, data.amount);
+      servedMilkRepository.deductStock(data.source, data.amount, ctx.babyId);
     }
     if (!data.isNewBottle) {
-      const latest = drankMilkRepository.findLatest();
+      const latest = drankMilkRepository.findLatest(ctx.babyId);
       if (latest) {
-        return drankMilkRepository.update(latest.id, { amount: latest.amount + data.amount }) ?? drankMilkRepository.insert(data);
+        return drankMilkRepository.update(latest.id, { amount: latest.amount + data.amount }, ctx.babyId) ?? drankMilkRepository.insert(data, ctx.babyId, ctx.userId);
       }
     }
-    const insertedDate = drankMilkRepository.insert(data);
+    const insertedDate = drankMilkRepository.insert(data, ctx.babyId, ctx.userId);
 
-    // Link prediction to actual drank record only for FRIDGE/FREEZER (stored milk).
     if (predRecId) {
       try {
         predictionService.linkActual(predRecId, insertedDate.id);
@@ -69,17 +62,17 @@ export const drankMilkService = {
     return insertedDate;
   },
 
-  update: (id: number, data: Partial<TPostDrankMilk> & { createdAt?: string }): TDrankMilk | null =>
-    drankMilkRepository.update(id, data),
+  update: (id: number, data: Partial<TPostDrankMilk> & { createdAt?: string }, ctx: TBabyContext): TDrankMilk | null =>
+    drankMilkRepository.update(id, data, ctx.babyId),
 
-  delete: (id: number): boolean =>
-    drankMilkRepository.delete(id),
+  delete: (id: number, ctx: TBabyContext): boolean =>
+    drankMilkRepository.delete(id, ctx.babyId),
 
-  deductWaste: (waste: number): TDrankMilk | null =>
-    drankMilkRepository.deductWaste(waste),
+  deductWaste: (waste: number, ctx: TBabyContext): TDrankMilk | null =>
+    drankMilkRepository.deductWaste(waste, ctx.babyId),
 
-  suggestNextDrinkAmount: (): number => getSuggestedNextDrinkAmount(),
+  suggestNextDrinkAmount: (ctx: TBabyContext): number => getSuggestedNextDrinkAmount(ctx.babyId),
 
-  getBackup: (from: string, to: string): TDrankMilk[] =>
-    drankMilkRepository.getBackup(from, to),
+  getBackup: (from: string, to: string, ctx: TBabyContext): TDrankMilk[] =>
+    drankMilkRepository.getBackup(from, to, ctx.babyId),
 };

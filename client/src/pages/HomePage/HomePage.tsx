@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetch2 } from 'baby-statistic-common/util';
+import { authFetch } from '../../utils/authFetch';
 import type { TSleep, TMedicineWithLatestLog, TDrankMilk, TPumping } from 'baby-statistic-common';
 import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
@@ -50,7 +50,7 @@ const HomePage = () => {
   const boob   = useActionFeedback();
 
   const loadLatestDrank = async (): Promise<void> => {
-    const res = await fetch2<TDrankMilk | null>('/api/drank-milk/latest');
+    const res = await authFetch<TDrankMilk | null>('/api/drank-milk/latest');
     if (res.ok) {
       setLatestDrank(res.data);
       if (res.data) {
@@ -63,7 +63,7 @@ const HomePage = () => {
   };
 
   const loadSuggested = async (): Promise<void> => {
-    const res = await fetch2<{ nextDrinkAmount: number }>('/api/drank-milk/suggested');
+    const res = await authFetch<{ nextDrinkAmount: number }>('/api/drank-milk/suggested');
     if (res.ok) setSuggestedAmount(res.data.nextDrinkAmount ?? null);
   };
 
@@ -77,7 +77,7 @@ const HomePage = () => {
   const [latestNappy, setLatestNappy] = useState<string | null>(null);
 
   const loadLatestNappy = async (): Promise<void> => {
-    const res = await fetch2<{ createdAt: string } | null>('/api/nappy/latest');
+    const res = await authFetch<{ createdAt: string } | null>('/api/nappy/latest');
     if (res.ok) setLatestNappy(res.data?.createdAt ?? null);
   };
 
@@ -88,7 +88,7 @@ const HomePage = () => {
   const pump = useActionFeedback();
 
   const loadLatestPumping = async (): Promise<void> => {
-    const res = await fetch2<TPumping | null>('/api/pumping/latest');
+    const res = await authFetch<TPumping | null>('/api/pumping/latest');
     if (res.ok) {
       setLastPumping(res.data);
       setPumpingTimerRef(res.data?.createdAt ?? null);
@@ -100,13 +100,13 @@ const HomePage = () => {
   const [medStatuses, setMedStatuses] = useState<Record<number, TActionStatus>>({});
 
   const loadMedicines = async (): Promise<void> => {
-    const res = await fetch2<TMedicineWithLatestLog[]>('/api/medicine');
+    const res = await authFetch<TMedicineWithLatestLog[]>('/api/medicine');
     if (res.ok) setMedicines(res.data);
   };
 
   // Load latest sleep on mount
   const loadSleep = async (): Promise<void> => {
-    const res = await fetch2<TSleep | null>('/api/sleep/latest');
+    const res = await authFetch<TSleep | null>('/api/sleep/latest');
     if (!res.ok) return;
     const latest = res.data;
     if (latest?.end === null) {
@@ -158,12 +158,12 @@ const HomePage = () => {
     sleep.run(async () => {
       const now = new Date().toISOString();
       const res = activeSleep
-        ? await fetch2<TSleep>(`/api/sleep/${activeSleep.id}`, {
+        ? await authFetch<TSleep>(`/api/sleep/${activeSleep.id}`, {
             method: 'PUT',
             headers: JSON_HEADERS,
             body: JSON.stringify({ start: activeSleep.start, end: now }),
           })
-        : await fetch2<TSleep>('/api/sleep', {
+        : await authFetch<TSleep>('/api/sleep', {
             method: 'POST',
             headers: JSON_HEADERS,
             body: JSON.stringify({ start: now }),
@@ -178,7 +178,7 @@ const HomePage = () => {
     if (!amount || amount <= 0) return;
     const fb = source === 'FRIDGE' ? bottle : boob;
     fb.run(async () => {
-      const res = await fetch2('/api/drank-milk', {
+      const res = await authFetch('/api/drank-milk', {
         method: 'POST',
         headers: JSON_HEADERS,
         body: JSON.stringify({ amount, source, isNewBottle }),
@@ -203,7 +203,7 @@ const HomePage = () => {
     const amount = Number(wasteAmount);
     if (!amount || amount <= 0) return;
     waste.run(async () => {
-      const res = await fetch2('/api/drank-milk/waste', {
+      const res = await authFetch('/api/drank-milk/waste', {
         method: 'POST',
         headers: JSON_HEADERS,
         body: JSON.stringify({ amount }),
@@ -219,7 +219,7 @@ const HomePage = () => {
 
   const handlePoop = (): void => {
     poop.run(async () => {
-      const res = await fetch2('/api/poop', { method: 'POST' });
+      const res = await authFetch('/api/poop', { method: 'POST' });
       if (res.ok) await loadLatestNappy();
       return res.ok;
     });
@@ -227,7 +227,7 @@ const HomePage = () => {
 
   const handlePee = (): void => {
     pee.run(async () => {
-      const res = await fetch2('/api/pee', { method: 'POST' });
+      const res = await authFetch('/api/pee', { method: 'POST' });
       if (res.ok) await loadLatestNappy();
       return res.ok;
     });
@@ -235,7 +235,7 @@ const HomePage = () => {
 
   const handlePump = (): void => {
     pump.run(async () => {
-      const res = await fetch2<TPumping>('/api/pumping', { method: 'POST' });
+      const res = await authFetch<TPumping>('/api/pumping', { method: 'POST' });
       if (res.ok) await loadLatestPumping();
       return res.ok;
     });
@@ -247,7 +247,7 @@ const HomePage = () => {
       setMedStatuses((prev) => ({ ...prev, [id]: s }));
     setStatus('loading');
     const t0 = Date.now();
-    fetch2(`/api/medicine/${id}/log`, { method: 'POST' }).then(async (res) => {
+    authFetch(`/api/medicine/${id}/log`, { method: 'POST' }).then(async (res) => {
       const wait = ACTION_MIN_MS - (Date.now() - t0);
       if (wait > 0) await new Promise<void>((r) => setTimeout(r, wait));
       if (res.ok) await loadMedicines();

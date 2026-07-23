@@ -4,6 +4,94 @@ Base URL (dev): `http://localhost:3000`
 All endpoints are prefixed with `/api`.  
 All responses are **JSON**. Errors return `{ "error": "..." }`.
 
+**Authentication**: All endpoints except `POST /api/auth/login`, `POST /api/auth/refresh`, and `GET /api/ping` require `Authorization: Bearer <accessToken>` header. Unauthenticated requests return `401`.
+
+See [`doc/auth.md`](./auth.md) for the full permission table, token architecture, and security details.
+
+---
+
+## Auth
+
+### `POST /api/auth/login`
+Login with username + password.
+
+**Body**: `{ "username": "...", "password": "..." }`
+
+**Response `200`**: `{ "accessToken": "...", "refreshToken": "...", "user": { id, username, role, babyId, config, createdAt } }`
+
+**Response `401`**: Invalid credentials.
+
+---
+
+### `POST /api/auth/refresh`
+Exchange a valid refresh token for a new access token + rotated refresh token.
+
+**Body**: `{ "refreshToken": "..." }`
+
+**Response `200`**: `{ "accessToken": "...", "refreshToken": "..." }`
+
+---
+
+### `POST /api/auth/logout`
+Invalidate the current refresh token. Requires Bearer token.
+
+**Body**: `{ "refreshToken": "..." }`
+
+**Response `204`**: No content.
+
+---
+
+### `GET /api/auth/me`
+Return the currently authenticated user's public profile.
+
+**Response `200`**: `TUser` object.
+
+---
+
+## Admin *(requires `role: "admin"`)*
+
+### `GET /api/admin/babies`
+List all babies.
+
+### `POST /api/admin/babies`
+Create a baby. **Body**: `{ "name": "..." }`
+
+### `PUT /api/admin/babies/:id`
+Update a baby's name. **Body**: `{ "name": "..." }`
+
+### `DELETE /api/admin/babies/:id`
+Delete a baby.
+
+---
+
+### `GET /api/admin/users`
+List all users (passwords excluded).
+
+### `POST /api/admin/users`
+Create a user. **Body**: `{ "username": "...", "password": "...", "role": "user"|"admin", "babyId": 1 }`
+
+### `PATCH /api/admin/users/:id`
+Update a user's password or babyId. **Body**: `{ "password"?: "...", "babyId"?: 1 }`
+
+### `DELETE /api/admin/users/:id`
+Delete a user.
+
+---
+
+## Baby *(requires `role: "user"` with a babyId)*
+
+### `GET /api/baby`
+Return the current user's baby info and co-users.
+
+**Response `200`**: `{ "baby": TBaby, "users": TUser[] }`
+
+### `POST /api/baby/invite`
+Invite another user (by username) to share the current user's baby.
+
+**Body**: `{ "username": "..." }`
+
+**Response `201`**: `{ "ok": true }`
+
 ---
 
 ## `GET /api/ping`
@@ -16,7 +104,7 @@ Health check endpoint.
 
 ---
 
-## `GET /api/build-time`
+## `GET /api/build-time` *(admin only)*
 
 Returns the server build timestamp.
 
@@ -29,7 +117,7 @@ Returns the server build timestamp.
 
 ---
 
-## `GET /api/backup`
+## `GET /api/backup` *(admin only)*
 
 Returns all rows from every data table as a full DB dump.
 
@@ -51,7 +139,7 @@ Returns all rows from every data table as a full DB dump.
 
 ---
 
-## `POST /api/backup/restore`
+## `POST /api/backup/restore` *(admin only)*
 
 Restores (upserts) rows into the DB. The body may omit any table or individual fields — missing tables are skipped, missing nullable fields default to `null`. A NOT NULL constraint violation returns `400`.
 

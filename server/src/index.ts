@@ -5,7 +5,11 @@ import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
 // ...existing code...
 import './db';
+import { authenticate } from './middleware/authenticate';
 import pingRouter from './routes/ping';
+import authRouter from './routes/auth';
+import adminRouter from './routes/admin';
+import babyRouter from './routes/baby';
 import backupRouter from './routes/backup';
 import servedMilkRouter from './routes/servedMilk';
 import drankMilkRouter from './routes/drankMilk';
@@ -39,7 +43,21 @@ app.use(express.json());
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+// Public routes (no auth required)
 app.use('/api/ping', pingRouter);
+app.use('/api/auth', authRouter);
+
+// Apply authentication to all subsequent /api routes only.
+// Static assets and the SPA shell (index.html, JS/CSS bundles, manifest.json)
+// must be servable with no auth — the browser can't attach a Bearer token on
+// page navigation, and the login page itself needs to load before any token exists.
+app.use('/api', authenticate);
+
+// Admin routes
+app.use('/api/admin', adminRouter);
+
+// Baby-scoped routes (require user role with a baby)
+app.use('/api/baby', babyRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/served-milk', servedMilkRouter);
 app.use('/api/drank-milk', drankMilkRouter);

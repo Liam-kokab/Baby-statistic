@@ -1,4 +1,5 @@
 export type { TServedMilkDb, TServedMilk, TPostServedMilk, TCreateServedMilk, TServedMilkStatus, TServedMilkTotal } from './servedMilk';
+export type { TUserRole, TUserConfig, TUserDb, TUser, TBabyDb, TBaby, TRefreshTokenDb, TLoginRequest, TLoginResponse, TRefreshResponse, TJwtPayload, TAdminCreateUser, TAdminCreateBaby } from './auth';
 export type { TDrankMilkDb, TDrankMilk, TPostDrankMilk, TDrankMilkSource } from './drankMilk';
 export type { TSleepDb, TSleep, TPostSleep } from './sleep';
 export type { TPeeDb, TPee, TPostPee } from './pee';

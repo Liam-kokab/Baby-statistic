@@ -2,8 +2,10 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import { requireAdmin } from '../middleware/requireAdmin';
 
 const router = Router();
+router.use(requireAdmin);
 
 const getBuildTime = (): string => {
   const candidates = [
