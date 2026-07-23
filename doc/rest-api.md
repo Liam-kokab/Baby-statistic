@@ -145,6 +145,8 @@ Restores (upserts) rows into the DB. The body may omit any table or individual f
 
 **Handler**: `server/src/routes/backup.ts`
 
+**Body size limit**: `20mb` (this route parses its own JSON body with a raised limit — all other routes are limited to Express's default `100kb`, since a full-database dump can exceed that).
+
 **Request body**: same shape as `GET /api/backup` response (all keys optional).
 
 **Response `200`**:

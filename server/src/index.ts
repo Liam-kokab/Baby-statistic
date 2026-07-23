@@ -39,7 +39,16 @@ const swaggerDocument = JSON.parse(
   fs.readFileSync(resolveOpenApiPath(), 'utf-8')
 ) as Record<string, unknown>;
 
-app.use(express.json());
+// Default body-size limit for most routes. The backup restore endpoint needs a much
+// higher limit (full-database payloads) — it parses its own body separately in
+// routes/backup.ts, so it's excluded here to keep this limit tight everywhere else.
+app.use((req, res, next) => {
+  if (req.path === '/api/backup/restore') {
+    next();
+    return;
+  }
+  express.json()(req, res, next);
+});
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 

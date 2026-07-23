@@ -52,7 +52,7 @@ server/
 
 ## Entry Point (`src/index.ts`)
 - Imports `'./db'` on startup — this triggers migrations automatically
-- Registers `express.json()` middleware
+- Registers `express.json()` middleware globally (default `100kb` body limit), **except** for `POST /api/backup/restore`, which is skipped globally and parses its own body in `routes/backup.ts` with a raised `20mb` limit (full-database restore payloads can exceed the default limit)
 - Mounts Swagger UI at `/api-docs` (reads `doc/openAPI.json` at startup)
 - Mounts all API routers under `/api/<name>`
 - `authenticate` middleware is mounted on the `/api` prefix only (`app.use('/api', authenticate)`) — it never gates static assets or the SPA shell, since the browser can't send a Bearer token on page navigation and the login page itself must load before any token exists

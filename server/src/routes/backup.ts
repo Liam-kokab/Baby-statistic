@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, json } from 'express';
 import type { Request, Response } from 'express';
 import { db } from '../db';
 import { requireAdmin } from '../middleware/requireAdmin';
@@ -29,7 +29,8 @@ router.get('/', (_req: Request, res: Response): void => {
   res.json(result);
 });
 
-router.post('/restore', (req: Request, res: Response): void => {
+// Large limit — restore payloads can contain the full database export.
+router.post('/restore', json({ limit: '20mb' }), (req: Request, res: Response): void => {
   const payload = req.body as TBackupPayload;
   if (!payload || typeof payload !== 'object') {
     res.status(400).json({ error: 'Request body must be a JSON object.' });
