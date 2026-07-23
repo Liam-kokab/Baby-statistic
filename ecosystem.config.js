@@ -43,6 +43,8 @@ module.exports = {
         HEALTHCHECK_TARGET: 'baby-statistic-server',
         HEALTHCHECK_INTERVAL_MS: 30000,
         HEALTHCHECK_MAX_FAILURES: 3,
+        HEALTHCHECK_TIMEOUT_MS: 8000,
+        HEALTHCHECK_GRACE_MS: 20000,
       },
       autorestart: true,
       max_restarts: 10,
