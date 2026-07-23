@@ -27,15 +27,18 @@ The application uses **JWT-based stateless authentication** with short-lived acc
   "sub": 1,
   "username": "alice",
   "role": "user",
-  "babyId": 3
+  "babyId": 3,
+  "authTime": 1784840767
 }
 ```
 - Sent in every request as `Authorization: Bearer <accessToken>`
+- `authTime` (epoch seconds) is set **only** at `/api/auth/login` and carried forward unchanged across every `/api/auth/refresh` call — it never resets on refresh, only on a real login. Used by `requireRecentAuth` to gate sensitive actions (see below).
 
 ### Refresh Token
 - **Algorithm**: HS256
 - **Lifetime**: 7 days
 - **Secret**: `JWT_REFRESH_SECRET` env var
+- **Payload**: `{ "sub": <userId>, "authTime": <original login epoch seconds> }` — `authTime` is copied forward on every rotation, never regenerated
 - **Storage**: Raw token sent to client; only the **SHA-256 hash** is stored in the `refresh_tokens` DB table
 - **Rotation**: On every `/api/auth/refresh` call the old token is deleted and a new one issued — stolen tokens cannot be reused
 
@@ -61,6 +64,26 @@ The application uses **JWT-based stateless authentication** with short-lived acc
 12. Server deletes refresh token hash from DB
 13. Client clears localStorage
 ```
+
+---
+
+## Step-Up Auth for Sensitive Actions (`requireRecentAuth`)
+
+Some destructive actions require more than just a valid, non-expired token — they require proof of a **recent, explicit login**. `server/src/middleware/requireRecentAuth.ts` exports `requireRecentAuth(maxAgeSeconds)`, a middleware factory used after `authenticate`:
+
+```ts
+router.delete('/purge', requireRecentAuth(5 * 60), handler);
+```
+
+It computes `ageSeconds = now - req.user.authTime` and rejects with **`403`** (not `401`) if the token's `authTime` is older than `maxAgeSeconds`:
+
+```json
+{ "error": "This action requires a recent login (within 300s). Please log out and log back in, then try again.", "code": "REAUTH_REQUIRED" }
+```
+
+**Why 403 and not 401**: the client's `authFetch` auto-refreshes and retries once on `401` (see below). Since a silent refresh does **not** change `authTime`, returning `401` here would cause the client to transparently refresh and retry — defeating the whole point. `403` is never auto-retried, so the user actually sees the error and must log out and log back in.
+
+**Currently applied to**: `DELETE /api/backup/purge` (5 minute max age).
 
 ---
 
@@ -96,6 +119,7 @@ The Express `authenticate` middleware is mounted on the `/api` prefix only (`app
 | **Backup**                       |        |                      |              |
 | `GET /api/backup`                |   —    |          ❌           | ✅ (all data) |
 | `POST /api/backup/restore`       |   —    |          ❌           |      ✅       |
+| `DELETE /api/backup/purge`       |   —    |          ❌           | ✅ *(requires login within 5 min — see `requireRecentAuth`)* |
 | **Served Milk**                  |        |                      |              |
 | `GET /api/served-milk`           |   —    |   ✅ (baby-scoped)    |      ❌       |
 | `GET /api/served-milk/total`     |   —    |   ✅ (baby-scoped)    |      ❌       |
@@ -261,4 +285,5 @@ The `NavBar` component reads `authStore.getUser()?.role` and renders different n
 - **Token hash storage** — only a SHA-256 hash of the refresh token is stored in the DB; even a full DB leak cannot be used to forge new access tokens
 - **Production secrets** — `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be long random strings in production; the server logs a warning if they are missing
 - **Baby isolation** — all queries are hard-scoped by `baby_id`; horizontal privilege escalation between babies is not possible at the repository layer
+- **Step-up auth for destructive actions** — `requireRecentAuth` requires a login within the last N minutes for actions like `DELETE /api/backup/purge`; a silent token refresh cannot satisfy this since `authTime` is only set at `/login`, never at `/refresh`
 

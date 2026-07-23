@@ -15,6 +15,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
       username: payload.username,
       role: payload.role,
       babyId: payload.babyId,
+      authTime: payload.authTime,
     };
     next();
   } catch {

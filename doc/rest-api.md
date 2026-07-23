@@ -158,11 +158,16 @@ Restores (upserts) rows into the DB. The body may omit any table or individual f
 
 ---
 
-## `DELETE /api/backup/purge` *(admin only)*
+## `DELETE /api/backup/purge` *(admin only, requires recent login)*
 
 Irreversibly deletes **all rows from every data table** (`served_milk`, `drank_milk`, `sleep`, `pee`, `poop`, `medicine`, `medicine_log`, `pumping`, `prediction_log`) across **all babies**, and resets their auto-increment sequences. Does **not** touch `babies`, `users`, `baby_users`, or `refresh_tokens` — accounts and baby records survive a purge.
 
 **Handler**: `server/src/routes/backup.ts`
+
+**Guards**:
+1. `requireAdmin` — caller must be an admin.
+2. `requireRecentAuth(300)` — the access token's `authTime` (set only at `/api/auth/login`, never renewed by `/api/auth/refresh`) must be **≤ 5 minutes old**. A silent token refresh does not reset this — the admin must actually log out and log back in shortly before calling this endpoint. See `doc/auth.md`.
+3. Body safeguard (below).
 
 **Request body** (required safeguard — request is rejected without it):
 ```json
@@ -175,6 +180,11 @@ Irreversibly deletes **all rows from every data table** (`served_milk`, `drank_m
 ```
 
 **Response `400`**: `{ "error": "Refusing to purge: send { \"confirm\": \"PURGE\" } in the request body." }`
+
+**Response `403`** *(stale login)*:
+```json
+{ "error": "This action requires a recent login (within 300s). Please log out and log back in, then try again.", "code": "REAUTH_REQUIRED" }
+```
 
 ---
 

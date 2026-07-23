@@ -375,8 +375,8 @@
     "/api/backup/purge": {
       "delete": {
         "tags": ["Backup"],
-        "summary": "Irreversibly delete ALL data (admin only)",
-        "description": "Deletes every row from every data table (served_milk, drank_milk, sleep, pee, poop, medicine, medicine_log, pumping, prediction_log) across all babies, and resets their auto-increment sequences. Does not touch babies, users, baby_users, or refresh_tokens.",
+        "summary": "Irreversibly delete ALL data (admin only, requires recent login)",
+        "description": "Deletes every row from every data table (served_milk, drank_milk, sleep, pee, poop, medicine, medicine_log, pumping, prediction_log) across all babies, and resets their auto-increment sequences. Does not touch babies, users, baby_users, or refresh_tokens. Requires the caller's access token to have an authTime (set only at login, never renewed by /api/auth/refresh) no older than 5 minutes — see doc/auth.md.",
         "requestBody": {
           "required": true,
           "content": {
@@ -406,7 +406,14 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "403": {
+            "description": "Forbidden — either not an admin, or the token's login is older than 5 minutes (REAUTH_REQUIRED)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
         }
       }
     },

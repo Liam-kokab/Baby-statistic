@@ -2,9 +2,13 @@ import { Router, json } from 'express';
 import type { Request, Response } from 'express';
 import { db } from '../db';
 import { requireAdmin } from '../middleware/requireAdmin';
+import { requireRecentAuth } from '../middleware/requireRecentAuth';
 
 const router = Router();
 router.use(requireAdmin);
+
+// Purge requires a login within the last 5 minutes — see requireRecentAuth.
+const PURGE_MAX_AUTH_AGE_SECONDS = 5 * 60;
 
 const DATA_TABLES = [
   'served_milk',
@@ -68,10 +72,12 @@ router.post('/restore', json({ limit: '20mb' }), (req: Request, res: Response): 
 });
 
 // Irreversibly deletes ALL rows from every data table (all babies). Requires
-// { "confirm": "PURGE" } in the body as a safeguard against accidental calls.
+// { "confirm": "PURGE" } in the body as a safeguard against accidental calls,
+// and a login within the last PURGE_MAX_AUTH_AGE_SECONDS (requireRecentAuth) —
+// a silent token refresh does NOT count, the admin must log out and back in.
 // Body is already parsed by the global express.json() middleware (see index.ts) —
 // only /api/backup/restore is excluded from that, so no extra json() parser here.
-router.delete('/purge', (req: Request, res: Response): void => {
+router.delete('/purge', requireRecentAuth(PURGE_MAX_AUTH_AGE_SECONDS), (req: Request, res: Response): void => {
   const { confirm } = (req.body ?? {}) as { confirm?: string };
   if (confirm !== 'PURGE') {
     res.status(400).json({ error: 'Refusing to purge: send { "confirm": "PURGE" } in the request body.' });

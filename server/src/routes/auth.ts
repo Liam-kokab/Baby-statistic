@@ -40,9 +40,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     username: userRow.username,
     role: userRow.role,
     babyId: userRow.baby_id,
+    authTime: Math.floor(Date.now() / 1000),
   };
   const accessToken = signAccessToken(payload);
-  const refreshToken = signRefreshToken(userRow.id);
+  const refreshToken = signRefreshToken(userRow.id, payload.authTime);
   const tokenHash = hashToken(refreshToken);
 
   userRepository.deleteExpiredRefreshTokens(userRow.id);
@@ -62,7 +63,7 @@ router.post('/refresh', (req: Request, res: Response): void => {
     return;
   }
   try {
-    const { sub: userId } = verifyRefreshToken(refreshToken);
+    const { sub: userId, authTime } = verifyRefreshToken(refreshToken);
     const tokenHash = hashToken(refreshToken);
     const stored = userRepository.findRefreshToken(tokenHash);
     if (!stored || stored.user_id !== userId) {
@@ -79,9 +80,10 @@ router.post('/refresh', (req: Request, res: Response): void => {
       res.status(401).json({ error: 'User not found' });
       return;
     }
-    // Rotate: delete old, issue new
+    // Rotate: delete old, issue new. authTime is carried forward (not reset) —
+    // it only ever changes on a real /login, so refreshing never "renews" it.
     userRepository.deleteRefreshToken(tokenHash);
-    const newRefreshToken = signRefreshToken(userId);
+    const newRefreshToken = signRefreshToken(userId, authTime);
     const newHash = hashToken(newRefreshToken);
     userRepository.saveRefreshToken(userId, newHash, refreshExpiresAt());
 
@@ -90,6 +92,7 @@ router.post('/refresh', (req: Request, res: Response): void => {
       username: userRow.username,
       role: userRow.role,
       babyId: userRow.baby_id,
+      authTime,
     });
     res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
   } catch {

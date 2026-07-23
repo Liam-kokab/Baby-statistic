@@ -12,6 +12,8 @@ export type TAuthUser = {
   username: string;
   role: TUserRole;
   babyId: number | null;
+  /** Epoch seconds of the original login (see TJwtPayload.authTime). */
+  authTime: number;
 };
 
 export type TBabyContext = {

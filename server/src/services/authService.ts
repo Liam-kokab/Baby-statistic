@@ -23,24 +23,26 @@ export const comparePassword = (password: string, hash: string): Promise<boolean
 export const signAccessToken = (payload: TJwtPayload): string =>
   jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRY });
 
-export const signRefreshToken = (userId: number): string =>
-  jwt.sign({ sub: userId }, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRY });
+export const signRefreshToken = (userId: number, authTime: number): string =>
+  jwt.sign({ sub: userId, authTime }, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRY });
 
 export const verifyAccessToken = (token: string): TJwtPayload => {
   const decoded = jwt.verify(token, ACCESS_SECRET);
   if (typeof decoded === 'string') throw new Error('Invalid token payload');
-  const { sub, username, role, babyId } = decoded as Record<string, unknown>;
+  const { sub, username, role, babyId, authTime } = decoded as Record<string, unknown>;
   return {
     sub: Number(sub),
     username: String(username),
     role: role as TUserRole,
     babyId: babyId != null ? Number(babyId) : null,
+    authTime: Number(authTime),
   };
 };
 
-export const verifyRefreshToken = (token: string): { sub: number } => {
+export const verifyRefreshToken = (token: string): { sub: number; authTime: number } => {
   const decoded = jwt.verify(token, REFRESH_SECRET);
   if (typeof decoded === 'string') throw new Error('Invalid token payload');
-  return { sub: Number((decoded as Record<string, unknown>).sub) };
+  const { sub, authTime } = decoded as Record<string, unknown>;
+  return { sub: Number(sub), authTime: Number(authTime) };
 };
 

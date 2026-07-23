@@ -64,6 +64,10 @@ export type TJwtPayload = {
   username: string;
   role: TUserRole;
   babyId: number | null;
+  /** Epoch seconds of the user's original /auth/login call. Preserved (not
+   * refreshed) across token refreshes — only a real login resets it. Used to
+   * gate sensitive actions (e.g. purge) that require a recent explicit login. */
+  authTime: number;
 };
 
 export type TAdminCreateUser = {
