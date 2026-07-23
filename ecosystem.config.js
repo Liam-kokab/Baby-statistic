@@ -57,8 +57,11 @@ module.exports = {
         HEALTHCHECK_TARGET: 'baby-statistic-server',
         HEALTHCHECK_INTERVAL_MS: 30000,
         HEALTHCHECK_MAX_FAILURES: 3,
-        HEALTHCHECK_TIMEOUT_MS: 8000,
-        HEALTHCHECK_GRACE_MS: 20000,
+        HEALTHCHECK_TIMEOUT_MS: 15000,
+        // Production runs on much weaker hardware than dev — migrations + admin
+        // seed + first listen can take well over the old 20s default. Give it
+        // 5 min of grace after (re)start before judging it unhealthy.
+        HEALTHCHECK_GRACE_MS: 300000,
       },
       autorestart: true,
       max_restarts: 10,

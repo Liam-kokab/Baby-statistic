@@ -30,8 +30,10 @@ To avoid false positives around startup/restart timing, checks are skipped entir
 | `HEALTHCHECK_TARGET` | `baby-statistic-server` | PM2 app name to restart when unhealthy |
 | `HEALTHCHECK_INTERVAL_MS` | `30000` | Poll interval |
 | `HEALTHCHECK_MAX_FAILURES` | `3` | Consecutive failures before restarting |
-| `HEALTHCHECK_TIMEOUT_MS` | `8000` | Per-request timeout before counting as a failure |
-| `HEALTHCHECK_GRACE_MS` | `20000` | Checks are skipped for this long after process start and after each triggered restart |
+| `HEALTHCHECK_TIMEOUT_MS` | `15000` | Per-request timeout before counting as a failure |
+| `HEALTHCHECK_GRACE_MS` | `300000` | Checks are skipped for this long after process start and after each triggered restart |
+
+The production defaults in `ecosystem.config.js` are tuned for weaker production hardware, where migrations + admin seed + first `listen()` can take much longer than on a dev machine — hence the 5 min grace period (up from a 20s default) and 15s per-request timeout, so the healthcheck doesn't restart a server that simply hasn't finished booting yet.
 
 ## Starting / Restarting Everything
 ```bash
