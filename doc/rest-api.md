@@ -158,6 +158,26 @@ Restores (upserts) rows into the DB. The body may omit any table or individual f
 
 ---
 
+## `DELETE /api/backup/purge` *(admin only)*
+
+Irreversibly deletes **all rows from every data table** (`served_milk`, `drank_milk`, `sleep`, `pee`, `poop`, `medicine`, `medicine_log`, `pumping`, `prediction_log`) across **all babies**, and resets their auto-increment sequences. Does **not** touch `babies`, `users`, `baby_users`, or `refresh_tokens` — accounts and baby records survive a purge.
+
+**Handler**: `server/src/routes/backup.ts`
+
+**Request body** (required safeguard — request is rejected without it):
+```json
+{ "confirm": "PURGE" }
+```
+
+**Response `200`**:
+```json
+{ "ok": true, "deleted": { "served_milk": 12, "drank_milk": 40, "sleep": 20, "pee": 15, "poop": 10, "medicine": 2, "medicine_log": 30, "pumping": 8, "prediction_log": 40 } }
+```
+
+**Response `400`**: `{ "error": "Refusing to purge: send { \"confirm\": \"PURGE\" } in the request body." }`
+
+---
+
 
 ## Served Milk — `/api/served-milk`
 

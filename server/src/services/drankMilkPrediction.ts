@@ -42,8 +42,19 @@ export const divideDataByHours = (data: TDrankMilk[], hours: number): TDrankMilk
 
   if (!data || data.length === 0) return [];
 
-  // Sort by createdAt ascending (old -> new)
-  const dataSorted = [...data].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  // Sort by createdAt ascending (old -> new). Invalid dates (NaN) are pushed to the
+  // front deterministically — a comparator returning NaN has unspecified sort
+  // behaviour per spec, so we special-case invalid entries instead of relying on it.
+  const dataSorted = [...data].sort((a, b) => {
+    const aTime = new Date(a.createdAt).getTime();
+    const bTime = new Date(b.createdAt).getTime();
+    const aValid = Number.isFinite(aTime);
+    const bValid = Number.isFinite(bTime);
+    if (!aValid && !bValid) return 0;
+    if (!aValid) return -1;
+    if (!bValid) return 1;
+    return aTime - bTime;
+  });
 
   const result: TDrankMilk[][] = [];
 

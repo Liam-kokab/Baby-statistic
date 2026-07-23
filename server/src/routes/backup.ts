@@ -17,6 +17,11 @@ const DATA_TABLES = [
   'pumping',
 ] as const;
 
+// Tables purged by DELETE /api/backup/purge. Same as DATA_TABLES, plus
+// prediction_log (excluded from backup/restore, but still app data that
+// should be wiped on a full purge).
+const PURGE_TABLES = [...DATA_TABLES, 'prediction_log'] as const;
+
 type TTableName = (typeof DATA_TABLES)[number];
 type TRow = Record<string, unknown>;
 type TBackupPayload = Partial<Record<TTableName, TRow[]>>;
@@ -59,6 +64,37 @@ router.post('/restore', json({ limit: '20mb' }), (req: Request, res: Response): 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(400).json({ error: message });
+  }
+});
+
+// Irreversibly deletes ALL rows from every data table (all babies). Requires
+// { "confirm": "PURGE" } in the body as a safeguard against accidental calls.
+// Body is already parsed by the global express.json() middleware (see index.ts) —
+// only /api/backup/restore is excluded from that, so no extra json() parser here.
+router.delete('/purge', (req: Request, res: Response): void => {
+  const { confirm } = (req.body ?? {}) as { confirm?: string };
+  if (confirm !== 'PURGE') {
+    res.status(400).json({ error: 'Refusing to purge: send { "confirm": "PURGE" } in the request body.' });
+    return;
+  }
+
+  const stats: Record<string, number> = {};
+  const purgeAll = db.transaction(() => {
+    PURGE_TABLES.forEach((table) => {
+      const { changes } = db.prepare(`DELETE FROM ${table}`).run();
+      stats[table] = changes;
+    });
+    db.prepare(
+      `DELETE FROM sqlite_sequence WHERE name IN (${PURGE_TABLES.map(() => '?').join(', ')})`
+    ).run(...PURGE_TABLES);
+  });
+
+  try {
+    purgeAll();
+    res.json({ ok: true, deleted: stats });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: message });
   }
 });
 

@@ -322,17 +322,8 @@
     "/api/backup": {
       "get": {
         "tags": ["Backup"],
-        "summary": "Day data backup",
-        "description": "Returns all records created on the specified day (based on `created_at`). Defaults to yesterday if no date is provided.",
-        "parameters": [
-          {
-            "name": "date",
-            "in": "query",
-            "required": false,
-            "description": "Day to back up (DD-MM-YYYY). Defaults to yesterday.",
-            "schema": { "type": "string", "example": "13-04-2026" }
-          }
-        ],
+        "summary": "Full database dump (admin only)",
+        "description": "Returns every row from every data table, as raw DB rows (snake_case columns), across all babies.",
         "responses": {
           "200": {
             "description": "OK",
@@ -342,7 +333,80 @@
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/backup/restore": {
+      "post": {
+        "tags": ["Backup"],
+        "summary": "Restore (upsert) rows into the DB (admin only)",
+        "description": "Body may omit any table or individual fields — missing tables are skipped, missing nullable fields default to null. Body size limit is 20mb (raised from the default 100kb since a full-database dump can exceed it).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BackupResponse" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "inserted": { "type": "object", "additionalProperties": { "type": "integer" } }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/backup/purge": {
+      "delete": {
+        "tags": ["Backup"],
+        "summary": "Irreversibly delete ALL data (admin only)",
+        "description": "Deletes every row from every data table (served_milk, drank_milk, sleep, pee, poop, medicine, medicine_log, pumping, prediction_log) across all babies, and resets their auto-increment sequences. Does not touch babies, users, baby_users, or refresh_tokens.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "confirm": { "type": "string", "example": "PURGE" } },
+                "required": ["confirm"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "deleted": { "type": "object", "additionalProperties": { "type": "integer" } }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -1122,6 +1186,22 @@
             "schema": { "$ref": "#/components/schemas/Error" }
           }
         }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid access token",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Authenticated but not permitted (e.g. admin-only route)",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
       }
     },
     "schemas": {
@@ -1326,15 +1406,17 @@
       },
       "BackupResponse": {
         "type": "object",
+        "description": "Raw DB rows (snake_case columns) per table — as returned by GET /api/backup and accepted by POST /api/backup/restore.",
         "properties": {
-          "date":       { "type": "string", "example": "2026-04-13" },
-          "servedMilk": { "type": "array", "items": { "$ref": "#/components/schemas/ServedMilk" } },
-          "drankMilk":  { "type": "array", "items": { "$ref": "#/components/schemas/DrankMilk" } },
-          "sleep":      { "type": "array", "items": { "$ref": "#/components/schemas/Sleep" } },
-          "pee":        { "type": "array", "items": { "$ref": "#/components/schemas/Event" } },
-          "poop":       { "type": "array", "items": { "$ref": "#/components/schemas/Event" } }
-        },
-        "required": ["date", "servedMilk", "drankMilk", "sleep", "pee", "poop"]
+          "served_milk":  { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "drank_milk":   { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "sleep":        { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "pee":          { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "poop":         { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "medicine":     { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "medicine_log": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "pumping":      { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
       },
       "Medicine": {
         "type": "object",
