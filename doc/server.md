@@ -9,22 +9,25 @@
 - **Port**: `3000` by default (overridable via `PORT` env var). In production, nginx owns public ports `80`/`443` (TLS via Let's Encrypt) and reverse-proxies to this internal port — see `doc/nginx.md`.
 
 ## Environment Variables
+Loaded from a `.env` file (see `.env.example` at the repo root) via `server/src/loadEnv.ts`, which must be the **first** import in `index.ts` — it uses `dotenv` and checks a couple of candidate paths since `process.cwd()` differs between dev (`server/`) and prod (repo root, see `ecosystem.config.js`). `.env` is gitignored; only `.env.example` (with empty values) is committed.
+
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `3000` | HTTP listen port (internal-only in prod — nginx sits in front, see `doc/nginx.md`) |
 | `DB_PATH` | `./data/baby.db` | SQLite file path |
-| `JWT_ACCESS_SECRET` | `dev-access-secret-...` (dev) / persisted secret file (prod if unset) | Secret for signing 15-min access tokens |
-| `JWT_REFRESH_SECRET` | `dev-refresh-secret-...` (dev) / persisted secret file (prod if unset) | Secret for signing 7-day refresh tokens |
+| `JWT_ACCESS_SECRET` | `dev-access-secret-...` | Secret for signing 15-min access tokens |
+| `JWT_REFRESH_SECRET` | `dev-refresh-secret-...` | Secret for signing 7-day refresh tokens |
 | `BCRYPT_ROUNDS` | `12` | bcrypt salt rounds for password hashing |
 | `SEED_ADMIN_USERNAME` | — | Auto-create admin user on first startup if no admin exists |
 | `SEED_ADMIN_PASSWORD` | — | Password for the auto-created admin user |
 
-> ⚠️ If `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` are left unset in production, the server generates a random secret on first boot and persists it to `server/secrets/` (gitignored) so it survives restarts. Delete those files to force all users to log in again. Set both env vars explicitly if you'd rather manage the secrets yourself. See `doc/auth.md`.
+> ⚠️ Always set `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` to long random strings in your `.env` for production — if left unset, the server falls back to hardcoded dev defaults and logs a warning on startup. See `doc/auth.md`.
 
 ## File Structure
 ```
 server/
   src/
+    loadEnv.ts         # loads .env (dotenv) — must be the first import in index.ts
     index.ts          # app entry — mounts middleware, routes, static serving
     db.ts             # DB singleton + migration runner + admin seed
     types.ts          # TTimeFilter, TAuthUser, TBabyContext + Express Request augmentation
@@ -48,10 +51,10 @@ server/
     utils/
       bodyAs.ts       # casts req.body to Partial<T>
       time.ts         # Oslo timezone helpers
-      secretStore.ts  # loads/generates persisted JWT secrets (server/secrets/, gitignored)
 ```
 
 ## Entry Point (`src/index.ts`)
+- Imports `'./loadEnv'` **first** — loads `.env` before any other module reads `process.env`
 - Imports `'./db'` on startup — this triggers migrations automatically
 - Registers `express.json()` middleware globally (default `100kb` body limit), **except** for `POST /api/backup/restore`, which is skipped globally and parses its own body in `routes/backup.ts` with a raised `20mb` limit (full-database restore payloads can exceed the default limit)
 - Mounts Swagger UI at `/api-docs` (reads `doc/openAPI.json` at startup)

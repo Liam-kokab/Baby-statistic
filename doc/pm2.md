@@ -79,7 +79,7 @@ Steps performed:
 
 ### Other things to check before/after deploying
 - **Database migrations** run automatically on server startup (`import './db'` in `server/src/index.ts`) — no manual migration step needed.
-- **`.env` file**: not touched by `git clean`/`reset` since it's gitignored — `SEED_ADMIN_*` vars should already be set on the machine. `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` are **optional** in production: if unset, the server auto-generates and persists secrets under `server/secrets/` (also gitignored) on first boot, reused across restarts — see `doc/auth.md`.
+- **`.env` file**: not touched by `git clean`/`reset` since it's gitignored — must already exist at the repo root on the machine with `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, and any `SEED_ADMIN_*` vars set (copy `.env.example` as a starting point). Loaded automatically via `server/src/loadEnv.ts` — see `doc/auth.md` / `doc/server.md`.
 - **nginx / TLS**: one-time machine setup only, not part of this script — see `doc/nginx.md`.
 - **Backups**: consider hitting `GET /api/backup` (admin only) before a risky deploy — see `doc/rest-api.md`.
 - **`doc/openAPI.json`**: served at `/api-docs` directly from disk at server startup, so it's picked up automatically after `git reset` + restart — no extra step needed.

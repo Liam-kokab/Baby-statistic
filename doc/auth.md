@@ -37,7 +37,7 @@ The application uses **JWT-based stateless authentication** with short-lived acc
 ### Refresh Token
 - **Algorithm**: HS256
 - **Lifetime**: 7 days
-- **Secret**: `JWT_REFRESH_SECRET` env var, else a persisted secret file — see Security Notes
+- **Secret**: `JWT_REFRESH_SECRET` env var (`.env` file — see Security Notes)
 - **Payload**: `{ "sub": <userId>, "authTime": <original login epoch seconds> }` — `authTime` is copied forward on every rotation, never regenerated
 - **Storage**: Raw token sent to client; only the **SHA-256 hash** is stored in the `refresh_tokens` DB table
 - **Rotation**: On every `/api/auth/refresh` call the old token is deleted and a new one issued — stolen tokens cannot be reused
@@ -295,7 +295,7 @@ The `NavBar` component reads `authStore.getUser()?.role` and renders different n
 - **No sign-up endpoint** — only admins can create users; prevents unauthorised access
 - **Refresh token rotation** — each refresh issues a new token and invalidates the old one; replay attacks are blocked
 - **Token hash storage** — only a SHA-256 hash of the refresh token is stored in the DB; even a full DB leak cannot be used to forge new access tokens
-- **Production secrets** — `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` are optional in production: if unset, the server generates a random secret on first boot and persists it to `server/secrets/jwt-access.secret` / `server/secrets/jwt-refresh.secret` (gitignored, raw secret string only), reusing the same secret on every subsequent restart. Deleting these files forces all existing sessions to become invalid (everyone must log in again). Set the env vars explicitly to manage secrets yourself instead. In development, fixed fallback secrets are always used regardless of env vars, for convenience.
+- **Production secrets** — `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be set to long random strings in a `.env` file at the repo root (copy `.env.example`, loaded via `server/src/loadEnv.ts`/`dotenv`). If left unset, the server falls back to hardcoded dev defaults and logs a loud warning on startup — never rely on this in production. Rotating the secrets (i.e. changing the values in `.env` and restarting) invalidates all existing sessions, forcing everyone to log in again.
 - **Baby isolation** — all queries are hard-scoped by `baby_id`; horizontal privilege escalation between babies is not possible at the repository layer
 - **Step-up auth for destructive actions** — `requireRecentAuth` requires a login within the last N minutes for actions like `DELETE /api/backup/purge`; a silent token refresh cannot satisfy this since `authTime` is only set at `/login`, never at `/refresh`
 
