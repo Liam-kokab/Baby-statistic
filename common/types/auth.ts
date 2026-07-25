@@ -77,6 +77,20 @@ export type TAdminCreateUser = {
   babyId?: number | null;
 };
 
+export type TUpdateMeRequest = {
+  name?: string;
+  username?: string;
+  currentPassword?: string;
+  newPassword?: string;
+};
+
+export type TAdminUpdateUser = {
+  username?: string;
+  password?: string;
+  babyId?: number | null;
+  name?: string;
+};
+
 export type TAdminCreateBaby = {
   name: string;
 };

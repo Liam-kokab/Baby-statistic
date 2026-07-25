@@ -184,6 +184,8 @@ Wraps every secondary page with a gradient header banner (curved bottom edge) an
 - Inline form to create a new user (`POST /api/admin/users`):
   - Fields: username, password, role selector (`user` / `admin`)
   - When `role = "user"` a baby dropdown appears (populated from `GET /api/admin/babies`), required
+- Per-row **✏️ edit** action: inline form to update display name + username (`PATCH /api/admin/users/:id`)
+- Per-row **🔒 set new password** action: inline form to set a user's password directly, no current-password check (`PATCH /api/admin/users/:id`)
 - Delete button per row with a confirmation prompt
 
 ### User pages
@@ -213,6 +215,15 @@ Collapse state is local to the component (`useState<Set<string>>`).
 
 `MilkDrankPage` shows a stats bar **below** the filter (affected by date range): total ml consumed + avg ml per day (`total ÷ days in range`). If any entry in the period has `source === 'BOOB'`, all totals and averages are marked with `*` (e.g. `340* ml`) to indicate the figure is likely inaccurate. The same `*` marker appears on day and week group headers when that group contains a BOOB entry. Item cards and expanded day rows show a source emoji (🧊 FRIDGE, ❄️ FREEZER, 🤱 BOOB).  
 `MilkSavedPage` shows a stats bar **above** the filter with live fridge/freezer/total stock (not date-filtered).
+
+### `SettingsPage` (`/settings`)
+- **Account card**: self-service profile management via `PATCH /api/auth/me`, available to both `user` and `admin` roles:
+  - Display name + username fields (`Input` component), saved together via **"Save profile"** (`Button`, uses `useActionFeedback` for loading/success/error state)
+  - Change-password sub-form: current password + new password + confirm (all `Input type="password"`), saved via **"Change password"**; validated client-side (new password ≥ 8 chars, confirmation must match) before calling the API
+  - On load, fetches `GET /api/auth/me` and syncs the result into `authStore` (`authStore.updateUser`) so the cached user stays fresh
+- **Appearance card**: theme/mode toggles (unchanged)
+- **Build & Info card**: client/server build times (unchanged)
+
 ## Utilities (`src/utils/`)
 
 ### `groupByDay<T>(items)`

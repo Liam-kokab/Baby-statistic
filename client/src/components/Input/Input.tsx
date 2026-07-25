@@ -1,6 +1,6 @@
 import styles from './Input.module.css';
 
-type TInputType = 'text' | 'tel';
+type TInputType = 'text' | 'tel' | 'password';
 
 type TProps = {
   label?: string;

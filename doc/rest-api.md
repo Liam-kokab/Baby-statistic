@@ -48,6 +48,24 @@ Return the currently authenticated user's public profile.
 
 ---
 
+### `PATCH /api/auth/me`
+Update the current user's own display name, username, and/or password. Requires Bearer token.
+
+**Body**: `{ "name"?: "...", "username"?: "...", "currentPassword"?: "...", "newPassword"?: "..." }`
+- `name` / `username` can be updated independently or together.
+- To change the password, both `currentPassword` (must match the user's existing password) and `newPassword` (min 8 characters) are required.
+- At least one field must be provided.
+
+**Response `200`**: Updated `TUser` object.
+
+**Response `400`**: Missing/invalid fields, or `newPassword` too short.
+
+**Response `403`**: `currentPassword` does not match.
+
+**Response `409`**: `username` already taken by another user.
+
+---
+
 ## Admin *(requires `role: "admin"`)*
 
 ### `GET /api/admin/babies`
@@ -68,15 +86,18 @@ Delete a baby.
 List all users (passwords excluded).
 
 ### `POST /api/admin/users`
-Create a user. **Body**: `{ "username": "...", "password": "...", "role": "user"|"admin", "babyId": 1 }`
+Create a user. **Body**: `{ "username": "...", "password": "...", "role": "user"|"admin", "babyId": 1, "name"?: "..." }`
 
 ### `PATCH /api/admin/users/:id`
-Update a user's password or babyId. **Body**: `{ "password"?: "...", "babyId"?: 1 }`
+Update a user's username, password, babyId, and/or display name — no current-password check (admin override). **Body**: `{ "username"?: "...", "password"?: "...", "babyId"?: 1, "name"?: "..." }`
+
+**Response `409`**: `username` already taken by another user.
 
 ### `DELETE /api/admin/users/:id`
 Delete a user.
 
 ---
+
 
 ## Baby *(requires `role: "user"` with a babyId)*
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { authFetch } from '../../utils/authFetch';
-import type { TUser, TBaby, TAdminCreateUser } from 'baby-statistic-common';
+import type { TUser, TBaby, TAdminCreateUser, TAdminUpdateUser } from 'baby-statistic-common';
 import styles from './AdminUsersPage.module.css';
 
 type TCreateForm = {
@@ -19,6 +19,11 @@ const AdminUsersPage = () => {
   const [form, setForm] = useState<TCreateForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [passwordId, setPasswordId] = useState<number | null>(null);
+  const [passwordValue, setPasswordValue] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,14 +61,39 @@ const AdminUsersPage = () => {
     }
   }, [form, load]);
 
-  const handleSaveName = useCallback(async (id: number) => {
-    await authFetch(`/api/admin/users/${id}`, {
+  const handleSaveEdit = useCallback(async (id: number) => {
+    setEditError(null);
+    const body: TAdminUpdateUser = { name: editName.trim(), username: editUsername.trim() };
+    const res = await authFetch<TUser>(`/api/admin/users/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name: editName.trim() }),
+      body: JSON.stringify(body),
     });
-    setEditingId(null);
-    load();
-  }, [editName, load]);
+    if (res.ok) {
+      setEditingId(null);
+      load();
+    } else {
+      setEditError(res.error);
+    }
+  }, [editName, editUsername, load]);
+
+  const handleSavePassword = useCallback(async (id: number) => {
+    setPasswordError(null);
+    if (passwordValue.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      return;
+    }
+    const body: TAdminUpdateUser = { password: passwordValue };
+    const res = await authFetch<TUser>(`/api/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      setPasswordId(null);
+      setPasswordValue('');
+    } else {
+      setPasswordError(res.error);
+    }
+  }, [passwordValue]);
 
   const handleDelete = useCallback(async (id: number) => {
     if (!confirm('Delete this user?')) return;
@@ -112,12 +142,39 @@ const AdminUsersPage = () => {
         <ul className={styles.list}>
           {users.map((u) => (
             <li key={u.id} className={styles.item}>
-              <span className={`${styles.role} ${u.role === 'admin' ? styles.roleAdmin : styles.roleUser}`}>
-                {u.role === 'admin' ? '🔑' : '👤'}
-              </span>
-              <span className={styles.name}>{u.username}</span>
+              <div className={styles.itemTop}>
+                <span className={`${styles.role} ${u.role === 'admin' ? styles.roleAdmin : styles.roleUser}`}>
+                  {u.role === 'admin' ? '🔑' : '👤'}
+                </span>
+                <span className={styles.name}>{u.username}</span>
+                <span className={styles.meta}>{u.name ? u.name : <em>no name</em>}</span>
+                <span className={styles.meta}>{u.role === 'user' ? `👶 ${babyName(u.babyId)}` : 'admin'}</span>
+                <button
+                  className={styles.editBtn}
+                  title="Edit name / username"
+                  onClick={() => {
+                    setEditingId(u.id);
+                    setEditName(u.name ?? '');
+                    setEditUsername(u.username);
+                    setEditError(null);
+                    setPasswordId(null);
+                  }}
+                >✏️</button>
+                <button
+                  className={styles.editBtn}
+                  title="Set new password"
+                  onClick={() => {
+                    setPasswordId(u.id);
+                    setPasswordValue('');
+                    setPasswordError(null);
+                    setEditingId(null);
+                  }}
+                >🔒</button>
+                <button className={styles.deleteBtn} onClick={() => handleDelete(u.id)}>🗑️</button>
+              </div>
+
               {editingId === u.id ? (
-                <>
+                <div className={styles.editRow}>
                   <input
                     className={styles.editInput}
                     value={editName}
@@ -125,20 +182,37 @@ const AdminUsersPage = () => {
                     placeholder="Display name"
                     autoFocus
                   />
-                  <button className={styles.saveBtn} onClick={() => handleSaveName(u.id)}>✓</button>
+                  <input
+                    className={styles.editInput}
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    placeholder="Username"
+                  />
+                  <button className={styles.saveBtn} onClick={() => handleSaveEdit(u.id)}>✓</button>
                   <button className={styles.cancelBtn} onClick={() => setEditingId(null)}>✕</button>
-                </>
-              ) : (
-                <>
-                  <span className={styles.meta}>{u.name ? u.name : <em>no name</em>}</span>
-                  <button className={styles.editBtn} onClick={() => { setEditingId(u.id); setEditName(u.name ?? ''); }}>✏️</button>
-                </>
-              )}
-              <span className={styles.meta}>{u.role === 'user' ? `👶 ${babyName(u.babyId)}` : 'admin'}</span>
-              <button className={styles.deleteBtn} onClick={() => handleDelete(u.id)}>🗑️</button>
+                  {editError ? <span className={styles.error}>{editError}</span> : null}
+                </div>
+              ) : null}
+
+              {passwordId === u.id ? (
+                <div className={styles.editRow}>
+                  <input
+                    className={styles.editInput}
+                    type="password"
+                    value={passwordValue}
+                    onChange={(e) => setPasswordValue(e.target.value)}
+                    placeholder="New password"
+                    autoFocus
+                  />
+                  <button className={styles.saveBtn} onClick={() => handleSavePassword(u.id)}>✓</button>
+                  <button className={styles.cancelBtn} onClick={() => setPasswordId(null)}>✕</button>
+                  {passwordError ? <span className={styles.error}>{passwordError}</span> : null}
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
+
       )}
     </div>
   );

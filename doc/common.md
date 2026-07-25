@@ -54,6 +54,20 @@ Each DB table has its own type file with three types:
 | `TCreateServedMilk` | Client POST body — `amount`, `status` (other fields auto-computed) |
 | `TServedMilkTotal` | `{ fridge: number; freezer: number; total: number }` — returned by `/api/served-milk/total` |
 
+### `auth.ts`
+| Type | Description |
+|---|---|
+| `TUserRole` | `'user' \| 'admin'` |
+| `TUser` | App type — `id`, `username`, `name`, `role`, `babyId`, `config`, `createdAt` |
+| `TLoginRequest` / `TLoginResponse` | `POST /api/auth/login` request/response |
+| `TRefreshResponse` | `POST /api/auth/refresh` response |
+| `TJwtPayload` | Access token claims (`sub`, `username`, `role`, `babyId`, `authTime`) |
+| `TAdminCreateUser` | `POST /api/admin/users` body — `username`, `password`, `role`, `babyId?` |
+| `TAdminUpdateUser` | `PATCH /api/admin/users/:id` body — `username?`, `password?`, `babyId?`, `name?` (admin-only, no current-password check) |
+| `TUpdateMeRequest` | `PATCH /api/auth/me` body — `name?`, `username?`, `currentPassword?`, `newPassword?` (self-service; password change requires `currentPassword`) |
+| `TAdminCreateBaby` | `POST /api/admin/babies` body — `name` |
+
+
 ### `drankMilk.ts`
 | Type | Description |
 |---|---|

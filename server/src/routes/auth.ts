@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import crypto from 'crypto';
-import type { TLoginRequest } from 'baby-statistic-common';
-import { comparePassword, signAccessToken, signRefreshToken, verifyRefreshToken } from '../services/authService';
+import type { TLoginRequest, TUpdateMeRequest } from 'baby-statistic-common';
+import { comparePassword, hashPassword, signAccessToken, signRefreshToken, verifyRefreshToken } from '../services/authService';
 import { userRepository } from '../repositories/userRepository';
 import { authenticate } from '../middleware/authenticate';
 import { bodyAs } from '../utils/bodyAs';
@@ -117,13 +117,62 @@ router.get('/me', authenticate, (req: Request, res: Response): void => {
   res.json(userRepository.toPublic(userRow));
 });
 
-router.patch('/me', authenticate, (req: Request, res: Response): void => {
-  const { name } = bodyAs<{ name?: string }>(req);
-  if (typeof name !== 'string') {
-    res.status(400).json({ error: 'name (string) is required' });
+router.patch('/me', authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { name, username, currentPassword, newPassword } = bodyAs<TUpdateMeRequest>(req);
+  const userId = req.user!.id;
+  const userRow = userRepository.findById(userId);
+  if (!userRow) {
+    res.status(404).json({ error: 'User not found' });
     return;
   }
-  const user = userRepository.update(req.user!.id, { name: name.trim() });
+
+  const patch: { name?: string; username?: string; passwordHash?: string } = {};
+
+  if (name !== undefined) {
+    if (typeof name !== 'string') {
+      res.status(400).json({ error: 'name must be a string' });
+      return;
+    }
+    patch.name = name.trim();
+  }
+
+  if (username !== undefined) {
+    const trimmed = typeof username === 'string' ? username.trim() : '';
+    if (!trimmed) {
+      res.status(400).json({ error: 'username must be a non-empty string' });
+      return;
+    }
+    const existing = userRepository.findByUsername(trimmed);
+    if (existing && existing.id !== userId) {
+      res.status(409).json({ error: 'Username already taken' });
+      return;
+    }
+    patch.username = trimmed;
+  }
+
+  if (newPassword !== undefined) {
+    if (!currentPassword) {
+      res.status(400).json({ error: 'currentPassword is required to set a new password' });
+      return;
+    }
+    const valid = await comparePassword(currentPassword, userRow.password_hash);
+    if (!valid) {
+      res.status(403).json({ error: 'Current password is incorrect' });
+      return;
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      res.status(400).json({ error: 'newPassword must be at least 8 characters' });
+      return;
+    }
+    patch.passwordHash = await hashPassword(newPassword);
+  }
+
+  if (Object.keys(patch).length === 0) {
+    res.status(400).json({ error: 'No changes provided (name, username, or newPassword+currentPassword required)' });
+    return;
+  }
+
+  const user = userRepository.update(userId, patch);
   if (!user) {
     res.status(404).json({ error: 'User not found' });
     return;

@@ -101,6 +101,7 @@ The Express `authenticate` middleware is mounted on the `/api` prefix only (`app
 | `POST /api/auth/refresh`         |   ✅    |          ✅           |      ✅       |
 | `POST /api/auth/logout`          |   —    |          ✅           |      ✅       |
 | `GET /api/auth/me`               |   —    |          ✅           |      ✅       |
+| `PATCH /api/auth/me`             |   —    |          ✅           |      ✅       |
 | `GET /api/ping`                  |   ✅    |          ✅           |      ✅       |
 | `GET /api/build-time`            |   —    |          ❌           |      ✅       |
 | **Admin — babies**               |        |                      |              |
@@ -212,6 +213,17 @@ Multiple users sharing the same baby (via invite) all see and modify the same da
 - Default cost factor: **12 rounds** (configurable via `BCRYPT_ROUNDS` env var — higher = slower = more secure)
 - Plain-text passwords are never stored or logged
 - The `password_hash` column is **never returned** by any API endpoint
+
+---
+
+## Self-Service Account Management
+
+Any authenticated user (regardless of role) can update their own **display name**, **username**, and **password** via `PATCH /api/auth/me` (see `doc/rest-api.md`):
+
+- **Display name** / **username** — updated independently or together, no current-password check required. Usernames must be unique (`409 Conflict` if taken by another user).
+- **Password** — requires both `currentPassword` (verified against the stored hash) and `newPassword` (min 8 characters). Prevents an attacker with a stolen but still-valid access token (e.g. from a shared device) from silently taking over the account.
+
+Admins can additionally manage **any** user's username/password/display name/babyId via `PATCH /api/admin/users/:id` — no current-password check, since the admin is acting on someone else's account (see Permission Table above). The client's `AdminUsersPage` exposes this as an inline "✏️ edit name/username" and "🔒 set new password" action per user row.
 
 ---
 

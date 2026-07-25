@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import type { TAdminCreateUser, TAdminCreateBaby } from 'baby-statistic-common';
+import type { TAdminCreateUser, TAdminCreateBaby, TAdminUpdateUser } from 'baby-statistic-common';
 import { hashPassword } from '../services/authService';
 import { userRepository } from '../repositories/userRepository';
 import { babyRepository } from '../repositories/babyRepository';
@@ -76,12 +76,26 @@ router.post('/users', async (req: Request, res: Response): Promise<void> => {
 });
 
 router.patch('/users/:id', async (req: Request, res: Response): Promise<void> => {
-  const { password, babyId, name } = bodyAs<{ password?: string; babyId?: number | null; name?: string }>(req);
-  const patch: { passwordHash?: string; babyId?: number | null; name?: string } = {};
+  const { password, babyId, name, username } = bodyAs<TAdminUpdateUser>(req);
+  const id = Number(req.params.id);
+  const patch: { passwordHash?: string; babyId?: number | null; name?: string; username?: string } = {};
   if (password) patch.passwordHash = await hashPassword(password);
   if (babyId !== undefined) patch.babyId = babyId;
   if (name !== undefined) patch.name = name;
-  const user = userRepository.update(Number(req.params.id), patch);
+  if (username !== undefined) {
+    const trimmed = username.trim();
+    if (!trimmed) {
+      res.status(400).json({ error: 'username must be a non-empty string' });
+      return;
+    }
+    const existing = userRepository.findByUsername(trimmed);
+    if (existing && existing.id !== id) {
+      res.status(409).json({ error: 'Username already taken' });
+      return;
+    }
+    patch.username = trimmed;
+  }
+  const user = userRepository.update(id, patch);
   if (!user) {
     res.status(404).json({ error: 'User not found' });
     return;

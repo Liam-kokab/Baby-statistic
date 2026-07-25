@@ -29,6 +29,10 @@ export const authStore = {
     localStorage.setItem(REFRESH_KEY, refreshToken);
   },
 
+  updateUser: (user: TUser): void => {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  },
+
   clear: (): void => {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);

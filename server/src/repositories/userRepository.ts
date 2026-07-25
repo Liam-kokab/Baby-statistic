@@ -44,16 +44,17 @@ export const userRepository = {
     return fromDb(row!);
   },
 
-  update: (id: number, patch: { passwordHash?: string; babyId?: number | null; config?: string; name?: string }): TUser | null => {
+  update: (id: number, patch: { passwordHash?: string; babyId?: number | null; config?: string; name?: string; username?: string }): TUser | null => {
     const existing = db.prepare<[number], TUserDb>('SELECT * FROM users WHERE id = ?').get(id);
     if (!existing) return null;
     const passwordHash = patch.passwordHash ?? existing.password_hash;
     const babyId = patch.babyId !== undefined ? patch.babyId : existing.baby_id;
     const config = patch.config ?? existing.config;
     const name = patch.name !== undefined ? patch.name : (existing.name ?? '');
-    db.prepare<{ id: number; password_hash: string; baby_id: number | null; config: string; name: string }>(
-      'UPDATE users SET password_hash = @password_hash, baby_id = @baby_id, config = @config, name = @name WHERE id = @id'
-    ).run({ id, password_hash: passwordHash, baby_id: babyId, config, name });
+    const username = patch.username !== undefined ? patch.username : existing.username;
+    db.prepare<{ id: number; password_hash: string; baby_id: number | null; config: string; name: string; username: string }>(
+      'UPDATE users SET password_hash = @password_hash, baby_id = @baby_id, config = @config, name = @name, username = @username WHERE id = @id'
+    ).run({ id, password_hash: passwordHash, baby_id: babyId, config, name, username });
     const row = db.prepare<[number], TUserDb>('SELECT * FROM users WHERE id = ?').get(id);
     return row ? fromDb(row) : null;
   },
