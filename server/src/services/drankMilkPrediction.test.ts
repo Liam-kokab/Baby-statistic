@@ -151,9 +151,12 @@ describe('drankMilkPrediction', () => {
     it('places invalid date records into the first bucket', () => {
       const base = Date.now();
       const bad: any = { id: 1, amount: 30, source: 'FRIDGE', createdAt: 'not-a-date' };
-      const good = makeRecord(base + 3 * 60 * 60 * 1000, 2); // +3h
+      // An earlier valid record establishes the bucket anchor at `base`, so `good`
+      // (at +3h with a 2h bucket size) lands in a later bucket than `bad`/`early`.
+      const early = makeRecord(base, 2);
+      const good = makeRecord(base + 3 * 60 * 60 * 1000, 3); // +3h
 
-      const out = divideDataByHours([bad as TDrankMilk, good], 2);
+      const out = divideDataByHours([bad as TDrankMilk, early, good], 2);
       // bad should be placed in first bucket
       assert.ok(out.length >= 2);
       assert.ok(out[0].some((x: any) => x.createdAt === bad.createdAt));

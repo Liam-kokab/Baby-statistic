@@ -1,0 +1,19 @@
+[Unit]
+Description=DdnsKeeper — Domeneshop DDNS update service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ddns-keeper
+EnvironmentFile=/opt/ddns-keeper/.env
+ExecStart=/usr/bin/node /opt/ddns-keeper/dist/index.js --once
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ddns-keeper
+
+[Install]
+WantedBy=multi-user.target
+

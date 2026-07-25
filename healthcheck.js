@@ -4,7 +4,11 @@
 
 const pm2 = require('pm2');
 
-const URL = process.env.HEALTHCHECK_URL || 'http://localhost:80/api/ping';
+// Default matches the app's actual internal listen port (see PORT in
+// ecosystem.config.js / doc/server.md). Not 80 — nginx owns 80/443 in
+// production and only 301-redirects to HTTPS there (doc/nginx.md); it does
+// not proxy the API on that port for local/internal requests.
+const URL = process.env.HEALTHCHECK_URL || 'http://localhost:3000/api/ping';
 const TARGET = process.env.HEALTHCHECK_TARGET || 'baby-statistic-server';
 const INTERVAL_MS = Number(process.env.HEALTHCHECK_INTERVAL_MS) || 30000;
 const MAX_FAILURES = Number(process.env.HEALTHCHECK_MAX_FAILURES) || 3;

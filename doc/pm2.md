@@ -1,6 +1,6 @@
 # Process Management (PM2)
 
-Production runs under [PM2](https://pm2.keymetrics.io/), a Node.js process manager. PM2 keeps the server, MCP server, and a health-check watchdog alive, automatically restarting any of them on crash.
+Production runs under [PM2](https://pm2.keymetrics.io/), a Node.js process manager. PM2 keeps the server, MCP server, ddns-keeper, and two health-check watchdogs alive, automatically restarting any of them on crash.
 
 ## Files
 | File | Purpose |
@@ -11,22 +11,26 @@ Production runs under [PM2](https://pm2.keymetrics.io/), a Node.js process manag
 ## Managed Processes
 | Name | Script | Description |
 |---|---|---|
-| `baby-statistic-server` | `dist/index.js` | Express API + static client, port `80` |
-| `baby-statistic-mcp` | `dist/mcp-server/index.js` | MCP server (SSE), port `3001` |
+| `baby-statistic-server` | `dist/index.js` | Express API + static client, internal port `3000` (nginx fronts public `80`/`443` in production — see `doc/nginx.md`) |
+| `baby-statistic-mcp` | `dist/mcp-server/index.js` | MCP server (SSE), port `3001`. Talks to the API via `BABY_API_URL=http://localhost:3000` — must point at the server's internal port, **not** `80` (nginx's port-80 block only redirects to HTTPS, it doesn't proxy the API) |
 | `baby-statistic-healthcheck` | `healthcheck.js` | Watchdog — see below |
+| `ddns-keeper` | `ddns-keeper/dist/index.js` | Domeneshop DDNS updater + health/metrics HTTP server, port `3010` — see `doc/ddns-keeper.md` |
+| `ddns-keeper-healthcheck` | `healthcheck.js` | Watchdog for `ddns-keeper`, polls `http://localhost:3010/health` |
 
-All three apps have `autorestart: true`, `max_restarts: 10`, `min_uptime: '10s'`, and `exp_backoff_restart_delay` so a crash-looping process backs off instead of hammering restarts. This is PM2's built-in **crash restart** behaviour — no extra code needed for it.
+All apps have `autorestart: true`, `max_restarts: 10`, `min_uptime: '10s'`, and `exp_backoff_restart_delay` so a crash-looping process backs off instead of hammering restarts. This is PM2's built-in **crash restart** behaviour — no extra code needed for it.
 
 Each app also declares an explicit `out_file` / `error_file` (under `logs/` at the repo root, gitignored) plus `merge_logs: true` and `time: true`. This guarantees each app's stdout/stderr goes to its own dedicated, timestamped file — `pm2 logs <name>` reads from these directly, so if one app's log looks empty it's genuinely producing no output (see Troubleshooting below), not a log-routing artifact.
 
 ## Health Check & Auto-Restart
-`healthcheck.js` runs as its own PM2 process. Every `HEALTHCHECK_INTERVAL_MS` (default `30000`) it sends a `GET` to `HEALTHCHECK_URL` (default `http://localhost:80/api/ping`, the existing `server/src/routes/ping.ts` endpoint). If the request fails or doesn't return `2xx` for `HEALTHCHECK_MAX_FAILURES` consecutive checks (default `3`), it calls the PM2 API (`pm2.restart('baby-statistic-server')`) to force a restart — this catches cases where the process is alive but unresponsive (e.g. deadlocked), which a crash-only restart wouldn't catch.
+`healthcheck.js` runs as its own PM2 process. Every `HEALTHCHECK_INTERVAL_MS` (default `30000`) it sends a `GET` to `HEALTHCHECK_URL` (default `http://localhost:3000/api/ping` — the server's internal port, **not** the public `80`/`443` nginx owns, since nginx's port-80 block only redirects to HTTPS rather than proxying the API — the existing `server/src/routes/ping.ts` endpoint). If the request fails or doesn't return `2xx` for `HEALTHCHECK_MAX_FAILURES` consecutive checks (default `3`), it calls the PM2 API (`pm2.restart('baby-statistic-server')`) to force a restart — this catches cases where the process is alive but unresponsive (e.g. deadlocked), which a crash-only restart wouldn't catch.
 
 To avoid false positives around startup/restart timing, checks are skipped entirely during a **grace period** (`HEALTHCHECK_GRACE_MS`, default `20000`) right after the healthcheck process itself starts, and again immediately after it triggers a restart — this gives the target process (migrations, admin seed, etc.) time to actually finish booting before being judged unhealthy.
 
+`healthcheck.js` is fully driven by environment variables, so it's reused as-is for a second watchdog process (`ddns-keeper-healthcheck`) that polls `ddns-keeper`'s `GET /health` endpoint instead of the main server's `/api/ping` — no code changes needed, just a second `ecosystem.config.js` entry with different env values.
+
 | Env var | Default | Description |
 |---|---|---|
-| `HEALTHCHECK_URL` | `http://localhost:80/api/ping` | Endpoint polled for health |
+| `HEALTHCHECK_URL` | `http://localhost:3000/api/ping` | Endpoint polled for health |
 | `HEALTHCHECK_TARGET` | `baby-statistic-server` | PM2 app name to restart when unhealthy |
 | `HEALTHCHECK_INTERVAL_MS` | `30000` | Poll interval |
 | `HEALTHCHECK_MAX_FAILURES` | `3` | Consecutive failures before restarting |
@@ -37,8 +41,8 @@ The production defaults in `ecosystem.config.js` are tuned for weaker production
 
 ## Starting / Restarting Everything
 ```bash
-npm run build      # compile client + server + mcp-server → dist/
-npm start          # build + pm2 start ecosystem.config.js (all 3 apps)
+npm run build      # compile client + server + mcp-server + ddns-keeper → dist/ (and ddns-keeper/dist/)
+npm start          # build + pm2 start ecosystem.config.js (all 5 apps)
 npm run restart    # pm2 restart ecosystem.config.js --update-env
 npm run stop       # pm2 stop ecosystem.config.js
 ```

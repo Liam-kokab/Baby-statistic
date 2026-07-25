@@ -5,14 +5,17 @@
     "common",
     "client",
     "server",
-    "mcp-server"
+    "mcp-server",
+    "ddns-keeper"
   ],
   "scripts": {
     "dev": "concurrently -n client,server,mcp -c cyan,yellow,magenta \"npm run dev -w client\" \"npm run dev -w server\" \"npm run dev -w mcp-server\"",
-    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run build -w client && npm run build -w server && npm run build -w mcp-server && node -e \"const fs=require('fs');const t=JSON.stringify({buildTime:new Date().toISOString()});fs.writeFileSync('dist/buildTime.json',t);fs.writeFileSync('dist/mcp-server/buildTime.json',t);fs.copyFileSync('mcp-server/src/descriptions.json','dist/mcp-server/descriptions.json')\"",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run build -w client && npm run build -w server && npm run build -w mcp-server && npm run build -w ddns-keeper && node -e \"const fs=require('fs');const t=JSON.stringify({buildTime:new Date().toISOString()});fs.writeFileSync('dist/buildTime.json',t);fs.writeFileSync('dist/mcp-server/buildTime.json',t);fs.copyFileSync('mcp-server/src/descriptions.json','dist/mcp-server/descriptions.json')\"",
     "dev:client": "npm run dev -w client",
     "dev:server": "npm run dev -w server",
     "dev:mcp": "npm run dev -w mcp-server",
+    "dev:ddns": "npm run dev -w ddns-keeper",
+    "build:ddns": "npm run build -w ddns-keeper",
     "start": "npm run build && npm run pm2:start",
     "restart": "npm run pm2:restart",
     "stop": "npm run pm2:stop",
@@ -31,6 +34,7 @@
     "@hono/node-server": "^2.0.11"
   },
   "devDependencies": {
+    "@types/node": "^26.1.1",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
     "concurrently": "^9.0.0",

@@ -36,7 +36,13 @@ module.exports = {
         NODE_ENV: 'production',
         MCP_MODE: 'sse',
         MCP_PORT: 3001,
-        BABY_API_URL: 'http://localhost:80',
+        // Internal port the Express app actually listens on (see the
+        // baby-statistic-server app above) — nginx fronts public 80/443 and
+        // proxies to this port, but internal service-to-service calls should
+        // go straight to it. Do NOT point this at 80: nginx's port-80 server
+        // block only 301-redirects to HTTPS (see doc/nginx.md), it does not
+        // proxy the API directly.
+        BABY_API_URL: 'http://localhost:3000',
       },
       autorestart: true,
       max_restarts: 10,
@@ -68,6 +74,44 @@ module.exports = {
       min_uptime: '10s',
       out_file: path.join(LOG_DIR, 'healthcheck-out.log'),
       error_file: path.join(LOG_DIR, 'healthcheck-error.log'),
+      merge_logs: true,
+      time: true,
+    },
+    {
+      name: 'ddns-keeper',
+      script: 'dist/index.js',
+      cwd: path.join(__dirname, 'ddns-keeper'),
+      env: {
+        NODE_ENV: 'production',
+        HTTP_PORT: 3010,
+      },
+      autorestart: true,
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 3000,
+      exp_backoff_restart_delay: 100,
+      out_file: path.join(LOG_DIR, 'ddns-keeper-out.log'),
+      error_file: path.join(LOG_DIR, 'ddns-keeper-error.log'),
+      merge_logs: true,
+      time: true,
+    },
+    {
+      name: 'ddns-keeper-healthcheck',
+      script: 'healthcheck.js',
+      cwd: __dirname,
+      env: {
+        HEALTHCHECK_URL: 'http://localhost:3010/health',
+        HEALTHCHECK_TARGET: 'ddns-keeper',
+        HEALTHCHECK_INTERVAL_MS: 60000,
+        HEALTHCHECK_MAX_FAILURES: 3,
+        HEALTHCHECK_TIMEOUT_MS: 15000,
+        HEALTHCHECK_GRACE_MS: 60000,
+      },
+      autorestart: true,
+      max_restarts: 10,
+      min_uptime: '10s',
+      out_file: path.join(LOG_DIR, 'ddns-keeper-healthcheck-out.log'),
+      error_file: path.join(LOG_DIR, 'ddns-keeper-healthcheck-error.log'),
       merge_logs: true,
       time: true,
     },

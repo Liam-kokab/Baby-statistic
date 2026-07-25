@@ -1,0 +1,13 @@
+[Unit]
+Description=Run DdnsKeeper every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+Unit=ddns-keeper.service
+AccuracySec=10s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
