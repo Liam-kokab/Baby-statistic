@@ -23,7 +23,9 @@ import buildTimeRouter from './routes/buildTime';
 import predictionsRouter from './routes/predictions';
 
 const app = express();
-const PORT = process.env.PORT ?? (process.env.NODE_ENV === 'production' ? 80 : 3000);
+// Internal-only port — production traffic reaches the app via nginx reverse-proxying
+// public 80/443 (with Let's Encrypt TLS) to this port. See doc/nginx.md.
+const PORT = process.env.PORT ?? 3000;
 
 const resolveOpenApiPath = (): string => {
   const candidates = [

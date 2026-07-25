@@ -14,7 +14,7 @@ module.exports = {
       cwd: __dirname,
       env: {
         NODE_ENV: 'production',
-        PORT: 80,
+        PORT: 3000,
       },
       autorestart: true,
       max_restarts: 10,
@@ -53,7 +53,7 @@ module.exports = {
       script: 'healthcheck.js',
       cwd: __dirname,
       env: {
-        HEALTHCHECK_URL: 'http://localhost:80/api/ping',
+        HEALTHCHECK_URL: 'http://localhost:3000/api/ping',
         HEALTHCHECK_TARGET: 'baby-statistic-server',
         HEALTHCHECK_INTERVAL_MS: 30000,
         HEALTHCHECK_MAX_FAILURES: 3,

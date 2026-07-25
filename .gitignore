@@ -10,6 +10,9 @@ dist
 server/data
 data
 
+# Persisted secrets (e.g. JWT signing secrets generated on first prod boot)
+server/secrets
+
 # Env files
 .env
 .env.*

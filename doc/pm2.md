@@ -79,14 +79,23 @@ Steps performed:
 
 ### Other things to check before/after deploying
 - **Database migrations** run automatically on server startup (`import './db'` in `server/src/index.ts`) — no manual migration step needed.
-- **`.env` file**: not touched by `git clean`/`reset` since it's gitignored — make sure `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, and any `SEED_ADMIN_*` vars are already set on the machine (see `doc/auth.md`).
+- **`.env` file**: not touched by `git clean`/`reset` since it's gitignored — `SEED_ADMIN_*` vars should already be set on the machine. `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` are **optional** in production: if unset, the server auto-generates and persists secrets under `server/secrets/` (also gitignored) on first boot, reused across restarts — see `doc/auth.md`.
+- **nginx / TLS**: one-time machine setup only, not part of this script — see `doc/nginx.md`.
 - **Backups**: consider hitting `GET /api/backup` (admin only) before a risky deploy — see `doc/rest-api.md`.
 - **`doc/openAPI.json`**: served at `/api-docs` directly from disk at server startup, so it's picked up automatically after `git reset` + restart — no extra step needed.
 
 ## Troubleshooting
 
+### Production TLS / public port setup
+Production no longer binds the Node app directly to port `80`/`443`. **nginx** owns those ports and reverse-proxies to the app's internal port `3000`, with TLS handled by Let's Encrypt/certbot. See **`doc/nginx.md`** for the full one-time setup. This sidesteps the `EACCES` problem below entirely — it's now documented mainly for historical context / alternative deployments that don't use nginx.
+
 ### `curl: (7) Failed to connect ... port 80 after 0 ms`
-An immediate connection refusal (not a timeout) means **nothing is listening on port 80**. Check what's happening:
+An immediate connection refusal (not a timeout) means **nothing is listening on port 80**. If you're using the nginx setup (`doc/nginx.md`), check nginx itself first:
+```bash
+sudo systemctl status nginx
+sudo nginx -t
+```
+If you are instead running the Node app directly on port 80 (no nginx), check what's happening:
 ```bash
 pm2 status
 pm2 logs baby-statistic-server --lines 50 --nostream
@@ -95,13 +104,13 @@ pm2 logs baby-statistic-server --lines 50 --nostream
 **Most common cause**: on Linux/macOS, binding to any port below 1024 (like `80`) requires elevated privileges. If PM2 runs as a normal (non-root) user, `app.listen(80)` throws `EACCES: permission denied`, the app crashes on every start, and `autorestart` + `max_restarts: 10` exhausts its retries and gives up — leaving port 80 with nothing bound to it. Look for `Error: listen EACCES: permission denied 0.0.0.0:80` in the logs above.
 
 Fixes (pick one):
-1. **Grant Node the capability to bind low ports** (recommended — keeps PM2 running as a normal user):
+1. **Run nginx in front on 80/443, app on a high port** (the approach used here — see `doc/nginx.md`): `ecosystem.config.js` sets `PORT: 3000` for `baby-statistic-server`; nginx reverse-proxies public traffic to it. No elevated privileges needed for PM2/Node at all.
+2. **Grant Node the capability to bind low ports** (alternative — keeps PM2 running as a normal user, no nginx):
    ```bash
    sudo setcap 'cap_net_bind_service=+ep' $(readlink -f $(which node))
    pm2 restart ecosystem.config.js --update-env
    ```
    Must be re-run after upgrading the Node binary.
-2. **Run on a high port behind a reverse proxy** — change `PORT` in `ecosystem.config.js` to e.g. `3000` and put nginx/Caddy in front on port 80.
 3. **Run PM2 as root** — works but not recommended for production.
 
 ### Healthcheck keeps restarting a server that seems fine

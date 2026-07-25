@@ -6,20 +6,20 @@
 - **Language**: TypeScript (compiled via `tsc`, dev via `ts-node` + `nodemon`)
 - **Database**: `better-sqlite3` (SQLite)
 - **Auth**: `jsonwebtoken` (JWT — access token 15 min, refresh token 7 days), `bcryptjs` (password hashing, 12 rounds)
-- **Port**: `80` (overridable via `PORT` env var)
+- **Port**: `3000` by default (overridable via `PORT` env var). In production, nginx owns public ports `80`/`443` (TLS via Let's Encrypt) and reverse-proxies to this internal port — see `doc/nginx.md`.
 
 ## Environment Variables
 | Variable | Default | Description |
 |---|---|---|
-| `PORT` | `80` (prod) / `3000` (dev) | HTTP listen port |
+| `PORT` | `3000` | HTTP listen port (internal-only in prod — nginx sits in front, see `doc/nginx.md`) |
 | `DB_PATH` | `./data/baby.db` | SQLite file path |
-| `JWT_ACCESS_SECRET` | `dev-access-secret-...` | Secret for signing 15-min access tokens |
-| `JWT_REFRESH_SECRET` | `dev-refresh-secret-...` | Secret for signing 7-day refresh tokens |
+| `JWT_ACCESS_SECRET` | `dev-access-secret-...` (dev) / persisted secret file (prod if unset) | Secret for signing 15-min access tokens |
+| `JWT_REFRESH_SECRET` | `dev-refresh-secret-...` (dev) / persisted secret file (prod if unset) | Secret for signing 7-day refresh tokens |
 | `BCRYPT_ROUNDS` | `12` | bcrypt salt rounds for password hashing |
 | `SEED_ADMIN_USERNAME` | — | Auto-create admin user on first startup if no admin exists |
 | `SEED_ADMIN_PASSWORD` | — | Password for the auto-created admin user |
 
-> ⚠️ Always set `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` in production.
+> ⚠️ If `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` are left unset in production, the server generates a random secret on first boot and persists it to `server/secrets/` (gitignored) so it survives restarts. Delete those files to force all users to log in again. Set both env vars explicitly if you'd rather manage the secrets yourself. See `doc/auth.md`.
 
 ## File Structure
 ```
@@ -48,6 +48,7 @@ server/
     utils/
       bodyAs.ts       # casts req.body to Partial<T>
       time.ts         # Oslo timezone helpers
+      secretStore.ts  # loads/generates persisted JWT secrets (server/secrets/, gitignored)
 ```
 
 ## Entry Point (`src/index.ts`)

@@ -1,18 +1,26 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { TJwtPayload, TUserRole } from 'baby-statistic-common';
+import { loadOrCreateSecret } from '../utils/secretStore';
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS ?? 12);
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'dev-access-secret-change-in-prod';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'dev-refresh-secret-change-in-prod';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// In production, if no explicit secret is configured via env vars, fall back to a
+// secret persisted on disk (generated once, then reused across restarts — see
+// utils/secretStore.ts). In development, the fixed fallback secrets are used as-is.
+const resolveSecret = (envValue: string | undefined, devFallback: string, fileName: string): string => {
+  if (envValue) return envValue;
+  if (IS_PRODUCTION) return loadOrCreateSecret(fileName);
+  return devFallback;
+};
+
+const ACCESS_SECRET = resolveSecret(process.env.JWT_ACCESS_SECRET, 'dev-access-secret-change-in-prod', 'jwt-access.secret');
+const REFRESH_SECRET = resolveSecret(process.env.JWT_REFRESH_SECRET, 'dev-refresh-secret-change-in-prod', 'jwt-refresh.secret');
 const ACCESS_EXPIRY = '15m';
 const REFRESH_EXPIRY = '7d';
 
-if (process.env.NODE_ENV === 'production') {
-  if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
-    console.warn('[auth] WARNING: JWT_ACCESS_SECRET / JWT_REFRESH_SECRET not set. Using insecure defaults!');
-  }
-}
+
 
 export const hashPassword = (password: string): Promise<string> =>
   bcrypt.hash(password, BCRYPT_ROUNDS);
