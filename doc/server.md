@@ -35,13 +35,17 @@ server/
       auth.ts         # POST /api/auth/login|refresh|logout, GET /api/auth/me
       admin.ts        # /api/admin/* (admin-only)
       baby.ts         # /api/baby (user-only)
+      manifest.ts     # GET /manifest.json — theme-aware PWA manifest (public, mounted outside /api)
+      simpleEventRouterFactory.ts  # builds standard CRUD router for "simple event" resources (pee, poop)
       ...             # existing data routes
     repositories/
       userRepository.ts   # users + refresh_tokens
       babyRepository.ts   # babies
+      simpleEventRepositoryFactory.ts  # builds CRUD repository for "simple event" tables (pee, poop, pumping)
       ...             # existing data repositories (all now scoped by baby_id)
     services/
       authService.ts  # bcrypt + JWT sign/verify
+      simpleEventServiceFactory.ts  # builds a TBabyContext-scoped service wrapping a simple-event repository
       ...             # existing services (all now accept TBabyContext)
     middleware/
       authenticate.ts   # verify Bearer access token → set req.user
@@ -52,6 +56,14 @@ server/
       bodyAs.ts       # casts req.body to Partial<T>
       time.ts         # Oslo timezone helpers
 ```
+
+## Simple Event Factories
+`pee`, `poop`, and `pumping` are structurally identical "timestamp-only" event tables (just `created_at` + the standard `baby_id`/`created_by` scoping columns). Rather than duplicating CRUD SQL/logic three times:
+- `repositories/simpleEventRepositoryFactory.ts` — `createSimpleEventRepository<TDb, T>(tableName)` returns `findAll`/`findLatest`/`findById`/`insert`/`update`/`delete`/`getBackup`, generic over the DB row and app-facing types.
+- `services/simpleEventServiceFactory.ts` — `createSimpleEventService<T>(repository)` wraps a simple-event repository with `TBabyContext` scoping.
+- `routes/simpleEventRouterFactory.ts` — `createSimpleEventRouter<T>(service)` builds the standard `GET /`, `GET /:id`, `POST /`, `PUT /:id`, `DELETE /:id` router.
+
+`peeRepository`/`peeService`/routes/pee.ts and the `poop` equivalents are thin one-liners built entirely from these factories. `pumpingRepository`/`pumpingService` build on the same factories but add bespoke `findSummary` and a custom route (`routes/pumping.ts`) for its extra `/summary`, `/latest`, and `wished`-expansion endpoints — so it isn't routed through `createSimpleEventRouter`. `routes/nappy.ts` (combined pee+poop view) also reuses `peeRepository`/`poopRepository` directly instead of hand-rolled SQL `UNION ALL` queries.
 
 ## Entry Point (`src/index.ts`)
 - Imports `'./loadEnv'` **first** — loads `.env` before any other module reads `process.env`
@@ -71,6 +83,9 @@ server/
 | `npm run dev:server` | nodemon server only |
 | `npm start` | Build then start server + MCP server + healthcheck under PM2 |
 | `npm run restart` | Restart all PM2-managed apps |
+| `npm run lint` (root) | Runs `eslint .` across every workspace |
+| `npm test` (root) | Runs `server`, `client`, and `ddns-keeper` test suites (each via Vitest) |
+| `npm run lint` / `npm test` (in `server/`) | `eslint src` / `vitest run` scoped to the server package |
 
 See [`doc/pm2.md`](./pm2.md) for the full PM2 process-management setup (crash restart + health check).
 
@@ -89,6 +104,8 @@ data/               ← database lives here (never wiped by build)
 
 ## Static File Serving
 Express serves `dist/public/` as static files when `dist/public/index.html` exists (checked with `fs.existsSync`). No `NODE_ENV` check — it always serves the frontend if it has been built. This route is registered **outside** the `/api` prefix, so it is never gated by `authenticate` — the SPA shell, JS/CSS bundles, and `manifest.json` are always publicly servable. Auth is enforced client-side by `ProtectedRoute`, which redirects to `/login` if no token is stored.
+
+`GET /manifest.json` is handled by `routes/manifest.ts` (mounted at `app.use('/manifest.json', manifestRouter)`, before the static middleware) rather than serving the static file directly — it reads `dist/public/manifest.json`, parses the `theme`/`themeMode` cookies set by the client, and overrides `theme_color` so PWA installs match the user's chosen theme.
 
 
 ## Adding a Route

@@ -10,7 +10,7 @@ import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
-import useTimeWindowScroll, { getWindowEnd } from '../../utils/useInfiniteScroll';
+import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import styles from './MilkSavedPage.module.css';
 
@@ -73,10 +73,10 @@ const MilkSavedPage = () => {
     setActiveStatuses((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]);
 
   const toggleDay = (date: string): void =>
-    setOpenDays((prev) => { const n = new Set(prev); n.has(date) ? n.delete(date) : n.add(date); return n; });
+    setOpenDays((prev) => { const n = new Set(prev); if (n.has(date)) n.delete(date); else n.add(date); return n; });
 
   const toggleWeek = (weekKey: string): void =>
-    setOpenWeeks((prev) => { const n = new Set(prev); n.has(weekKey) ? n.delete(weekKey) : n.add(weekKey); return n; });
+    setOpenWeeks((prev) => { const n = new Set(prev); if (n.has(weekKey)) n.delete(weekKey); else n.add(weekKey); return n; });
 
   const filtered = data.filter((d) => activeStatuses.includes(d.status));
 

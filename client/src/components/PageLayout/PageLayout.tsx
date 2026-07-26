@@ -1,8 +1,11 @@
 import { forwardRef } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import styles from './PageLayout.module.css';
 
 type TGradient = 'pink' | 'blue' | 'green' | 'indigo' | 'amber';
+
+/** CSSProperties extended to allow arbitrary `--custom-property` keys (dynamic CSS variables). */
+type TCSSVarProperties = CSSProperties & Record<`--${string}`, string>;
 
 type TProps = {
   title: string;
@@ -18,14 +21,14 @@ const PageLayout = forwardRef<HTMLDivElement, TProps>(({ title, emoji, children,
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 
-  const headerStyle = {
-    ['--hero-var' as any]: `var(--hero-bg-${slug})`,
+  const headerStyle: TCSSVarProperties = {
+    '--hero-var': `var(--hero-bg-${slug})`,
     // Override the theme banner stops for this header by mapping the theme's per-page variables
     // to the standard banner variable names (e.g. --banner-pink-start).
-    [(`--banner-${gradient}-start`) as any]: `var(--banner-${gradient}-${slug}-start, var(--banner-${gradient}-start))`,
-    [(`--banner-${gradient}-mid`) as any]: `var(--banner-${gradient}-${slug}-mid, var(--banner-${gradient}-end))`,
-    [(`--banner-${gradient}-end`) as any]: `var(--banner-${gradient}-${slug}-end, var(--banner-${gradient}-end))`,
-  } as React.CSSProperties;
+    [`--banner-${gradient}-start`]: `var(--banner-${gradient}-${slug}-start, var(--banner-${gradient}-start))`,
+    [`--banner-${gradient}-mid`]: `var(--banner-${gradient}-${slug}-mid, var(--banner-${gradient}-end))`,
+    [`--banner-${gradient}-end`]: `var(--banner-${gradient}-${slug}-end, var(--banner-${gradient}-end))`,
+  };
 
   return (
     <div className={styles.page} ref={ref}>

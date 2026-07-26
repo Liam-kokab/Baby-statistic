@@ -9,9 +9,14 @@ import { useEffect, useRef, useCallback } from 'react';
  */
 const useRefetchOnVisible = (refetch: () => void): React.RefObject<HTMLDivElement | null> => {
   const ref = useRef<HTMLDivElement | null>(null);
-  const mountedAt = useRef(Date.now());
+  const mountedAt = useRef<number | null>(null);
+  if (mountedAt.current === null) mountedAt.current = Date.now();
   const refetchRef = useRef(refetch);
-  refetchRef.current = refetch;
+
+  // Keep the ref pointing at the latest `refetch` without re-subscribing the observers below.
+  useEffect(() => {
+    refetchRef.current = refetch;
+  });
 
   const stableRefetch = useCallback(() => {
     refetchRef.current();
@@ -25,7 +30,7 @@ const useRefetchOnVisible = (refetch: () => void): React.RefObject<HTMLDivElemen
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
-        if (Date.now() - mountedAt.current < 1000) return;
+        if (Date.now() - (mountedAt.current ?? 0) < 1000) return;
         stableRefetch();
       },
       { threshold: 0.1 }
@@ -38,7 +43,7 @@ const useRefetchOnVisible = (refetch: () => void): React.RefObject<HTMLDivElemen
   // Page Visibility API — fires when user switches back to this tab
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && Date.now() - mountedAt.current > 1000) {
+      if (document.visibilityState === 'visible' && Date.now() - (mountedAt.current ?? 0) > 1000) {
         stableRefetch();
       }
     };

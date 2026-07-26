@@ -167,7 +167,7 @@ too high on phones with a home indicator.
 ### `PageLayout`
 Props: `title`, `emoji`, `children`, `gradient?` (`'pink' | 'blue' | 'green' | 'indigo' | 'amber'`)
 
-Wraps every secondary page with a gradient header banner (curved bottom edge) and a scrollable content area.
+Wraps every secondary page with a gradient header banner (curved bottom edge) and a scrollable content area. Dynamic per-page CSS custom properties (`--hero-var`, `--banner-<gradient>-start/mid/end`) are typed via a local `TCSSVarProperties = CSSProperties & Record<\`--${string}\`, string>` alias — no `as any` casts needed.
 
 ## Pages
 
@@ -259,6 +259,9 @@ The app is installable as a PWA on Android (requires HTTPS). Key files:
 
 ## Dev Proxy
 `vite.config.ts` proxies `/api/*` → `http://localhost:3000`.
+
+## Testing
+`vitest` + `@testing-library/react` (+ `jest-dom` matchers) are configured via the `test` block in `vite.config.ts` (jsdom environment, `src/setupTests.ts` loads `@testing-library/jest-dom/vitest`). Test files are co-located as `*.test.ts`/`*.test.tsx` next to the code they cover (e.g. `src/utils/groupByDay.test.ts`). Run with `npm run test -w client` (or `npm test` at the repo root, which runs all workspaces).
 
 ## Build
 ```

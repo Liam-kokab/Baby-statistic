@@ -1,28 +1,33 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { db } from '../db';
-import { toOsloIso } from '../utils/time';
+import { peeRepository } from '../repositories/peeRepository';
+import { poopRepository } from '../repositories/poopRepository';
 import { expandToWished } from '../utils/expandToWished';
 import { requireUser } from '../middleware/requireAdmin';
+import type { TTimeFilter } from '../types';
 
-type TNappyRow = { id: number; type: 'pee' | 'poop'; created_at: string };
 type TNappyItem = { id: number; type: 'pee' | 'poop'; createdAt: string };
 
 const router = Router();
 router.use(requireUser);
 
+/** Merges pee + poop rows into a single list tagged by type, sorted DESC by createdAt. */
+const mergeNappyItems = (filter: TTimeFilter, babyId: number): TNappyItem[] => {
+  const peeItems = peeRepository.findAll(filter, babyId).map((p): TNappyItem => ({ ...p, type: 'pee' }));
+  const poopItems = poopRepository.findAll(filter, babyId).map((p): TNappyItem => ({ ...p, type: 'poop' }));
+  return [...peeItems, ...poopItems].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+};
+
 router.get('/latest', (req: Request, res: Response): void => {
   const babyId = req.user!.babyId!;
-  const row = db.prepare<[number, number], { createdAt: string }>(`
-    SELECT created_at AS createdAt FROM (
-      SELECT created_at FROM pee WHERE baby_id = ?
-      UNION ALL
-      SELECT created_at FROM poop WHERE baby_id = ?
-    )
-    ORDER BY created_at DESC
-    LIMIT 1
-  `).get(babyId, babyId);
-  res.json(row ?? null);
+  const latestPee = peeRepository.findLatest(babyId);
+  const latestPoop = poopRepository.findLatest(babyId);
+  const candidates: TNappyItem[] = [
+    ...(latestPee ? [{ ...latestPee, type: 'pee' as const }] : []),
+    ...(latestPoop ? [{ ...latestPoop, type: 'poop' as const }] : []),
+  ];
+  const latest = candidates.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+  res.json(latest ? { createdAt: latest.createdAt } : null);
 });
 
 /**
@@ -32,18 +37,11 @@ router.get('/latest', (req: Request, res: Response): void => {
 router.get('/summary', (req: Request, res: Response): void => {
   const { from, to } = req.query as { from?: string; to?: string };
   const babyId = req.user!.babyId!;
-  const conditions = [
-    'baby_id = ?',
-    ...(from ? ['created_at >= ?'] : []),
-    ...(to   ? ['created_at <= ?'] : []),
-  ];
-  const baseParams = [babyId, ...(from ? [from] : []), ...(to ? [to] : [])];
-  const where = `WHERE ${conditions.join(' AND ')}`;
-  const row = db.prepare<unknown[], { peeCount: number; poopCount: number }>(
-    `SELECT (SELECT COUNT(*) FROM pee ${where}) AS peeCount,
-            (SELECT COUNT(*) FROM poop ${where}) AS poopCount`
-  ).get(...baseParams, ...baseParams)!;
-  res.json(row);
+  const filter: TTimeFilter = { ...(from ? { from } : {}), ...(to ? { to } : {}) };
+  res.json({
+    peeCount: peeRepository.findAll(filter, babyId).length,
+    poopCount: poopRepository.findAll(filter, babyId).length,
+  });
 });
 
 /**
@@ -55,47 +53,14 @@ router.get('/list', (req: Request, res: Response): void => {
   const { from, to, wished } = req.query as { from?: string; to?: string; wished?: string };
   const babyId = req.user!.babyId!;
 
-  const toItem = (row: TNappyRow): TNappyItem => ({
-    id: row.id,
-    type: row.type,
-    createdAt: toOsloIso(row.created_at),
-  });
-
-  const fetchNappy = (f: string, t: string): TNappyItem[] => {
-    const where = `WHERE baby_id = ? AND created_at >= ? AND created_at <= ?`;
-    const cte = `
-      SELECT id, 'pee' AS type, created_at FROM pee ${where}
-      UNION ALL
-      SELECT id, 'poop' AS type, created_at FROM poop ${where}
-    `;
-    const rows = db.prepare<unknown[], TNappyRow>(
-      `SELECT * FROM (${cte}) ORDER BY created_at DESC`
-    ).all(babyId, f, t, babyId, f, t);
-    return rows.map(toItem);
-  };
-
   const wishedNum = wished ? Number(wished) : undefined;
   if (wishedNum && to) {
-    res.json(expandToWished(wishedNum, from ?? '', to, fetchNappy));
+    res.json(expandToWished(wishedNum, from ?? '', to, (f, t) => mergeNappyItems({ from: f, to: t }, babyId)));
     return;
   }
 
-  const conditions = [
-    'baby_id = ?',
-    ...(from ? ['created_at >= ?'] : []),
-    ...(to   ? ['created_at <= ?'] : []),
-  ];
-  const params = [babyId, ...(from ? [from] : []), ...(to ? [to] : [])];
-  const where = `WHERE ${conditions.join(' AND ')}`;
-  const cte = `
-    SELECT id, 'pee' AS type, created_at FROM pee ${where}
-    UNION ALL
-    SELECT id, 'poop' AS type, created_at FROM poop ${where}
-  `;
-  const rows = db.prepare<unknown[], TNappyRow>(
-    `SELECT * FROM (${cte}) ORDER BY created_at DESC`
-  ).all(...params, ...params);
-  res.json(rows.map(toItem));
+  const filter: TTimeFilter = { ...(from ? { from } : {}), ...(to ? { to } : {}) };
+  res.json(mergeNappyItems(filter, babyId));
 });
 
 export default router;

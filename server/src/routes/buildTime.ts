@@ -19,7 +19,6 @@ const getBuildTime = (): string => {
   if (!found) {
     if (process.env.NODE_ENV === 'production') {
       // helpful warning in production where packaging may place the file elsewhere
-      // eslint-disable-next-line no-console
       console.warn('buildTime.json not found. Tried:', candidates.join(', '));
     }
     return 'unknown';
@@ -29,7 +28,6 @@ const getBuildTime = (): string => {
     const data = JSON.parse(fs.readFileSync(found, 'utf-8')) as { buildTime: string };
     return data.buildTime;
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.warn('Failed to read buildTime.json at', found, err);
     return 'unknown';
   }

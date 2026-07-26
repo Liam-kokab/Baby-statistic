@@ -99,7 +99,7 @@ export const setMode = (mode: TThemeMode): void => {
   try { document.cookie = `themeMode=${mode}; path=/; max-age=${60 * 60 * 24 * 365}`; } catch (_e) {}
   // remove existing listener
   if (mq && mqListener) {
-    try { mq.removeEventListener('change', mqListener); } catch (_e) { try { mq.removeListener(mqListener as any); } catch (_e2) {} }
+    try { mq.removeEventListener('change', mqListener); } catch (_e) { try { mq.removeListener(mqListener); } catch (_e2) {} }
     mq = null;
     mqListener = null;
   }
@@ -113,7 +113,7 @@ export const setMode = (mode: TThemeMode): void => {
       };
       // modern API
       if (mq.addEventListener) mq.addEventListener('change', mqListener);
-      else mq.addListener(mqListener as any);
+      else mq.addListener(mqListener);
     } catch (_e) {
       mq = null;
       mqListener = null;

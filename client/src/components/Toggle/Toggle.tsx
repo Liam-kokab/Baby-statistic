@@ -25,12 +25,11 @@ const Toggle = ({ options, value, defaultIndex = 0, onChange, name, className }:
   const [internalIndex, setInternalIndex] = useState<number>(() =>
     Math.max(0, Math.min(defaultIndex ?? 0, safeOptions.length - 1))
   );
-  useEffect(() => {
-    // keep internal within bounds if options change
-    setInternalIndex((i) => Math.max(0, Math.min(i, safeOptions.length - 1)));
-  }, [safeOptions.length]);
+  // Derived, not stored: clamp on every render instead of via a state-syncing effect
+  // (options.length can shrink between renders; handleSelect always passes an in-bounds index).
+  const clampedInternalIndex = Math.max(0, Math.min(internalIndex, safeOptions.length - 1));
 
-  const selectedIndex = isControlled ? (value ?? 0) : internalIndex;
+  const selectedIndex = isControlled ? (value ?? 0) : clampedInternalIndex;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [measured, setMeasured] = useState<number[] | null>(null);
   const [thumbPx, setThumbPx] = useState<{ width: number; translate: number } | null>(null);
@@ -113,7 +112,7 @@ const Toggle = ({ options, value, defaultIndex = 0, onChange, name, className }:
     else chosenVariant = 'icon-only';
 
     const chosenWidths = chosenVariant === 'full' ? fullWidths : chosenVariant === 'text-only' ? textOnlyWidths : iconOnlyWidths;
-    setDisplayMode(chosenVariant as any);
+    setDisplayMode(chosenVariant);
     setMeasured(chosenWidths);
 
     // compute allocated px for thumb
@@ -226,8 +225,8 @@ const Toggle = ({ options, value, defaultIndex = 0, onChange, name, className }:
             // set proportional flex using measured widths (fallback to equal)
             style={
               measured && measured.length === cols
-                ? ({ flexGrow: measured[i], flexShrink: 1, flexBasis: '0%' } as any)
-                : ({ flex: '1 1 0%' } as any)
+                ? { flexGrow: measured[i], flexShrink: 1, flexBasis: '0%' }
+                : { flex: '1 1 0%' }
             }
           >
             {showIcon && hasIcon ? <span className={styles.icon}>{icon}</span> : null}
