@@ -5,7 +5,8 @@ Production traffic is fronted by **nginx**, which owns ports `80`/`443` and term
 ## Why this layout
 - **App stays on port `3000`** — no `setcap`/root tricks needed for PM2.
 - **nginx owns `80`/`443`** — the only process on the box that needs privileged ports, and it's designed for exactly that.
-- **certbot manages certs and renewal** — nginx config is auto-rewritten by `certbot --nginx` to add the `ssl_certificate` lines; the ACME HTTP-01 challenge location is already present in the template (`/.well-known/acme-challenge/` → `/var/www/certbot`), so certbot reuses it instead of inserting a new one.
+- **certbot manages certs and renewal** — nginx config is auto-rewritten by `certbot --nginx` to replace the placeholder `ssl_certificate` lines with the real Let's Encrypt cert; the ACME HTTP-01 challenge location is already present in the template (`/.well-known/acme-challenge/` → `/var/www/certbot`), so certbot reuses it instead of inserting a new one.
+- **Placeholder cert avoids the chicken-and-egg startup problem** — nginx must already be running and pass `nginx -t` for `certbot --nginx` to obtain a certificate through it, but a real Let's Encrypt cert doesn't exist yet on a fresh machine. The template's `443` block points at the distro's self-signed "snakeoil" cert (`ssl-cert` package) as a bootstrap placeholder so the initial `nginx -t`/reload succeed; certbot overwrites those two lines with the real cert path once issued.
 
 ## Files
 | File | Purpose |
@@ -19,11 +20,12 @@ Production traffic is fronted by **nginx**, which owns ports `80`/`443` and term
    - Your domain's DNS `A`/`AAAA` record already points at this machine's public IP (propagated — check with `dig your-domain.example`).
    - Ports `80` and `443` are reachable from the internet (cloud firewall / security group, not just `ufw`).
 
-**1. Install nginx and certbot**
+**1. Install nginx, certbot, and the placeholder SSL cert package**
 ```bash
 sudo apt update
-sudo apt install -y nginx certbot python3-certbot-nginx
+sudo apt install -y nginx certbot python3-certbot-nginx ssl-cert
 ```
+`ssl-cert` provides `/etc/ssl/certs/ssl-cert-snakeoil.pem` + `/etc/ssl/private/ssl-cert-snakeoil.key` — a self-signed placeholder the template references until certbot issues the real certificate (see "Why this layout" above). Already present on most Debian/Ubuntu installs, but installing it explicitly here guarantees step 5 doesn't fail on a minimal image.
 
 **2. Create the ACME challenge directory** — referenced by the `/.well-known/acme-challenge/` location in the template below; must exist before certbot's first HTTP-01 validation, or nginx will 404 the challenge and the request will fail.
 ```bash
@@ -62,7 +64,7 @@ sudo certbot --nginx -d your-domain.example
 
 certbot's nginx plugin will:
 1. Verify domain ownership via the ACME HTTP-01 challenge (served through the `/.well-known/acme-challenge/` location already in the template).
-2. Add `ssl_certificate` / `ssl_certificate_key` lines pointing at `/etc/letsencrypt/live/your-domain.example/`.
+2. Replace the placeholder `ssl_certificate` / `ssl_certificate_key` lines (snakeoil cert) with real ones pointing at `/etc/letsencrypt/live/your-domain.example/`.
 3. Optionally add a redirect from HTTP to HTTPS (the template already redirects, so certbot should detect this and skip re-adding it).
 
 ## Auto-Renewal
@@ -84,6 +86,8 @@ Certificates are renewed in-place; nginx does **not** need a full restart — a 
 |---|---|
 | `502 Bad Gateway` from nginx | The Node app isn't listening on `localhost:3000` — check `pm2 status` / `pm2 logs baby-statistic-server`. |
 | `nginx -t` fails after editing the conf | Usually a typo or leftover placeholder domain — check the exact error line nginx prints. |
+| `nginx -t` fails with `cannot load certificate ".../live/your-domain.example/fullchain.pem" ... No such file or directory` | You edited the `443` block to point at the real Let's Encrypt path before a cert was ever issued, or copied an older version of the template. The shipped template points at the placeholder snakeoil cert (`/etc/ssl/certs/ssl-cert-snakeoil.pem`) precisely so this can't happen — re-copy `deploy/nginx/baby-statistic.conf`, redo step 4 (replace the domain only, leave the `ssl_certificate*` lines alone), then run step 7 (`certbot --nginx`) to have certbot swap them in correctly. Make sure `ssl-cert` is installed (step 1) if the snakeoil files themselves are missing. |
+| `listen ... http2` is deprecated (warning only, not fatal) | Harmless on newer nginx (≥1.25.1) — the shipped template already uses the modern separate `http2 on;` directive instead of `listen ... http2`; if you still see this warning, your copy of the `.conf` is out of date. |
 | Certbot fails the HTTP-01 challenge | Port 80 must be reachable from the internet and served by nginx (not blocked by a firewall/security group) before requesting a cert. |
-| Browser still shows old/self-signed cert | Hard-refresh, or check `sudo certbot certificates` to confirm the right cert is installed and not expired. |
+| Browser still shows old/self-signed cert | Hard-refresh, or check `sudo certbot certificates` to confirm the right cert is installed and not expired. If you never got past step 7, this is expected — the placeholder snakeoil cert is self-signed until certbot runs successfully. |
 

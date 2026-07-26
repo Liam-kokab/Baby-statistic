@@ -89,9 +89,11 @@ npm run deploy
 Steps performed:
 1. `pm2 stop ecosystem.config.js` — stop the server, MCP server, and healthcheck
 2. `git fetch` + `git reset --hard origin/<branch>` + `git clean -fd` — discard local changes and sync to the remote branch exactly (respects `.gitignore`, so `data/`, `.env`, `node_modules`, etc. are left untouched)
-3. `npm install` — pick up any new/updated dependencies across all workspaces
+3. **Conditional dependency install**: `package-lock.json` is hashed before and after the git pull. If it's unchanged (the common case — most deploys only touch application code) and `node_modules` already exists, `npm install` is **skipped entirely** — this is normally the slowest step of a deploy even when nothing actually needs installing. If the lockfile changed (or `node_modules` is missing, e.g. first deploy on a machine), `npm ci --prefer-offline --no-audit --no-fund` runs instead of `npm install` — faster and more reproducible since it installs exactly what's pinned in the lockfile and skips the audit/funding network round-trips.
 4. `npm run build` — rebuild `client`, `server`, and `mcp-server` into `dist/`
 5. `pm2 startOrRestart ecosystem.config.js --update-env` + `pm2 save` — bring everything back up (works whether or not the apps were already registered with PM2) and persist the process list for reboot survival
+
+If you ever need to force a full reinstall regardless of the lockfile hash (e.g. corrupted `node_modules`), just delete `node_modules` before running `./deploy.sh`, or run `npm ci` manually.
 
 ### Other things to check before/after deploying
 - **Database migrations** run automatically on server startup (`import './db'` in `server/src/index.ts`) — no manual migration step needed.
