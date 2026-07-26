@@ -48,28 +48,45 @@ const useRefetchOnVisible = (refetch: () => void, staleMs: number = STALE_MS): R
     return () => observer.disconnect();
   }, [stableRefetch]);
 
-  // Page Visibility API — fires when user switches back to this tab
+  // Page Visibility API — fires when user switches back to this tab, and drives
+  // the stale-data timer below (no fetching/polling happens while hidden).
   useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && Date.now() - (mountedAt.current ?? 0) > 1000) {
-        stableRefetch();
-      }
+    if (document.visibilityState === 'visible' && Date.now() - (mountedAt.current ?? 0) > 1000) {
+      stableRefetch();
+    }
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const stopStaleTimer = () => {
+      if (intervalId !== null) clearInterval(intervalId);
+      intervalId = null;
     };
 
+    const startStaleTimer = () => {
+      stopStaleTimer();
+      intervalId = setInterval(() => {
+        if (Date.now() - lastFetchedAt.current < staleMsRef.current) return;
+        stableRefetch();
+      }, STALE_CHECK_INTERVAL_MS);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') {
+        stopStaleTimer();
+        return;
+      }
+      // Page just became visible — refresh immediately, then resume the stale-data timer.
+      if (Date.now() - (mountedAt.current ?? 0) > 1000) stableRefetch();
+      startStaleTimer();
+    };
+
+    if (document.visibilityState === 'visible') startStaleTimer();
+
     document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [stableRefetch]);
-
-  // Stale-data timer — while the tab is visible, periodically check whether the
-  // last refetch is older than `staleMs` and refresh if so.
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      if (Date.now() - lastFetchedAt.current < staleMsRef.current) return;
-      stableRefetch();
-    }, STALE_CHECK_INTERVAL_MS);
-
-    return () => clearInterval(id);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      stopStaleTimer();
+    };
   }, [stableRefetch]);
 
   return ref;
