@@ -37,22 +37,32 @@ if [ "$(id -u)" -eq 0 ]; then
   exit 1
 fi
 
+# This script needs sudo for several steps below. Authenticate once up front
+# with a clearly-labelled prompt, instead of silently blocking on a password
+# prompt later that gets swallowed inside a `$(...)` command substitution
+# (looks like the script has hung when it's really just waiting on stdin).
+echo "==> This script needs sudo for several steps — you may be prompted for your password now."
+sudo -v
+
 echo "==> [1/5] Generating the PM2 boot-time systemd service"
 # `pm2 startup` prints (rather than runs) a `sudo env PATH=$PATH pm2 startup
-# systemd -u <user> --hp <home>` command. Capture and execute it automatically
-# instead of requiring a manual copy/paste.
-STARTUP_CMD="$(npx pm2 startup systemd -u "$(whoami)" --hp "$HOME" | tail -1)"
-if [[ "$STARTUP_CMD" == sudo* ]]; then
+# systemd -u <user> --hp <home>` command. We tee its output to the terminal
+# (via /dev/stderr) so it's visible in real time, while also capturing it to
+# extract and run that command automatically instead of requiring a manual
+# copy/paste.
+PM2_STARTUP_OUTPUT="$(npx --yes pm2 startup systemd -u "$(whoami)" --hp "$HOME" | tee /dev/stderr)"
+STARTUP_CMD="$(echo "$PM2_STARTUP_OUTPUT" | grep '^sudo ' | tail -1)"
+if [ -n "$STARTUP_CMD" ]; then
   echo "    Running: $STARTUP_CMD"
   eval "$STARTUP_CMD"
 else
-  echo "Could not auto-detect the pm2 startup command. Run this manually and re-run this script:" >&2
-  npx pm2 startup || true
+  echo "Could not auto-detect the pm2 startup command from the output above." >&2
+  echo "Copy the 'sudo env PATH=...' line it printed and run it manually, then re-run this script." >&2
   exit 1
 fi
 
 echo "==> [2/5] Freezing the current PM2 process list for reboot"
-npx pm2 save
+npx --yes pm2 save
 
 echo "==> [3/5] Enabling nginx to start on boot (skipped if not installed)"
 if systemctl list-unit-files 2>/dev/null | grep -q '^nginx\.service'; then
