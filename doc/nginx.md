@@ -35,9 +35,10 @@ sudo mkdir -p /var/www/certbot
 **3. Install the site config**
 ```bash
 sudo cp deploy/nginx/baby-statistic.conf /etc/nginx/sites-available/baby-statistic.conf
-sudo ln -s /etc/nginx/sites-available/baby-statistic.conf /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/baby-statistic.conf /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default   # optional: remove the stock nginx welcome page
 ```
+`ln -sf` (not plain `-s`) so re-running this step on a machine that already has the symlink (e.g. redoing setup after a previous config bug) doesn't fail with `File exists` — `-f` replaces an existing symlink instead of erroring.
 
 **4. Replace the placeholder domain** — edit the file and change every `your-domain.example` to your real domain.
 ```bash
@@ -54,6 +55,12 @@ sudo systemctl reload nginx
 ```bash
 sudo ufw allow 'Nginx Full'        # allows 80 + 443
 ```
+If you get `sudo: ufw: command not found`, this machine simply doesn't use `ufw` — skip this step. Check what it actually uses instead before assuming ports are open:
+```bash
+sudo systemctl status firewalld 2>/dev/null   # RHEL/CentOS/Fedora-family
+sudo iptables -L -n                            # raw iptables/nftables, if either is used directly
+```
+Most cloud VMs (AWS/GCP/Azure/DigitalOcean/Hetzner/etc.) instead filter inbound traffic at the **provider's firewall/security-group level**, outside the OS entirely — open `80`/`443` there via your cloud provider's dashboard or CLI if so. If no host-level or provider-level firewall is active at all, nothing further is needed here.
 
 **7. Obtain the certificate** — certbot edits the `443` server block automatically
 ```bash
@@ -86,8 +93,11 @@ Certificates are renewed in-place; nginx does **not** need a full restart — a 
 |---|---|
 | `502 Bad Gateway` from nginx | The Node app isn't listening on `localhost:3000` — check `pm2 status` / `pm2 logs baby-statistic-server`. |
 | `nginx -t` fails after editing the conf | Usually a typo or leftover placeholder domain — check the exact error line nginx prints. |
+| `nginx -t` fails with `cannot load certificate ".../ssl-cert-snakeoil.pem" ... No such file or directory` | The `ssl-cert` package didn't install the snakeoil files (skipped during step 1, or a minimal/non-Debian base image). Fix: `sudo apt install --reinstall ssl-cert` — if the files still aren't created afterward, generate them manually with `sudo make-ssl-cert generate-default-snakeoil --force-overwrite`, then re-run `sudo nginx -t`. |
 | `nginx -t` fails with `cannot load certificate ".../live/your-domain.example/fullchain.pem" ... No such file or directory` | You edited the `443` block to point at the real Let's Encrypt path before a cert was ever issued, or copied an older version of the template. The shipped template points at the placeholder snakeoil cert (`/etc/ssl/certs/ssl-cert-snakeoil.pem`) precisely so this can't happen — re-copy `deploy/nginx/baby-statistic.conf`, redo step 4 (replace the domain only, leave the `ssl_certificate*` lines alone), then run step 7 (`certbot --nginx`) to have certbot swap them in correctly. Make sure `ssl-cert` is installed (step 1) if the snakeoil files themselves are missing. |
 | `listen ... http2` is deprecated (warning only, not fatal) | Harmless on newer nginx (≥1.25.1) — the shipped template already uses the modern separate `http2 on;` directive instead of `listen ... http2`; if you still see this warning, your copy of the `.conf` is out of date. |
+| `ln: failed to create symbolic link '.../sites-enabled/baby-statistic.conf': File exists` | The symlink from a previous run of step 3 is already there — harmless. Either skip the `ln` command entirely, or use `sudo ln -sf ...` (shipped in the template above) which replaces an existing symlink instead of erroring. |
+| `sudo: ufw: command not found` | This machine doesn't use `ufw` — skip step 6. Check for `firewalld`/raw `iptables`/`nftables` instead (see step 6), or your cloud provider's security-group/firewall settings if the host itself has no local firewall. |
 | Certbot fails the HTTP-01 challenge | Port 80 must be reachable from the internet and served by nginx (not blocked by a firewall/security group) before requesting a cert. |
 | Browser still shows old/self-signed cert | Hard-refresh, or check `sudo certbot certificates` to confirm the right cert is installed and not expired. If you never got past step 7, this is expected — the placeholder snakeoil cert is self-signed until certbot runs successfully. |
 
