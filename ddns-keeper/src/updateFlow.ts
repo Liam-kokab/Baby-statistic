@@ -33,7 +33,17 @@ export const runUpdateFlow = async (config: TDdnsConfig): Promise<void> => {
   logger.info('Update check started');
 
   const previousIp = getCurrentIp();
-  logger.info('Previous stored IP', { previousIp });
+  const isFirstRun = previousIp === null;
+  if (isFirstRun) {
+    // No data/current-ip.txt yet (fresh install or deleted state) — there is
+    // no "previous IP" to compare against, so treat this as no IP being set
+    // at all and unconditionally push the current IP to Domeneshop below.
+    // Domeneshop's dyndns/update endpoint creates the A record if it doesn't
+    // exist yet, so this also covers the very first DNS record creation.
+    logger.info('No previous IP on record — treating as first run, will set DNS unconditionally');
+  } else {
+    logger.info('Previous stored IP', { previousIp });
+  }
 
   const currentIp = await fetchPublicIp({
     providerUrl: config.IP_PROVIDER_URL,
@@ -42,12 +52,15 @@ export const runUpdateFlow = async (config: TDdnsConfig): Promise<void> => {
   });
   logger.info('Detected current public IP', { currentIp });
 
-  if (currentIp === previousIp) {
+  if (!isFirstRun && currentIp === previousIp) {
     logger.info('IP unchanged — no update needed', { currentIp });
     return;
   }
 
-  logger.info('IP changed — attempting Domeneshop update', { previousIp, currentIp, hostname: config.DDNS_HOSTNAME });
+  logger.info(
+    isFirstRun ? 'First run — setting Domeneshop DNS to current IP' : 'IP changed — attempting Domeneshop update',
+    { previousIp, currentIp, hostname: config.DDNS_HOSTNAME }
+  );
 
   try {
     await updateDomeneshopIp(config.DDNS_HOSTNAME, currentIp, {

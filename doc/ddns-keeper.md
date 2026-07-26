@@ -34,11 +34,11 @@ ddns-keeper/
 
 ## Update Flow
 `runUpdateFlow(config)` in `updateFlow.ts`:
-1. Read the last known IP from `data/current-ip.txt` (`getCurrentIp()`).
+1. Read the last known IP from `data/current-ip.txt` (`getCurrentIp()`). Returns `null` if the file doesn't exist yet (fresh install, or state was deleted) — this is always treated as "no IP set", **never** as equal to the current IP, so the very first run on a new machine always pushes an update to Domeneshop instead of silently skipping it.
 2. Fetch the current public IP from `IP_PROVIDER_URL` (`fetchPublicIp()`), retried up to 3× with exponential backoff (skips retry on 4xx).
-3. If unchanged → log and return, no further action.
-4. If changed → call Domeneshop's DDNS update endpoint (`updateDomeneshopIp()`), same retry policy.
-5. **Only if the Domeneshop update succeeds**: append a row to `data/ip-history.csv` and persist the new IP via `setCurrentIp()`. A failed Domeneshop update never touches history/state, so the next run retries against the same "previous IP" baseline.
+3. If a previous IP exists **and** it matches the current one → log and return, no further action. On first run (no previous IP), this check is skipped entirely.
+4. If changed (or first run) → call Domeneshop's DDNS update endpoint (`updateDomeneshopIp()`), same retry policy. Domeneshop's `dyndns/update` endpoint creates the A record if it doesn't exist yet, so this also covers the very first DNS record creation for a hostname that was never configured before.
+5. **Only if the Domeneshop update succeeds**: append a row to `data/ip-history.csv` and persist the new IP via `setCurrentIp()`. A failed Domeneshop update never touches history/state, so the next run retries against the same "previous IP" baseline (or, on first run, retries as a first run again).
 
 In-memory `metrics` (exported from `updateFlow.ts`) tracks `currentIp`, `lastUpdateAt`, `successfulUpdates`, `failedUpdates`, and `startedAt`, backing the `/metrics` HTTP endpoint.
 
@@ -82,7 +82,7 @@ Binds to `localhost` only (`HTTP_PORT`, default `3000`; `3010` in this repo's `e
 - **Independent deployment**: `ddns-keeper/` also ships its own systemd unit/timer for deployments that don't use this repo's PM2 setup at all.
 
 ## Testing
-All external HTTP calls (`fetch` to the IP provider and to Domeneshop) are mocked with `vi.stubGlobal('fetch', ...)`; filesystem calls in `stateService`/`historyService` tests are mocked with `vi.mock('fs')`. Coverage: IP validation (`isValidIPv4`), config loading/validation (`loadConfig`), state storage, CSV history logging, the Domeneshop client (including 4xx-no-retry and 5xx-retry behavior), and the full update flow (unchanged IP / successful update / failed Domeneshop update never saving state).
+All external HTTP calls (`fetch` to the IP provider and to Domeneshop) are mocked with `vi.stubGlobal('fetch', ...)`; filesystem calls in `stateService`/`historyService` tests are mocked with `vi.mock('fs')`. Coverage: IP validation (`isValidIPv4`), config loading/validation (`loadConfig`), state storage, CSV history logging, the Domeneshop client (including 4xx-no-retry and 5xx-retry behavior), and the full update flow (unchanged IP / successful update / failed Domeneshop update never saving state / first run with no previous IP unconditionally sets DNS).
 
 Run with:
 ```bash

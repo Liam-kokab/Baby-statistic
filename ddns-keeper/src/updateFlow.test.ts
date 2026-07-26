@@ -58,6 +58,25 @@ describe('runUpdateFlow', () => {
     expect(stateServiceMock.setCurrentIp).toHaveBeenCalledWith('2.2.2.2');
   });
 
+  it('sets the DNS record unconditionally on first run, when no IP has ever been stored', async () => {
+    // getCurrentIp() returns null when data/current-ip.txt doesn't exist yet
+    // (fresh install) — this must never be treated as "unchanged".
+    stateServiceMock.getCurrentIp.mockReturnValue(null);
+    ipServiceMock.fetchPublicIp.mockResolvedValue('3.3.3.3');
+    domeneshopClientMock.updateDomeneshopIp.mockResolvedValue(undefined);
+    const { runUpdateFlow } = await import('./updateFlow');
+
+    await runUpdateFlow(testConfig);
+
+    expect(domeneshopClientMock.updateDomeneshopIp).toHaveBeenCalledWith(
+      'example.com',
+      '3.3.3.3',
+      expect.objectContaining({ token: 'token', secret: 'secret' })
+    );
+    expect(historyServiceMock.appendIpHistory).toHaveBeenCalledWith('3.3.3.3');
+    expect(stateServiceMock.setCurrentIp).toHaveBeenCalledWith('3.3.3.3');
+  });
+
   it('does not save the new IP or log history when the Domeneshop update fails', async () => {
     stateServiceMock.getCurrentIp.mockReturnValue('1.1.1.1');
     ipServiceMock.fetchPublicIp.mockResolvedValue('2.2.2.2');
