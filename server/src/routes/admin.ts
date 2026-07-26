@@ -5,10 +5,15 @@ import { hashPassword } from '../services/authService';
 import { userRepository } from '../repositories/userRepository';
 import { babyRepository } from '../repositories/babyRepository';
 import { requireAdmin } from '../middleware/requireAdmin';
+import { requireRecentAuth } from '../middleware/requireRecentAuth';
 import { bodyAs } from '../utils/bodyAs';
 
 const router = Router();
 router.use(requireAdmin);
+
+// Destructive/account-takeover-adjacent actions require a login within the
+// last 5 minutes — same policy as DELETE /api/backup/purge (see doc/auth.md).
+const REAUTH_MAX_AGE_SECONDS = 5 * 60;
 
 // ── Babies ────────────────────────────────────────────────────────────────────
 router.get('/babies', (_req: Request, res: Response): void => {
@@ -78,6 +83,20 @@ router.post('/users', async (req: Request, res: Response): Promise<void> => {
 router.patch('/users/:id', async (req: Request, res: Response): Promise<void> => {
   const { password, babyId, name, username } = bodyAs<TAdminUpdateUser>(req);
   const id = Number(req.params.id);
+
+  // Setting another user's password is account-takeover-adjacent — require a
+  // recent explicit login, same as DELETE /api/backup/purge (see doc/auth.md).
+  if (password) {
+    const ageSeconds = Math.floor(Date.now() / 1000) - (req.user?.authTime ?? 0);
+    if (!Number.isFinite(req.user?.authTime) || ageSeconds > REAUTH_MAX_AGE_SECONDS) {
+      res.status(403).json({
+        error: `Setting a user's password requires a recent login (within ${REAUTH_MAX_AGE_SECONDS}s). Please log out and log back in, then try again.`,
+        code: 'REAUTH_REQUIRED',
+      });
+      return;
+    }
+  }
+
   const patch: { passwordHash?: string; babyId?: number | null; name?: string; username?: string } = {};
   if (password) patch.passwordHash = await hashPassword(password);
   if (babyId !== undefined) patch.babyId = babyId;
@@ -103,7 +122,7 @@ router.patch('/users/:id', async (req: Request, res: Response): Promise<void> =>
   res.json(user);
 });
 
-router.delete('/users/:id', (req: Request, res: Response): void => {
+router.delete('/users/:id', requireRecentAuth(REAUTH_MAX_AGE_SECONDS), (req: Request, res: Response): void => {
   const deleted = userRepository.delete(Number(req.params.id));
   if (!deleted) {
     res.status(404).json({ error: 'User not found' });

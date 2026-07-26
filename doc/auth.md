@@ -83,7 +83,7 @@ It computes `ageSeconds = now - req.user.authTime` and rejects with **`403`** (n
 
 **Why 403 and not 401**: the client's `authFetch` auto-refreshes and retries once on `401` (see below). Since a silent refresh does **not** change `authTime`, returning `401` here would cause the client to transparently refresh and retry — defeating the whole point. `403` is never auto-retried, so the user actually sees the error and must log out and log back in.
 
-**Currently applied to**: `DELETE /api/backup/purge` (5 minute max age).
+**Currently applied to**: `DELETE /api/backup/purge` (5 minute max age), `DELETE /api/admin/users/:id` (5 minute max age), and `PATCH /api/admin/users/:id` when the request body includes a `password` field (5 minute max age) — inline-checked rather than as route middleware, since the same endpoint also handles non-sensitive fields (`name`, `username`) that don't require step-up auth.
 
 ---
 
@@ -290,12 +290,21 @@ The `NavBar` component reads `authStore.getUser()?.role` and renders different n
 
 ---
 
+## Rate Limiting
+
+`POST /api/auth/login` and `POST /api/auth/refresh` are throttled with `express-rate-limit` (keyed by IP): 10 requests / 15 minutes for `/login`, 60 requests / 15 minutes for `/refresh`. Exceeding the limit returns `429`. This mitigates scripted brute-force/credential-stuffing against the login endpoint.
+
+---
+
 ## Security Notes
 
 - **No sign-up endpoint** — only admins can create users; prevents unauthorised access
 - **Refresh token rotation** — each refresh issues a new token and invalidates the old one; replay attacks are blocked
 - **Token hash storage** — only a SHA-256 hash of the refresh token is stored in the DB; even a full DB leak cannot be used to forge new access tokens
-- **Production secrets** — `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be set to long random strings in a `.env` file at the repo root (copy `.env.example`, loaded via `server/src/loadEnv.ts`/`dotenv`). If left unset, the server falls back to hardcoded dev defaults and logs a loud warning on startup — never rely on this in production. Rotating the secrets (i.e. changing the values in `.env` and restarting) invalidates all existing sessions, forcing everyone to log in again.
+- **Production secrets are mandatory** — `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be set to long random strings in a `.env` file at the repo root (copy `.env.example`, loaded via `server/src/loadEnv.ts`/`dotenv`). If `NODE_ENV=production` and either is unset, the server **throws on startup** (`server/src/services/authService.ts`) instead of silently running on hardcoded dev defaults. Rotating the secrets (i.e. changing the values in `.env` and restarting) invalidates all existing sessions, forcing everyone to log in again.
 - **Baby isolation** — all queries are hard-scoped by `baby_id`; horizontal privilege escalation between babies is not possible at the repository layer
-- **Step-up auth for destructive actions** — `requireRecentAuth` requires a login within the last N minutes for actions like `DELETE /api/backup/purge`; a silent token refresh cannot satisfy this since `authTime` is only set at `/login`, never at `/refresh`
+- **Step-up auth for destructive actions** — `requireRecentAuth` requires a login within the last N minutes for actions like `DELETE /api/backup/purge`, `DELETE /api/admin/users/:id`, and admin-driven password resets (`PATCH /api/admin/users/:id` with `password`); a silent token refresh cannot satisfy this since `authTime` is only set at `/login`, never at `/refresh`
+- **Rate limiting** — `/api/auth/login` and `/api/auth/refresh` are throttled (see above) to slow down brute-force attempts
+- **Security headers & CORS** — `helmet` and `cors` are applied globally in `server/src/index.ts`; see `doc/server.md` for details (CSP is intentionally disabled, CORS defaults to same-origin-only via `ALLOWED_ORIGINS`)
+
 

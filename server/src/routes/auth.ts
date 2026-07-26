@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import type { TLoginRequest, TUpdateMeRequest } from 'baby-statistic-common';
 import { comparePassword, hashPassword, signAccessToken, signRefreshToken, verifyRefreshToken } from '../services/authService';
@@ -8,6 +9,26 @@ import { authenticate } from '../middleware/authenticate';
 import { bodyAs } from '../utils/bodyAs';
 
 const router = Router();
+
+// Brute-force / credential-stuffing protection. Keyed by IP; login is also
+// keyed loosely by attempted username via the standard IP-based store since
+// express-rate-limit has no built-in per-body-field key (good enough here —
+// the goal is to slow down scripted guessing, not provide perfect isolation).
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+});
+
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many refresh attempts. Please try again later.' },
+});
 
 const hashToken = (token: string): string =>
   crypto.createHash('sha256').update(token).digest('hex');
@@ -18,7 +39,7 @@ const refreshExpiresAt = (): string => {
   return d.toISOString().replace('T', ' ').slice(0, 19);
 };
 
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', loginLimiter, async (req: Request, res: Response): Promise<void> => {
   const { username, password } = bodyAs<TLoginRequest>(req);
   if (!username || !password) {
     res.status(400).json({ error: 'username and password are required' });
@@ -56,7 +77,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   });
 });
 
-router.post('/refresh', (req: Request, res: Response): void => {
+router.post('/refresh', refreshLimiter, (req: Request, res: Response): void => {
   const { refreshToken } = bodyAs<{ refreshToken?: string }>(req);
   if (!refreshToken) {
     res.status(400).json({ error: 'refreshToken is required' });

@@ -9,12 +9,13 @@ const ACCESS_EXPIRY = '15m';
 const REFRESH_EXPIRY = '7d';
 
 // JWT secrets come from a .env file (see .env.example, loaded by server/src/loadEnv.ts).
-// In production, warn loudly if they were never set — the app still runs, but on
-// insecure hardcoded defaults, and restarting the process won't rotate anything.
-if (process.env.NODE_ENV === 'production') {
-  if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {
-    console.warn('[auth] WARNING: JWT_ACCESS_SECRET / JWT_REFRESH_SECRET not set. Create a .env file at the repo root (see .env.example) with long random values. Using insecure defaults!');
-  }
+// In production, refuse to start on insecure hardcoded defaults — running with a
+// publicly-known secret lets anyone forge valid access tokens (including admin role).
+if (process.env.NODE_ENV === 'production' && (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET)) {
+  throw new Error(
+    '[auth] JWT_ACCESS_SECRET / JWT_REFRESH_SECRET must be set in production. ' +
+    'Create a .env file at the repo root (see .env.example) with long random values.'
+  );
 }
 
 

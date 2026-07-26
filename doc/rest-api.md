@@ -6,6 +6,8 @@ All responses are **JSON**. Errors return `{ "error": "..." }`.
 
 **Authentication**: All endpoints except `POST /api/auth/login`, `POST /api/auth/refresh`, and `GET /api/ping` require `Authorization: Bearer <accessToken>` header. Unauthenticated requests return `401`.
 
+**Rate limiting**: `POST /api/auth/login` (10 requests / 15 min per IP) and `POST /api/auth/refresh` (60 requests / 15 min per IP) are throttled via `express-rate-limit`. Exceeding the limit returns `429` with `{ "error": "Too many ... attempts. Please try again later." }`.
+
 See [`doc/auth.md`](./auth.md) for the full permission table, token architecture, and security details.
 
 ---
@@ -93,8 +95,10 @@ Update a user's username, password, babyId, and/or display name — no current-p
 
 **Response `409`**: `username` already taken by another user.
 
-### `DELETE /api/admin/users/:id`
-Delete a user.
+**Response `403`** *(only when `password` is provided and the caller's login is stale — see `requireRecentAuth`)*: `{ "error": "Setting a user's password requires a recent login (within 300s)...", "code": "REAUTH_REQUIRED" }`
+
+### `DELETE /api/admin/users/:id` *(requires recent login)*
+Delete a user. Guarded by `requireRecentAuth(300)` — same 403/`REAUTH_REQUIRED` behavior as `DELETE /api/backup/purge` (see `doc/auth.md`).
 
 ---
 

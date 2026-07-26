@@ -6,6 +6,7 @@
 - **Language**: TypeScript (compiled via `tsc`, dev via `ts-node` + `nodemon`)
 - **Database**: `better-sqlite3` (SQLite)
 - **Auth**: `jsonwebtoken` (JWT — access token 15 min, refresh token 7 days), `bcryptjs` (password hashing, 12 rounds)
+- **Security middleware**: `helmet` (security headers; CSP disabled — see note below), `cors` (explicit allow-list via `ALLOWED_ORIGINS`), `express-rate-limit` (login/refresh throttling)
 - **Port**: `3000` by default (overridable via `PORT` env var). In production, nginx owns public ports `80`/`443` (TLS via Let's Encrypt) and reverse-proxies to this internal port — see `doc/nginx.md`.
 
 ## Environment Variables
@@ -15,13 +16,22 @@ Loaded from a `.env` file (see `.env.example` at the repo root) via `server/src/
 |---|---|---|
 | `PORT` | `3000` | HTTP listen port (internal-only in prod — nginx sits in front, see `doc/nginx.md`) |
 | `DB_PATH` | `./data/baby.db` | SQLite file path |
+| `ALLOWED_ORIGINS` | *(unset)* | Comma-separated list of extra CORS origins allowed to call the API cross-origin. Unset means same-origin only (the SPA is served from this same server in prod). |
 | `JWT_ACCESS_SECRET` | `dev-access-secret-...` | Secret for signing 15-min access tokens |
 | `JWT_REFRESH_SECRET` | `dev-refresh-secret-...` | Secret for signing 7-day refresh tokens |
 | `BCRYPT_ROUNDS` | `12` | bcrypt salt rounds for password hashing |
 | `SEED_ADMIN_USERNAME` | — | Auto-create admin user on first startup if no admin exists |
 | `SEED_ADMIN_PASSWORD` | — | Password for the auto-created admin user |
 
-> ⚠️ Always set `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` to long random strings in your `.env` for production — if left unset, the server falls back to hardcoded dev defaults and logs a warning on startup. See `doc/auth.md`.
+> ⚠️ `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` **must** be set to long random strings in production — if `NODE_ENV=production` and either is unset, the server **refuses to start** (throws at import time in `authService.ts`) rather than silently falling back to insecure hardcoded dev defaults. See `doc/auth.md`.
+
+## Rate Limiting
+`POST /api/auth/login` and `POST /api/auth/refresh` are throttled via `express-rate-limit` (`routes/auth.ts`), keyed by IP:
+- `/login`: 10 requests / 15 minutes
+- `/refresh`: 60 requests / 15 minutes
+
+Both return `429` with `{ "error": "Too many ... attempts. Please try again later." }` once the limit is exceeded.
+
 
 ## File Structure
 ```
@@ -106,6 +116,13 @@ data/               ← database lives here (never wiped by build)
 Express serves `dist/public/` as static files when `dist/public/index.html` exists (checked with `fs.existsSync`). No `NODE_ENV` check — it always serves the frontend if it has been built. This route is registered **outside** the `/api` prefix, so it is never gated by `authenticate` — the SPA shell, JS/CSS bundles, and `manifest.json` are always publicly servable. Auth is enforced client-side by `ProtectedRoute`, which redirects to `/login` if no token is stored.
 
 `GET /manifest.json` is handled by `routes/manifest.ts` (mounted at `app.use('/manifest.json', manifestRouter)`, before the static middleware) rather than serving the static file directly — it reads `dist/public/manifest.json`, parses the `theme`/`themeMode` cookies set by the client, and overrides `theme_color` so PWA installs match the user's chosen theme.
+
+## Security Headers & CSP
+`helmet()` is applied globally (`server/src/index.ts`) for standard security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, HSTS, etc.). Its `contentSecurityPolicy` directive is explicitly **disabled** (`helmet({ contentSecurityPolicy: false })`) because a default `default-src 'self'` policy would break: the inline service-worker-registration `<script>` in `index.html`, the Google Fonts stylesheet/font CDN, and Swagger UI's inline scripts/styles at `/api-docs`. Revisit with a properly scoped CSP (nonces, explicit font/swagger allowances) if tightening further is needed.
+
+## CORS
+`cors()` is applied globally with `origin` resolved from `ALLOWED_ORIGINS` (comma-separated env var). If unset, `origin: false` is passed — no cross-origin requests are permitted (the SPA and API share an origin in production; Vite's dev proxy makes this a non-issue in dev too).
+
 
 
 ## Adding a Route

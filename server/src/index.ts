@@ -3,6 +3,8 @@ import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
+import helmet from 'helmet';
+import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 // ...existing code...
 import './db';
@@ -28,6 +30,27 @@ const app = express();
 // Internal-only port — production traffic reaches the app via nginx reverse-proxying
 // public 80/443 (with Let's Encrypt TLS) to this port. See doc/nginx.md.
 const PORT = process.env.PORT ?? 3000;
+
+// Security headers (X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy, etc.).
+// CSP is disabled here: the SPA loads Google Fonts from a CDN, registers a service
+// worker via an inline <script>, and /api-docs (Swagger UI) relies on inline
+// scripts/styles — a default-src 'self' policy would break all three. Revisit with
+// a properly scoped CSP (nonces / explicit font & swagger allowances) if needed.
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// The client is same-origin (served from server/public in prod; proxied through
+// Vite in dev — see client/vite.config.ts), so no cross-origin requests are
+// expected by default. ALLOWED_ORIGINS (comma-separated) can be set to allow
+// specific extra origins (e.g. a separate frontend deployment); an empty/unset
+// value means no cross-origin requests are permitted.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+}));
 
 const resolveOpenApiPath = (): string => {
   const candidates = [

@@ -27,13 +27,43 @@ const DATA_TABLES = [
 const PURGE_TABLES = [...DATA_TABLES, 'prediction_log'] as const;
 
 type TTableName = (typeof DATA_TABLES)[number];
+type TPurgeTableName = (typeof PURGE_TABLES)[number];
 type TRow = Record<string, unknown>;
 type TBackupPayload = Partial<Record<TTableName, TRow[]>>;
+
+// Runtime guards — table names are never sourced from request input in this file,
+// but every SQL string below is built via these guards (never raw interpolation
+// of an unchecked value) so this stays true even if the code changes later.
+const assertDataTable = (table: string): TTableName => {
+  if (!(DATA_TABLES as readonly string[]).includes(table)) {
+    throw new Error(`Invalid table name: ${table}`);
+  }
+  return table as TTableName;
+};
+
+const assertPurgeTable = (table: string): TPurgeTableName => {
+  if (!(PURGE_TABLES as readonly string[]).includes(table)) {
+    throw new Error(`Invalid table name: ${table}`);
+  }
+  return table as TPurgeTableName;
+};
+
+// Column names for INSERT OR REPLACE come from the restore payload's own keys,
+// which IS user input — validate against a strict identifier pattern so they
+// can never break out of the column-list position in the generated SQL.
+const COLUMN_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+const assertValidColumn = (column: string): string => {
+  if (!COLUMN_NAME_RE.test(column)) {
+    throw new Error(`Invalid column name: ${column}`);
+  }
+  return column;
+};
 
 router.get('/', (_req: Request, res: Response): void => {
   const result = {} as Record<TTableName, TRow[]>;
   DATA_TABLES.forEach((table) => {
-    result[table] = db.prepare(`SELECT * FROM ${table}`).all() as TRow[];
+    const safeTable = assertDataTable(table);
+    result[table] = db.prepare(`SELECT * FROM ${safeTable}`).all() as TRow[];
   });
   res.json(result);
 });
@@ -46,23 +76,24 @@ router.post('/restore', json({ limit: '20mb' }), (req: Request, res: Response): 
     return;
   }
   const stats: Record<string, number> = {};
-  const restoreAll = db.transaction(() => {
-    DATA_TABLES.forEach((table) => {
-      const rows = payload[table];
-      if (!Array.isArray(rows) || rows.length === 0) return;
-      const columns = Object.keys(rows[0]);
-      if (columns.length === 0) return;
-      const placeholders = columns.map(() => '?').join(', ');
-      const stmt = db.prepare(
-        `INSERT OR REPLACE INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`
-      );
-      rows.forEach((row) => {
-        stmt.run(columns.map((col) => row[col] ?? null));
-      });
-      stats[table] = rows.length;
-    });
-  });
   try {
+    const restoreAll = db.transaction(() => {
+      DATA_TABLES.forEach((table) => {
+        const rows = payload[table];
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        const safeTable = assertDataTable(table);
+        const columns = Object.keys(rows[0]).map(assertValidColumn);
+        if (columns.length === 0) return;
+        const placeholders = columns.map(() => '?').join(', ');
+        const stmt = db.prepare(
+          `INSERT OR REPLACE INTO ${safeTable} (${columns.join(', ')}) VALUES (${placeholders})`
+        );
+        rows.forEach((row) => {
+          stmt.run(columns.map((col) => row[col] ?? null));
+        });
+        stats[table] = rows.length;
+      });
+    });
     restoreAll();
     res.json({ ok: true, inserted: stats });
   } catch (err) {
@@ -85,17 +116,18 @@ router.delete('/purge', requireRecentAuth(PURGE_MAX_AUTH_AGE_SECONDS), (req: Req
   }
 
   const stats: Record<string, number> = {};
-  const purgeAll = db.transaction(() => {
-    PURGE_TABLES.forEach((table) => {
-      const { changes } = db.prepare(`DELETE FROM ${table}`).run();
-      stats[table] = changes;
-    });
-    db.prepare(
-      `DELETE FROM sqlite_sequence WHERE name IN (${PURGE_TABLES.map(() => '?').join(', ')})`
-    ).run(...PURGE_TABLES);
-  });
-
   try {
+    const purgeAll = db.transaction(() => {
+      PURGE_TABLES.forEach((table) => {
+        const safeTable = assertPurgeTable(table);
+        const { changes } = db.prepare(`DELETE FROM ${safeTable}`).run();
+        stats[table] = changes;
+      });
+      const placeholders = PURGE_TABLES.map(() => '?').join(', ');
+      db.prepare(
+        `DELETE FROM sqlite_sequence WHERE name IN (${placeholders})`
+      ).run(...PURGE_TABLES);
+    });
     purgeAll();
     res.json({ ok: true, deleted: stats });
   } catch (err) {
@@ -105,3 +137,5 @@ router.delete('/purge', requireRecentAuth(PURGE_MAX_AUTH_AGE_SECONDS), (req: Req
 });
 
 export default router;
+
+
