@@ -50,8 +50,8 @@ echo "==> [1/5] Generating the PM2 boot-time systemd service"
 # (via /dev/stderr) so it's visible in real time, while also capturing it to
 # extract and run that command automatically instead of requiring a manual
 # copy/paste.
-PM2_STARTUP_OUTPUT="$(npx --yes pm2 startup systemd -u "$(whoami)" --hp "$HOME" | tee /dev/stderr)"
-STARTUP_CMD="$(echo "$PM2_STARTUP_OUTPUT" | grep '^sudo ' | tail -1)"
+PM2_STARTUP_OUTPUT="$( (npx --yes pm2 startup systemd -u "$(whoami)" --hp "$HOME" | tee /dev/stderr) || true)"
+STARTUP_CMD="$(echo "$PM2_STARTUP_OUTPUT" | grep '^sudo ' | tail -1 || true)"
 if [ -n "$STARTUP_CMD" ]; then
   echo "    Running: $STARTUP_CMD"
   eval "$STARTUP_CMD"
