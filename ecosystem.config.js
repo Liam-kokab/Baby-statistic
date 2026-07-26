@@ -3,13 +3,20 @@
 // Docs: doc/pm2.md
 
 const path = require('path');
+const dotenv = require('dotenv');
+
+// ddns-keeper is optional (Domeneshop DDNS updater) — off by default. Set
+// DDNS_ENABLED=true in the repo-root .env to have PM2 manage it. Loaded here
+// (rather than relying on server/src/loadEnv.ts) because this config file
+// itself decides which PM2 apps to register, before any app process starts.
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const LOG_DIR = path.join(__dirname, 'logs');
+const DDNS_ENABLED = process.env.DDNS_ENABLED === 'true';
 
-module.exports = {
-  apps: [
-    {
-      name: 'baby-statistic-server',
+const apps = [
+  {
+    name: 'baby-statistic-server',
       script: 'dist/index.js',
       cwd: __dirname,
       env: {
@@ -77,6 +84,12 @@ module.exports = {
       merge_logs: true,
       time: true,
     },
+];
+
+// ddns-keeper (Domeneshop DNS updater) is optional and off by default — only
+// registered as PM2 apps when DDNS_ENABLED=true is set in the repo-root .env.
+if (DDNS_ENABLED) {
+  apps.push(
     {
       name: 'ddns-keeper',
       script: 'dist/index.js',
@@ -115,6 +128,7 @@ module.exports = {
       merge_logs: true,
       time: true,
     },
-  ],
-};
+  );
+}
 
+module.exports = { apps };

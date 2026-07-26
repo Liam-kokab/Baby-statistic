@@ -1,6 +1,6 @@
 # Process Management (PM2)
 
-Production runs under [PM2](https://pm2.keymetrics.io/), a Node.js process manager. PM2 keeps the server, MCP server, ddns-keeper, and two health-check watchdogs alive, automatically restarting any of them on crash.
+Production runs under [PM2](https://pm2.keymetrics.io/), a Node.js process manager. PM2 keeps the server, MCP server, and a health-check watchdog alive, automatically restarting any of them on crash. `ddns-keeper` and its watchdog are optional (see below) and only registered when explicitly enabled.
 
 ## Files
 | File | Purpose |
@@ -14,8 +14,20 @@ Production runs under [PM2](https://pm2.keymetrics.io/), a Node.js process manag
 | `baby-statistic-server` | `dist/index.js` | Express API + static client, internal port `3000` (nginx fronts public `80`/`443` in production — see `doc/nginx.md`) |
 | `baby-statistic-mcp` | `dist/mcp-server/index.js` | MCP server (SSE), port `3001`. Talks to the API via `BABY_API_URL=http://localhost:3000` — must point at the server's internal port, **not** `80` (nginx's port-80 block only redirects to HTTPS, it doesn't proxy the API) |
 | `baby-statistic-healthcheck` | `healthcheck.js` | Watchdog — see below |
-| `ddns-keeper` | `ddns-keeper/dist/index.js` | Domeneshop DDNS updater + health/metrics HTTP server, port `3010` — see `doc/ddns-keeper.md` |
-| `ddns-keeper-healthcheck` | `healthcheck.js` | Watchdog for `ddns-keeper`, polls `http://localhost:3010/health` |
+| `ddns-keeper` *(optional)* | `ddns-keeper/dist/index.js` | Domeneshop DDNS updater + health/metrics HTTP server, port `3010` — see `doc/ddns-keeper.md`. Only registered when `DDNS_ENABLED=true` is set in the repo-root `.env` |
+| `ddns-keeper-healthcheck` *(optional)* | `healthcheck.js` | Watchdog for `ddns-keeper`, polls `http://localhost:3010/health`. Only registered alongside `ddns-keeper` |
+
+## Enabling/Disabling ddns-keeper
+`ddns-keeper` is off by default — most deployments don't need DNS updating. `ecosystem.config.js` loads the repo-root `.env` (via `dotenv`) at config-evaluation time and only pushes the `ddns-keeper`/`ddns-keeper-healthcheck` app entries onto its `apps` array when `DDNS_ENABLED=true`:
+```dotenv
+# .env
+DDNS_ENABLED=true
+DOMENESHOP_TOKEN=...
+DOMENESHOP_SECRET=...
+DDNS_HOSTNAME=...
+```
+Since the decision is made when `ecosystem.config.js` is evaluated (not at runtime inside a process), toggling it requires re-running `pm2 start`/`startOrRestart ecosystem.config.js` (plain `pm2 restart` won't add/remove apps that already exist or don't exist in PM2's process list — use `pm2 delete ecosystem.config.js && pm2 start ecosystem.config.js` if you need to flip it on an existing PM2 setup, then `pm2 save`).
+
 
 All apps have `autorestart: true`, `max_restarts: 10`, `min_uptime: '10s'`, and `exp_backoff_restart_delay` so a crash-looping process backs off instead of hammering restarts. This is PM2's built-in **crash restart** behaviour — no extra code needed for it.
 

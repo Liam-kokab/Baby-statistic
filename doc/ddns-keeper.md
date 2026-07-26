@@ -70,13 +70,15 @@ Binds to `localhost` only (`HTTP_PORT`, default `3000`; `3010` in this repo's `e
 ## Configuration / `.env`
 `src/config.ts` resolves `.env` from (first match wins, none override already-set `process.env` vars): `ddns-keeper/.env` → repo-root `.env`. In this monorepo, `DOMENESHOP_TOKEN`/`DOMENESHOP_SECRET`/`DDNS_HOSTNAME`/etc. live in the **single combined root `.env`** alongside the server's `JWT_*`/`SEED_ADMIN_*` vars (see root `.env.example`) — no separate `ddns-keeper/.env` needed for PM2/dev. Standalone deployments (systemd on another host) use their own local `.env` instead, since they don't have the rest of the repo checked out.
 
+**The service is optional and off by default.** In this repo's PM2 setup, `ecosystem.config.js` only registers the `ddns-keeper`/`ddns-keeper-healthcheck` apps when `DDNS_ENABLED=true` is set in the repo-root `.env` — see `doc/pm2.md`. Standalone systemd deployments aren't affected by this toggle (they run independently of PM2).
+
 ## Run Modes
 - **Continuous** (default, used by PM2): starts the HTTP server, runs an immediate update check, then repeats every `POLL_INTERVAL_MS` (default 5 min).
 - **One-shot** (`--once` flag or `DDNS_RUN_MODE=once`, used by the systemd timer): runs a single update check and exits — no HTTP server started.
 
 ## Integration With This Repo
 - **npm workspace**: added to root `package.json` `workspaces`; `npm run build` builds it alongside `client`/`server`/`mcp-server`. Standalone scripts: `npm run dev:ddns`, `npm run build:ddns`.
-- **PM2** (`ecosystem.config.js`): two extra apps — `ddns-keeper` (the service itself, port 3010) and `ddns-keeper-healthcheck` (reuses the existing generic `healthcheck.js`, pointed at `http://localhost:3010/health`). See `doc/pm2.md`.
+- **PM2** (`ecosystem.config.js`): two extra apps, gated behind `DDNS_ENABLED=true` — `ddns-keeper` (the service itself, port 3010) and `ddns-keeper-healthcheck` (reuses the existing generic `healthcheck.js`, pointed at `http://localhost:3010/health`). See `doc/pm2.md`.
 - **Independent deployment**: `ddns-keeper/` also ships its own systemd unit/timer for deployments that don't use this repo's PM2 setup at all.
 
 ## Testing
