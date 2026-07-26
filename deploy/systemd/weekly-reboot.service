@@ -1,0 +1,9 @@
+[Unit]
+Description=Reboot the machine (scheduled maintenance restart)
+# Only meant to be triggered by weekly-reboot.timer — see doc/pm2.md
+# "Scheduled Weekly Reboot" for why this exists (no ECC RAM on the Pi).
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/reboot
+

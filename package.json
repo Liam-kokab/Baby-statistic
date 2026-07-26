@@ -25,6 +25,7 @@
     "pm2:delete": "pm2 delete ecosystem.config.js",
     "pm2:status": "pm2 status",
     "pm2:logs": "pm2 logs",
+    "setup:autostart": "bash scripts/setup-autostart.sh",
     "deploy": "bash deploy.sh",
     "lint": "eslint .",
     "test": "npm run test -w server && npm run test -w client && npm run test -w ddns-keeper"

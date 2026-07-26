@@ -7,6 +7,8 @@ Production runs under [PM2](https://pm2.keymetrics.io/), a Node.js process manag
 |---|---|
 | `ecosystem.config.js` | PM2 app definitions (root of repo) |
 | `healthcheck.js` | Watchdog process — pings `/api/ping` on an interval and restarts the server via the PM2 API after repeated failures |
+| `scripts/setup-autostart.sh` | One-time machine setup (`npm run setup:autostart`) so PM2 + everything it manages survives a reboot — see "Persisting Across Reboots" below |
+| `deploy/systemd/weekly-reboot.service` / `.timer` | Scheduled weekly reboot (Monday 04:30) — see "Scheduled Weekly Reboot" below |
 
 ## Managed Processes
 | Name | Script | Description |
@@ -68,12 +70,58 @@ Other useful scripts:
 | `npm run pm2:delete` | Remove all managed apps from PM2 |
 | `npm run pm2:status` | `pm2 status` — list process states |
 | `npm run pm2:logs` | `pm2 logs` — tail logs for all managed apps |
+| `npm run setup:autostart` | One-time: register PM2 (and nginx/certbot if present) to start on boot — see "Persisting Across Reboots" below |
 
-## Persisting Across Reboots (optional)
-To have PM2 automatically start these apps after a machine reboot:
+## Persisting Across Reboots
+For the app to actually come back up after a power cycle/reboot (e.g. a Raspberry Pi that loses power), PM2 itself must be registered as a boot-time systemd service — `autorestart` only recovers a **crashed** process, it does nothing if the whole machine restarts.
+
+**Automated (recommended)** — run once after the first successful `npm start`, on the Pi itself, as the same (non-root) user PM2 runs as:
 ```bash
-pm2 startup   # follow the printed instructions once
+npm run setup:autostart
+```
+`scripts/setup-autostart.sh` runs `pm2 startup` and executes the `sudo` command it prints automatically (instead of requiring manual copy/paste), then `pm2 save` to freeze the current process list, and — if present on the machine — enables `nginx` and confirms `certbot.timer` are also set to start on boot. It also installs the weekly scheduled reboot (see "Scheduled Weekly Reboot" below). Re-run it any time `ecosystem.config.js`'s app list changes (e.g. toggling `DDNS_ENABLED`), since `pm2 save` needs to re-capture the new list.
+
+**Manual equivalent**, if you'd rather run each step yourself:
+```bash
+pm2 startup   # prints a `sudo env PATH=... pm2 startup systemd ...` command — run exactly what it prints
 pm2 save      # after `npm start`, freeze the current process list
+sudo systemctl enable nginx      # if nginx fronts the app — see doc/nginx.md
+```
+
+Verify everything survives a real reboot:
+```bash
+sudo reboot
+# after it comes back up:
+pm2 status
+systemctl status nginx   # if applicable
+```
+
+## Scheduled Weekly Reboot
+The production machine is a Raspberry Pi **without ECC RAM**, so bit flips / memory corruption can accumulate silently over long uptimes (unlike PM2's crash restart, which only helps once a process actually crashes). To mitigate this, a systemd timer reboots the whole machine **every Monday at 04:30** local time — chosen as the quietest window (overnight, everyone asleep, low traffic).
+
+- `deploy/systemd/weekly-reboot.service` — oneshot unit that runs `/sbin/reboot`.
+- `deploy/systemd/weekly-reboot.timer` — `OnCalendar=Mon *-*-* 04:30:00`, `Persistent=true` (if the Pi was powered off at 04:30, it reboots as soon as it's next back up instead of silently skipping that week).
+
+Installed automatically by `npm run setup:autostart` (step 5). To opt out, set `SKIP_WEEKLY_REBOOT=true` before running it:
+```bash
+SKIP_WEEKLY_REBOOT=true npm run setup:autostart
+```
+
+Since PM2's `pm2 startup` service and `pm2 save`d process list (see above) bring every app back up automatically on boot, the weekly reboot is safe — no manual intervention needed afterward.
+
+To install/manage it manually instead:
+```bash
+sudo cp deploy/systemd/weekly-reboot.service /etc/systemd/system/
+sudo cp deploy/systemd/weekly-reboot.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now weekly-reboot.timer
+
+# Inspect / verify:
+systemctl list-timers weekly-reboot.timer --no-pager   # shows next scheduled run
+sudo systemctl status weekly-reboot.timer
+
+# Disable:
+sudo systemctl disable --now weekly-reboot.timer
 ```
 
 ## Deploying Updates (`deploy.sh`)
