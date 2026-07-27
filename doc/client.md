@@ -32,6 +32,7 @@ client/
       DateRangeFilter/              # DateRangeFilter.tsx + DateRangeFilter.module.css
       DateTimeInput/                # DateTimeInput.tsx + DateTimeInput.module.css
       Input/                        # Input.tsx + Input.module.css
+      Textarea/                     # Textarea.tsx + Textarea.module.css
       InstallBanner/                # PWA install prompt banner
       NavBar/                       # NavBar.tsx + NavBar.module.css (includes logout 🚪)
       PageLayout/                   # PageLayout.tsx + PageLayout.module.css
@@ -49,6 +50,8 @@ client/
       EditSleepPage/
       EditPoopPeePage/
       EditPumpingPage/
+      MilestonePage/
+      EditMilestonePage/
     utils/
       authStore.ts   # localStorage helpers: getAccessToken/getRefreshToken/setTokens/clear/isAuthenticated
       authFetch.ts   # typed fetch wrapper: attaches Bearer token, auto-refreshes on 401, redirects to /login on failure
@@ -76,6 +79,8 @@ client/
 | `/sleep` | `SleepPage` |
 | `/pumping` | `PumpingPage` |
 | `/poop-pee` | `PoopPeePage` |
+| `/milestones` | `MilestonePage` |
+| `/milestones/:id` | `EditMilestonePage` |
 | `/stored-milk/:id` | `EditStoredMilkPage` |
 | `/drank-milk/:id` | `EditDrankMilkPage` |
 | `/sleep/:id` | `EditSleepPage` |
@@ -131,6 +136,12 @@ Props: `label?`, `value`, `onChange`, `type?` (`'text' | 'tel'`), `placeholder?`
 - Renders a `<label>` when `label` is provided
 - Shows error message + red border via `.hasError` modifier
 
+### `Textarea`
+Props: `label?`, `value`, `onChange`, `placeholder?`, `disabled?`, `error?`, `name?`, `rows?` (default `4`)
+
+- Multi-line variant of `Input`; used for free-text notes (e.g. milestone descriptions)
+- Same error/label conventions as `Input`; `resize: vertical`
+
 ### `DateTimeInput`
 Same props as `Input` (minus `type` — always `datetime-local`).
 Sets `color-scheme: light` to prevent dark-mode calendar icon tinting on iOS.
@@ -148,7 +159,7 @@ Renders two date inputs and a three-way toggle:
 ### `NavBar`
 No props. Uses `useNavigate` and `useLocation` hooks internally.
 
-Fixed bottom bar with six emoji buttons. Active page is highlighted with a raised pink pill.
+Fixed bottom bar with four main emoji buttons plus a collapsible **☰ menu** (poop & pee, medicine, milk saved, milestones, settings, logout) for user accounts.
 
 Note: the NavBar includes the device safe-area inset (e.g. `env(safe-area-inset-bottom)`) in its
 total height on mobile so non-active buttons stay vertically centered above the top border. Only
@@ -157,12 +168,12 @@ too high on phones with a home indicator.
 
 | Position | Path | Emoji | Label |
 |---|---|---|---|
-| 1 | `/poop-pee` | 💩 | Poop & Pee |
-| 2 | `/medicine` | 💊 | Medicine |
-| **Centre** | `/` | 🏠 | Home |
-| 4 | `/milk-drank` | 🍼 | Milk Drank |
-| 5 | `/sleep` | 🌙 | Sleep |
-| 6 | `/pumping` | 🥛 | Pumping |
+| 1 | `/pumping` | 🥛 | Pumping |
+| 2 | `/` | 🏠 | Home |
+| 3 | `/milk-drank` | 🍼 | Milk Drank |
+| 4 | `/sleep` | 🌙 | Sleep |
+
+Menu (☰): `/poop-pee` 💩, `/medicine` 💊, `/milk-saved` 🧊, `/milestones` 🏆, `/settings` ⚙️, plus 🚪 logout.
 
 ### `PageLayout`
 Props: `title`, `emoji`, `children`, `gradient?` (`'pink' | 'blue' | 'green' | 'indigo' | 'amber'`)
@@ -197,6 +208,9 @@ Wraps every secondary page with a gradient header banner (curved bottom edge) an
 | `MilkSavedPage` | `/milk-saved` | blue | 🧊 |
 | `MilkDrankPage` | `/milk-drank` | green | 🍼 |
 | `SleepPage` | `/sleep` | indigo | 😴 |
+| `MilestonePage` | `/milestones` | amber (gold) | 🏆 |
+
+Note: `MilestonePage`'s `PageLayout` heading text is **"My first"** (not "Milestones") — component/route/API names stay `Milestone*`/`/api/milestones` for clarity in code, but the displayed page title is short and personal. `EditMilestonePage` displays **"Edit My First"**. Since `PageLayout` derives its per-page CSS variable slug from the `title` prop, the banner color overrides in `styles/variables.css` are keyed as `-my-first-`/`-edit-my-first-` (not `-milestones-`) to match.
 
 ### `HomePage`
 - **Sleep section**: fetches `GET /api/sleep/latest` on mount; shows Sleeping/Awake badge with a live elapsed-time counter (JS `setInterval`, no polling). Timer counts up from `start` when sleeping, and from `end` of last sleep when awake. Clicking Start/End calls POST/PUT and re-fetches latest.
@@ -215,6 +229,14 @@ Collapse state is local to the component (`useState<Set<string>>`).
 
 `MilkDrankPage` shows a stats bar **below** the filter (affected by date range): total ml consumed + avg ml per day (`total ÷ days in range`). If any entry in the period has `source === 'BOOB'`, all totals and averages are marked with `*` (e.g. `340* ml`) to indicate the figure is likely inaccurate. The same `*` marker appears on day and week group headers when that group contains a BOOB entry. Item cards and expanded day rows show a source emoji (🧊 FRIDGE, ❄️ FREEZER, 🤱 BOOB).  
 `MilkSavedPage` shows a stats bar **above** the filter with live fridge/freezer/total stock (not date-filtered).
+
+### `MilestonePage` (`/milestones`) / `EditMilestonePage` (`/milestones/:id`)
+- Logs baby "firsts" — title, optional description, and a `DateTimeInput` for when it happened (defaults to now, editable)
+- `MilestonePage` fetches `GET /api/milestones` (no default date-range filter — history is usually short) and renders newest-first cards
+- **➕ Add milestone** button toggles an inline add form (`Input` for title, `Textarea` for description, `DateTimeInput` for date/time); posts to `POST /api/milestones`
+- Each card shows title + date; if a description is present it's clamped to 2 lines (CSS `-webkit-line-clamp`) and clicking the card (or description) expands/collapses the full text — no extra network call
+- **✏️ edit** button per card navigates to `EditMilestonePage` (`PUT`/`DELETE /api/milestones/:id`)
+- Delete requires a `window.confirm(...)` before calling the API, matching `AdminBabiesPage`/`AdminUsersPage`
 
 ### `SettingsPage` (`/settings`)
 - **Account card**: self-service profile management via `PATCH /api/auth/me`, available to both `user` and `admin` roles:

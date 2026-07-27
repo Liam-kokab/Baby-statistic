@@ -61,7 +61,7 @@ server/
       authenticate.ts   # verify Bearer access token → set req.user
       requireAdmin.ts   # guard: role must be 'admin' (or 'user' + babyId)
     migrations/
-      index.ts        # migrations 001–015
+      index.ts        # migrations 001–017
     utils/
       bodyAs.ts       # casts req.body to Partial<T>
       time.ts         # Oslo timezone helpers

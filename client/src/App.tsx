@@ -18,6 +18,8 @@ import PumpingPage from './pages/PumpingPage/PumpingPage';
 import MilkSavedPage from './pages/MilkSavedPage/MilkSavedPage';
 import EditStoredMilkPage from './pages/EditStoredMilkPage/EditStoredMilkPage';
 import SettingsPage from './pages/SettingsPage/SettingsPage';
+import MilestonePage from './pages/MilestonePage/MilestonePage';
+import EditMilestonePage from './pages/EditMilestonePage/EditMilestonePage';
 import AdminBabiesPage from './pages/AdminBabiesPage/AdminBabiesPage';
 import AdminUsersPage from './pages/AdminUsersPage/AdminUsersPage';
 import styles from './App.module.css';
@@ -51,6 +53,8 @@ const App = () => {
           <Route path="/poop/:id" element={<ProtectedRoute><EditPoopPeePage type="poop" /></ProtectedRoute>} />
           <Route path="/pumping" element={<ProtectedRoute><PumpingPage /></ProtectedRoute>} />
           <Route path="/pumping/:id" element={<ProtectedRoute><EditPumpingPage /></ProtectedRoute>} />
+          <Route path="/milestones" element={<ProtectedRoute><MilestonePage /></ProtectedRoute>} />
+          <Route path="/milestones/:id" element={<ProtectedRoute><EditMilestonePage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

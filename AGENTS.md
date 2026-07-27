@@ -60,7 +60,7 @@ router.get('/', (req: Request, res: Response): void => {
 export default router;
 ```
 
-Existing routes: `servedMilk`, `drankMilk`, `sleep`, `pee`, `poop`, `medicine`, `pumping`, `predictions`, `auth`, `admin`, `baby`, `backup`, `buildTime`, `nappy`, `ping`.
+Existing routes: `servedMilk`, `drankMilk`, `sleep`, `pee`, `poop`, `medicine`, `pumping`, `milestone`, `predictions`, `auth`, `admin`, `baby`, `backup`, `buildTime`, `nappy`, `ping`.
 
 ### Auth & multi-baby scoping
 - `server/src/middleware/authenticate.ts` — verifies the JWT access token (`Authorization: Bearer ...`) and populates `req.user` (`{ id, username, role, babyId, authTime }`).
@@ -88,6 +88,7 @@ Append an entry to the `migrations` array in `server/src/migrations/index.ts`. N
 | `pumping` | timestamp only (added `009_pumping`) |
 | `prediction_log` | ML training data for milk-amount predictions (added `011_prediction_logs`, evolved `012_prediction_logs_v2`) |
 | `babies`, `users`, `baby_users`, `refresh_tokens` | multi-baby/multi-user auth tables (added `014_auth`) |
+| `milestone` | `title`, `description` (nullable), `occurred_at` (added `017_milestones`) |
 
 Migration `015_add_baby_and_user_cols` added `baby_id` + `created_by` columns to every event table above (except the auth tables themselves) for per-baby data isolation; `016_add_user_display_name` added `name` to `users`. See `doc/db.md` for the full migration list.
 
@@ -150,6 +151,7 @@ import type { TDataOrError } from 'baby-statistic-common';
 | `medicine.ts` | `TMedicineDb`, `TMedicine`, `TPostMedicine`, `TMedicineLogDb`, `TMedicineLog`, `TPostMedicineLog`, `TMedicineWithLatestLog` |
 | `pumping.ts` | `TPumpingDb`, `TPumping`, `TPostPumping` |
 | `summaries.ts` | `TDrankMilkSummary`, `TSleepSummary`, `TNappySummary`, `TPumpingSummary` |
+| `milestone.ts` | `TMilestoneDb`, `TMilestone`, `TPostMilestone`, `TUpdateMilestone` |
 | `auth.ts` | `TUserRole`, `TUserConfig`, `TUserDb`, `TUser`, `TBabyDb`, `TBaby`, `TRefreshTokenDb`, `TLoginRequest`, `TLoginResponse`, `TRefreshResponse`, `TJwtPayload`, `TAdminCreateUser`, `TUpdateMeRequest`, `TAdminUpdateUser`, `TAdminCreateBaby` |
 | `TUtils.ts` | `TDataOrError<T>` |
 | `index.ts` | re-exports all of the above |

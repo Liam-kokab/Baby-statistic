@@ -158,7 +158,8 @@ Returns all rows from every data table as a full DB dump.
   "poop":          [ ...rows ],
   "medicine":      [ ...rows ],
   "medicine_log":  [ ...rows ],
-  "pumping":       [ ...rows ]
+  "pumping":       [ ...rows ],
+  "milestone":     [ ...rows ]
 }
 ```
 
@@ -185,7 +186,7 @@ Restores (upserts) rows into the DB. The body may omit any table or individual f
 
 ## `DELETE /api/backup/purge` *(admin only, requires recent login)*
 
-Irreversibly deletes **all rows from every data table** (`served_milk`, `drank_milk`, `sleep`, `pee`, `poop`, `medicine`, `medicine_log`, `pumping`, `prediction_log`) across **all babies**, and resets their auto-increment sequences. Does **not** touch `babies`, `users`, `baby_users`, or `refresh_tokens` — accounts and baby records survive a purge.
+Irreversibly deletes **all rows from every data table** (`served_milk`, `drank_milk`, `sleep`, `pee`, `poop`, `medicine`, `medicine_log`, `pumping`, `milestone`, `prediction_log`) across **all babies**, and resets their auto-increment sequences. Does **not** touch `babies`, `users`, `baby_users`, or `refresh_tokens` — accounts and baby records survive a purge.
 
 **Handler**: `server/src/routes/backup.ts`
 
@@ -201,7 +202,7 @@ Irreversibly deletes **all rows from every data table** (`served_milk`, `drank_m
 
 **Response `200`**:
 ```json
-{ "ok": true, "deleted": { "served_milk": 12, "drank_milk": 40, "sleep": 20, "pee": 15, "poop": 10, "medicine": 2, "medicine_log": 30, "pumping": 8, "prediction_log": 40, "users": 3, "babies": 2 } }
+{ "ok": true, "deleted": { "served_milk": 12, "drank_milk": 40, "sleep": 20, "pee": 15, "poop": 10, "medicine": 2, "medicine_log": 30, "pumping": 8, "milestone": 3, "prediction_log": 40, "users": 3, "babies": 2 } }
 ```
 
 **Response `400`**: `{ "error": "Refusing to purge: send { \"confirm\": \"PURGE\" } in the request body." }`
@@ -449,4 +450,28 @@ Logs a new pumping event (timestamp = now).
 
 **Response `201`**: `TPumping`
 
+---
 
+## Milestones — `/api/milestones`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/milestones` | List all (optional `from`/`to` query, filters on `occurredAt`) |
+| GET | `/api/milestones/:id` | Get one |
+| POST | `/api/milestones` | Create |
+| PUT | `/api/milestones/:id` | Update |
+| DELETE | `/api/milestones/:id` | Delete |
+
+**Handler**: `server/src/routes/milestone.ts`
+
+**GET query params**: `from`, `to` (ISO datetime, filter on `occurredAt`)
+
+**POST body**: `{ "title": "First steps", "description"?: "...", "occurredAt"?: "2026-07-27T10:00:00" }` — `occurredAt` defaults to now if omitted.
+
+**PUT body**: `{ "title"?: "...", "description"?: "..." | null, "occurredAt"?: "..." }` (partial update)
+
+**Response `200`/`201`**: `TMilestone`
+
+**Response `400`**: `{ "error": "title is required" }` (create) or `{ "error": "title cannot be empty" }` (update)
+
+**Response `404`**: `{ "error": "Not found" }`

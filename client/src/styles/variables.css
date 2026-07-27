@@ -99,6 +99,10 @@
   --banner-amber-poop-pee-mid:  #3a1f14;
   --banner-amber-poop-pee-end:  #3a1f14;
 
+  --banner-amber-my-first-start: #2b2008;
+  --banner-amber-my-first-mid:  #4a3610;
+  --banner-amber-my-first-end:  #6b4a12;
+
   --banner-green-medicines-start: #16221a;
   --banner-green-medicines-mid:  #122018;
   --banner-green-medicines-end:  #122018;
@@ -128,6 +132,9 @@
   --banner-amber-edit-pee-start: var(--banner-amber-poop-pee-start);
   --banner-amber-edit-pee-mid: var(--banner-amber-poop-pee-mid);
   --banner-amber-edit-pee-end: var(--banner-amber-poop-pee-end);
+  --banner-amber-edit-my-first-start: var(--banner-amber-my-first-start);
+  --banner-amber-edit-my-first-mid:  var(--banner-amber-my-first-mid);
+  --banner-amber-edit-my-first-end:  var(--banner-amber-my-first-end);
   --hero-bg-pink:    var(--banner-title-bg);
   --hero-bg-blue:    var(--banner-title-bg);
   --hero-bg-green:   var(--banner-title-bg);
@@ -198,6 +205,10 @@
   --banner-amber-poop-pee-mid:  #2a1906;
   --banner-amber-poop-pee-end:  #3c2208;
 
+  --banner-amber-my-first-start: #241c08;
+  --banner-amber-my-first-mid:  #3d2f0d;
+  --banner-amber-my-first-end:  #574112;
+
   --banner-green-medicines-start: #062617;
   --banner-green-medicines-mid:  #0b3b2e;
   --banner-green-medicines-end:  #114a3b;
@@ -227,6 +238,9 @@
   --banner-amber-edit-pee-start: var(--banner-amber-poop-pee-start);
   --banner-amber-edit-pee-mid: var(--banner-amber-poop-pee-mid);
   --banner-amber-edit-pee-end: var(--banner-amber-poop-pee-end);
+  --banner-amber-edit-my-first-start: var(--banner-amber-my-first-start);
+  --banner-amber-edit-my-first-mid:  var(--banner-amber-my-first-mid);
+  --banner-amber-edit-my-first-end:  var(--banner-amber-my-first-end);
 }
 
 .theme-neutral-dark {
@@ -292,6 +306,10 @@
   --banner-amber-poop-pee-mid:  #281a0b;
   --banner-amber-poop-pee-end:  #3a2210;
 
+  --banner-amber-my-first-start: #221c07;
+  --banner-amber-my-first-mid:  #3a300d;
+  --banner-amber-my-first-end:  #524312;
+
   --banner-green-medicines-start: #06220f;
   --banner-green-medicines-mid:  #0a3a24;
   --banner-green-medicines-end:  #145031;
@@ -321,6 +339,9 @@
   --banner-amber-edit-pee-start: var(--banner-amber-poop-pee-start);
   --banner-amber-edit-pee-mid: var(--banner-amber-poop-pee-mid);
   --banner-amber-edit-pee-end: var(--banner-amber-poop-pee-end);
+  --banner-amber-edit-my-first-start: var(--banner-amber-my-first-start);
+  --banner-amber-edit-my-first-mid:  var(--banner-amber-my-first-mid);
+  --banner-amber-edit-my-first-end:  var(--banner-amber-my-first-end);
 }
 
 /* Theme color palettes — applied by adding one of these classes to <html> */
@@ -390,6 +411,8 @@
   --hero-bg-edit-sleep: var(--hero-bg-indigo);
   --hero-bg-edit-poop: var(--hero-bg-amber);
   --hero-bg-edit-pee: var(--hero-bg-amber);
+  --hero-bg-my-first: var(--hero-bg-amber);
+  --hero-bg-edit-my-first: var(--hero-bg-amber);
   /* Per-page banner gradients (start/mid/end) */
   --banner-pink-settings-start: var(--banner-pink-start);
   --banner-pink-settings-mid: var(--banner-pink-end);
@@ -409,6 +432,9 @@
   --banner-amber-poop-pee-start: var(--banner-amber-start);
   --banner-amber-poop-pee-mid: var(--banner-amber-end);
   --banner-amber-poop-pee-end: var(--banner-amber-end);
+  --banner-amber-my-first-start: #fff3d6;
+  --banner-amber-my-first-mid:  #ffdb70;
+  --banner-amber-my-first-end:  #ffc107;
   --banner-green-medicines-start: var(--banner-green-start);
   --banner-green-medicines-mid: var(--banner-green-end);
   --banner-green-medicines-end: var(--banner-green-end);
@@ -437,6 +463,9 @@
   --banner-amber-edit-pee-start: var(--banner-amber-start);
   --banner-amber-edit-pee-mid: var(--banner-amber-end);
   --banner-amber-edit-pee-end: var(--banner-amber-end);
+  --banner-amber-edit-my-first-start: var(--banner-amber-my-first-start);
+  --banner-amber-edit-my-first-mid: var(--banner-amber-my-first-mid);
+  --banner-amber-edit-my-first-end: var(--banner-amber-my-first-end);
 }
 
 .theme-boy {
@@ -506,6 +535,12 @@
   --banner-amber-poop-pee-start: var(--banner-amber-start);
   --banner-amber-poop-pee-mid: var(--banner-amber-end);
   --banner-amber-poop-pee-end: var(--banner-amber-end);
+  --banner-amber-my-first-start: #fff3d6;
+  --banner-amber-my-first-mid:  #ffdb70;
+  --banner-amber-my-first-end:  #ffc107;
+  --banner-amber-edit-my-first-start: var(--banner-amber-my-first-start);
+  --banner-amber-edit-my-first-mid: var(--banner-amber-my-first-mid);
+  --banner-amber-edit-my-first-end: var(--banner-amber-my-first-end);
   /* Per-page mappings (use page slug) */
   --hero-bg-settings: var(--hero-bg-pink);
   --hero-bg-milk-saved: var(--hero-bg-blue);
@@ -522,6 +557,8 @@
   --hero-bg-edit-sleep: var(--hero-bg-indigo);
   --hero-bg-edit-poop: var(--hero-bg-amber);
   --hero-bg-edit-pee: var(--hero-bg-amber);
+  --hero-bg-my-first: var(--hero-bg-amber);
+  --hero-bg-edit-my-first: var(--hero-bg-amber);
   /* Nav overlay for light themes: very subtle white overlay to make the nav slightly lighter */
   --nav-overlay: rgba(255, 255, 255, 0.06);
 }
@@ -593,6 +630,12 @@
   --banner-amber-poop-pee-start: var(--banner-amber-start);
   --banner-amber-poop-pee-mid: var(--banner-amber-end);
   --banner-amber-poop-pee-end: var(--banner-amber-end);
+  --banner-amber-my-first-start: #fff3d6;
+  --banner-amber-my-first-mid:  #ffdb70;
+  --banner-amber-my-first-end:  #ffc107;
+  --banner-amber-edit-my-first-start: var(--banner-amber-my-first-start);
+  --banner-amber-edit-my-first-mid: var(--banner-amber-my-first-mid);
+  --banner-amber-edit-my-first-end: var(--banner-amber-my-first-end);
   /* Per-page mappings (use page slug) */
   --hero-bg-settings: var(--hero-bg-pink);
   --hero-bg-milk-saved: var(--hero-bg-blue);
@@ -609,4 +652,6 @@
   --hero-bg-edit-sleep: var(--hero-bg-indigo);
   --hero-bg-edit-poop: var(--hero-bg-amber);
   --hero-bg-edit-pee: var(--hero-bg-amber);
+  --hero-bg-my-first: var(--hero-bg-amber);
+  --hero-bg-edit-my-first: var(--hero-bg-amber);
 }

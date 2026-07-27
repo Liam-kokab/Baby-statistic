@@ -5,6 +5,7 @@ import { peeTools } from './pee';
 import { poopTools } from './poop';
 import { medicineTools } from './medicine';
 import { pumpingTools } from './pumping';
+import { milestoneTools } from './milestone';
 import { backupTools } from './backup';
 import type { ToolDefinition } from '../types';
 
@@ -16,5 +17,6 @@ export const allTools: ToolDefinition[] = [
   ...poopTools,
   ...medicineTools,
   ...pumpingTools,
+  ...milestoneTools,
   ...backupTools,
 ];

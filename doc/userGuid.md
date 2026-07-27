@@ -121,6 +121,19 @@ Same Item / Day / Week views as Milk Saved. Each entry shows amount (ml) and tim
 
 ---
 
+## Milestones Page (`/milestones`)
+
+Log baby "firsts" and other memorable events (first steps, first smile, first time sitting up, etc.).
+
+1. Tap **➕ Add milestone**.
+2. Enter a **Title** (required) and, optionally, a longer **Description**.
+3. The **Date & time** field defaults to now — change it if the milestone happened earlier.
+4. Tap **💾 Save**.
+
+Logged milestones appear as cards, newest first. If a milestone has a description, only the first couple of lines are shown — tap the card to expand and read the full text. Tap **✏️** on a card to edit its title, description, or date, or to delete it (you'll be asked to confirm before deletion).
+
+---
+
 ## User Stories
 
 ### As a parent, I want to log when the baby falls asleep

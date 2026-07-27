@@ -22,6 +22,7 @@ const USER_MENU_ITEMS: TNavItem[] = [
   { path: '/poop-pee',   emoji: '💩', label: 'Poop & Pee' },
   { path: '/medicine',   emoji: '💊', label: 'Medicine'   },
   { path: '/milk-saved', emoji: '🧊', label: 'Milk Saved' },
+  { path: '/milestones', emoji: '🏆', label: 'Milestones' },
   { path: '/settings',   emoji: '⚙️', label: 'Settings'   },
 ];
 

@@ -510,6 +510,23 @@ export const migrations: TMigration[] = [
     name: '016_add_user_display_name',
     up: `ALTER TABLE users ADD COLUMN name TEXT NOT NULL DEFAULT '';`,
   },
+
+  {
+    name: '017_milestones',
+    up: `
+      CREATE TABLE IF NOT EXISTS milestone (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        title        TEXT    NOT NULL,
+        description  TEXT,
+        occurred_at  TEXT    NOT NULL,
+        baby_id      INTEGER NOT NULL DEFAULT 1,
+        created_by   INTEGER NOT NULL DEFAULT 0,
+        created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_milestone_baby_id ON milestone(baby_id);
+    `,
+  },
 ];
 
 

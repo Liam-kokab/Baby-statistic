@@ -113,7 +113,44 @@
     "description": "Log a new pumping event. Timestamp is set to now."
   },
 
+  "get_milestones": {
+    "description": "List baby milestones/firsts (e.g. first steps, first smile). Each has a title, optional description, and the date/time it happened (occurredAt). Optionally filter by date range on occurredAt.",
+    "params": {
+      "from": "Oslo local datetime (e.g. \"2026-05-16T00:00:00\") — filter milestones that occurred on or after this time",
+      "to": "Oslo local datetime (e.g. \"2026-05-16T23:59:59\") — filter milestones that occurred on or before this time"
+    }
+  },
+  "get_milestone": {
+    "description": "Get a single milestone by ID.",
+    "params": {
+      "id": "The milestone ID"
+    }
+  },
+  "create_milestone": {
+    "description": "Log a new baby milestone/first. occurredAt defaults to now if not provided.",
+    "params": {
+      "title": "Short title of the milestone (e.g. \"First steps\")",
+      "description": "Optional longer note about the milestone",
+      "occurredAt": "Oslo local datetime (e.g. \"2026-05-16T08:00:00\") when it happened (defaults to now)"
+    }
+  },
+  "update_milestone": {
+    "description": "Update an existing milestone's title, description, and/or when it occurred. Only provided fields are changed.",
+    "params": {
+      "id": "The milestone ID (get from get_milestones)",
+      "title": "New title, if changing",
+      "description": "New description, if changing (pass null to clear it)",
+      "occurredAt": "New Oslo local datetime, if changing"
+    }
+  },
+  "delete_milestone": {
+    "description": "Delete a milestone by ID. This cannot be undone.",
+    "params": {
+      "id": "The milestone ID (get from get_milestones)"
+    }
+  },
+
   "get_all_data": {
-    "description": "Get a full dump of ALL data from every table (served_milk, drank_milk, sleep, pee, poop, medicine, medicine_log, pumping). Use this for broad analysis across all categories. Returns a large JSON object keyed by table name."
+    "description": "Get a full dump of ALL data from every table (served_milk, drank_milk, sleep, pee, poop, medicine, medicine_log, pumping, milestone). Use this for broad analysis across all categories. Returns a large JSON object keyed by table name."
   }
 }

@@ -50,6 +50,8 @@ A custom SQLite function `now_oslo()` is registered on the connection at startup
 | `013_medicine_is_active_ensure` | Ensures `is_active` is not NULL in `medicine` | all |
 | `014_auth` | Creates `babies`, `users`, `baby_users`, and `refresh_tokens` tables | all |
 | `015_add_baby_and_user_cols` | Inserts default baby (id=1), adds `baby_id` + `created_by` to all data tables | all |
+| `016_add_user_display_name` | Adds `name` to `users` | all |
+| `017_milestones` | Creates `milestone` table (baby milestones/firsts: title, description, occurred_at) | all |
 
 `002_seed_test_data` and `004_clear_test_data` are conditionally included in the migrations array based on `process.env.NODE_ENV`, so they never cross-pollute environments.
 
@@ -122,6 +124,17 @@ A custom SQLite function `now_oslo()` is registered on the connection at startup
 |---|---|---|
 | `id` | INTEGER PK | autoincrement |
 | `created_at` | TEXT | Oslo local datetime |
+
+### `milestone` (migration `017_milestones`)
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | autoincrement |
+| `title` | TEXT | milestone title (e.g. "First steps") |
+| `description` | TEXT \| NULL | optional longer note |
+| `occurred_at` | TEXT | Oslo local datetime — when the milestone happened (user-editable, defaults to now) |
+| `baby_id` | INTEGER | which baby |
+| `created_by` | INTEGER | which user created it |
+| `created_at` | TEXT | Oslo local datetime — when the record was logged |
 
 ### `prediction_log` (migration `011_prediction_logs`)
 | Column             | Type            | Notes                                                                                                                                                                                                                             |

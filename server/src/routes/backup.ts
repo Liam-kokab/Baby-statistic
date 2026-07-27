@@ -19,6 +19,7 @@ const DATA_TABLES = [
   'medicine',
   'medicine_log',
   'pumping',
+  'milestone',
 ] as const;
 
 // Tables purged by DELETE /api/backup/purge. Same as DATA_TABLES, plus

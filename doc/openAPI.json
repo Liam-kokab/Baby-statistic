@@ -20,7 +20,8 @@
     { "name": "Sleep" },
     { "name": "Pee" },
     { "name": "Poop" },
-    { "name": "Medicine" }
+    { "name": "Medicine" },
+    { "name": "Milestones" }
   ],
   "security": [{ "bearerAuth": [] }],
   "paths": {
@@ -1154,6 +1155,77 @@
           }
         }
       }
+    },
+    "/api/milestones": {
+      "get": {
+        "tags": ["Milestones"],
+        "summary": "List all milestones",
+        "description": "from/to filter on occurredAt instead of created_at.",
+        "parameters": [
+          { "$ref": "#/components/parameters/From" },
+          { "$ref": "#/components/parameters/To" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Milestone" } } } }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Milestones"],
+        "summary": "Create a milestone",
+        "description": "occurredAt defaults to now if omitted.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MilestonePost" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Milestone" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/api/milestones/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/Id" }],
+      "get": {
+        "tags": ["Milestones"],
+        "summary": "Get a milestone by ID",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Milestone" } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "tags": ["Milestones"],
+        "summary": "Update a milestone",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MilestoneUpdate" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Milestone" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["Milestones"],
+        "summary": "Delete a milestone",
+        "responses": {
+          "204": { "description": "Deleted" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
     }
   },
   "components": {
@@ -1439,7 +1511,8 @@
           "poop":         { "type": "array", "items": { "type": "object", "additionalProperties": true } },
           "medicine":     { "type": "array", "items": { "type": "object", "additionalProperties": true } },
           "medicine_log": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
-          "pumping":      { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+          "pumping":      { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "milestone":    { "type": "array", "items": { "type": "object", "additionalProperties": true } }
         }
       },
       "Medicine": {
@@ -1472,6 +1545,33 @@
         "type": "object",
         "properties": {
           "takenAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Milestone": {
+        "type": "object",
+        "properties": {
+          "id":          { "type": "integer" },
+          "title":       { "type": "string", "example": "First steps" },
+          "description": { "type": "string", "nullable": true },
+          "occurredAt":  { "type": "string", "format": "date-time" },
+          "createdAt":   { "type": "string", "format": "date-time" }
+        }
+      },
+      "MilestonePost": {
+        "type": "object",
+        "properties": {
+          "title":       { "type": "string", "example": "First steps" },
+          "description": { "type": "string", "nullable": true },
+          "occurredAt":  { "type": "string", "format": "date-time", "description": "Defaults to now if omitted" }
+        },
+        "required": ["title"]
+      },
+      "MilestoneUpdate": {
+        "type": "object",
+        "properties": {
+          "title":       { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "occurredAt":  { "type": "string", "format": "date-time" }
         }
       }
     }

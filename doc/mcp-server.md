@@ -26,6 +26,7 @@ mcp-server/
       poop.ts           # Poop event tools
       medicine.ts       # Medicine dose logging
       pumping.ts        # Pumping tools
+      milestone.ts      # Milestone (baby firsts) CRUD tools
       backup.ts         # Full data dump for analysis
 ```
 
@@ -115,6 +116,15 @@ All tool descriptions are stored in `src/descriptions.json` as a flat key-value 
 | `get_pumping` | List pumping entries |
 | `get_latest_pumping` | Get most recent pumping |
 | `log_pumping` | Log a pumping event |
+
+### Milestones
+| Tool | Description |
+|---|---|
+| `get_milestones` | List milestones/firsts (optional date filter on `occurredAt`) |
+| `get_milestone` | Get one milestone by ID |
+| `create_milestone` | Log a new milestone (`title`, optional `description`, `occurredAt` defaults to now) |
+| `update_milestone` | Update a milestone's title, description, and/or `occurredAt` |
+| `delete_milestone` | Delete a milestone by ID |
 
 ### Backup / Analysis
 | Tool | Description |

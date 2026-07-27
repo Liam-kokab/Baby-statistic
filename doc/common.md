@@ -17,6 +17,8 @@ common/
     sleep.ts        # sleep types (TSleepDb, TSleep, TPostSleep)
     pee.ts          # pee types (TPeeDb, TPee, TPostPee)
     poop.ts         # poop types (TPoopDb, TPoop, TPostPoop)
+    pumping.ts      # pumping types (TPumpingDb, TPumping, TPostPumping)
+    milestone.ts    # milestone types (TMilestoneDb, TMilestone, TPostMilestone, TUpdateMilestone)
     TUtils.ts       # shared utility types (TDataOrError)
   util/
     index.ts      # barrel re-export of all utilities
@@ -103,6 +105,14 @@ Each DB table has its own type file with three types:
 | `TPumpingDb` | DB row — snake_case fields |
 | `TPumping` | App type — `id`, `createdAt` |
 | `TPostPumping` | POST body — `{}` (no fields; timestamp created server-side) |
+
+### `milestone.ts`
+| Type | Description |
+|---|---|
+| `TMilestoneDb` | DB row — `id`, `title`, `description`, `occurred_at`, `baby_id`, `created_by`, `created_at` |
+| `TMilestone` | App type — camelCase: `id`, `title`, `description`, `occurredAt`, `createdAt` |
+| `TPostMilestone` | POST body — `title`, `description?`, `occurredAt?` (defaults to now if omitted) |
+| `TUpdateMilestone` | PUT body — `title?`, `description?`, `occurredAt?` (partial update) |
 
 ### `TUtils.ts`
 | Type | Description |
