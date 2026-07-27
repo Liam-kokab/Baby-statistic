@@ -102,10 +102,13 @@ router.post('/restore', json({ limit: '20mb' }), (req: Request, res: Response): 
   }
 });
 
-// Irreversibly deletes ALL rows from every data table (all babies). Requires
-// { "confirm": "PURGE" } in the body as a safeguard against accidental calls,
-// and a login within the last PURGE_MAX_AUTH_AGE_SECONDS (requireRecentAuth) —
-// a silent token refresh does NOT count, the admin must log out and back in.
+// Irreversibly deletes ALL rows from every data table (all babies), plus every
+// baby and every non-admin user (baby_users / refresh_tokens rows for those
+// users cascade-delete automatically — see migration 014_auth). Only admin
+// accounts survive. Requires { "confirm": "PURGE" } in the body as a
+// safeguard against accidental calls, and a login within the last
+// PURGE_MAX_AUTH_AGE_SECONDS (requireRecentAuth) — a silent token refresh does
+// NOT count, the admin must log out and back in.
 // Body is already parsed by the global express.json() middleware (see index.ts) —
 // only /api/backup/restore is excluded from that, so no extra json() parser here.
 router.delete('/purge', requireRecentAuth(PURGE_MAX_AUTH_AGE_SECONDS), (req: Request, res: Response): void => {
@@ -127,6 +130,14 @@ router.delete('/purge', requireRecentAuth(PURGE_MAX_AUTH_AGE_SECONDS), (req: Req
       db.prepare(
         `DELETE FROM sqlite_sequence WHERE name IN (${placeholders})`
       ).run(...PURGE_TABLES);
+
+      // Wipe every non-admin user (cascades baby_users + refresh_tokens for
+      // them) and every baby, leaving only admin accounts behind.
+      const { changes: usersDeleted } = db.prepare(`DELETE FROM users WHERE role != 'admin'`).run();
+      stats.users = usersDeleted;
+      const { changes: babiesDeleted } = db.prepare('DELETE FROM babies').run();
+      stats.babies = babiesDeleted;
+      db.prepare(`DELETE FROM sqlite_sequence WHERE name = 'babies'`).run();
     });
     purgeAll();
     res.json({ ok: true, deleted: stats });

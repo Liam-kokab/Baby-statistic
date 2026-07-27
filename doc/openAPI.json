@@ -393,7 +393,7 @@
       "delete": {
         "tags": ["Backup"],
         "summary": "Irreversibly delete ALL data (admin only, requires recent login)",
-        "description": "Deletes every row from every data table (served_milk, drank_milk, sleep, pee, poop, medicine, medicine_log, pumping, prediction_log) across all babies, and resets their auto-increment sequences. Does not touch babies, users, baby_users, or refresh_tokens. Requires the caller's access token to have an authTime (set only at login, never renewed by /api/auth/refresh) no older than 5 minutes — see doc/auth.md.",
+        "description": "Deletes every row from every data table (served_milk, drank_milk, sleep, pee, poop, medicine, medicine_log, pumping, prediction_log) across all babies, and resets their auto-increment sequences. Also deletes every baby and every non-admin user (baby_users and refresh_tokens for those users cascade-delete). Only admin accounts survive. Requires the caller's access token to have an authTime (set only at login, never renewed by /api/auth/refresh) no older than 5 minutes — see doc/auth.md.",
         "requestBody": {
           "required": true,
           "content": {

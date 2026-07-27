@@ -201,7 +201,7 @@ Irreversibly deletes **all rows from every data table** (`served_milk`, `drank_m
 
 **Response `200`**:
 ```json
-{ "ok": true, "deleted": { "served_milk": 12, "drank_milk": 40, "sleep": 20, "pee": 15, "poop": 10, "medicine": 2, "medicine_log": 30, "pumping": 8, "prediction_log": 40 } }
+{ "ok": true, "deleted": { "served_milk": 12, "drank_milk": 40, "sleep": 20, "pee": 15, "poop": 10, "medicine": 2, "medicine_log": 30, "pumping": 8, "prediction_log": 40, "users": 3, "babies": 2 } }
 ```
 
 **Response `400`**: `{ "error": "Refusing to purge: send { \"confirm\": \"PURGE\" } in the request body." }`
