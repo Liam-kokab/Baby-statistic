@@ -15,6 +15,7 @@ import { formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './MedicinePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
@@ -36,6 +37,7 @@ type TLogWithName = TMedicineLog & { medicineName: string };
 const MedicinePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const from = searchParams.get('from') ?? getDefaultFrom();
   const to   = searchParams.get('to')   ?? getDefaultTo();
@@ -140,7 +142,7 @@ const MedicinePage = () => {
           onClick={() => toggleMed(medKey)}
         >
           <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}💊 {items[0].medicineName}</span>
-          <span className={styles.dayTotal}>{items.length} dose{items.length !== 1 ? 's' : ''}</span>
+          <span className={styles.dayTotal}>{items.length} {items.length !== 1 ? t('MEDICINE_PAGE_DOSES') : t('MEDICINE_PAGE_DOSE')}</span>
         </div>
         {isOpen ? (
           sorted.map((item) => (
@@ -174,14 +176,14 @@ const MedicinePage = () => {
     return (
       <div className={styles.list}>
         {logs.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 💊</p>
+          <p className={styles.empty}>{t('MEDICINE_PAGE_NO_RECORDS')}</p>
         ) : (
           groups.map(({ name, items }, idx) =>
             renderMedItems(items, `item-${name}`, hasMore && idx === Math.max(0, groups.length - 5))
           )
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>All {logs.length} records loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_RECORDS_LOADED', { count: logs.length })}</p> : null}
       </div>
     );
   };
@@ -191,7 +193,7 @@ const MedicinePage = () => {
     return (
       <div className={styles.list}>
         {logs.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 💊</p>
+          <p className={styles.empty}>{t('MEDICINE_PAGE_NO_RECORDS')}</p>
         ) : (
           groups.map(({ name, items }, idx) => {
             const medKey = `day-med-${name}`;
@@ -209,7 +211,7 @@ const MedicinePage = () => {
                   onClick={() => toggleMed(medKey)}
                 >
                   <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}💊 {name}</span>
-                  <span className={styles.dayTotal}>{items.length} dose{items.length !== 1 ? 's' : ''}</span>
+                  <span className={styles.dayTotal}>{items.length} {items.length !== 1 ? t('MEDICINE_PAGE_DOSES') : t('MEDICINE_PAGE_DOSE')}</span>
                 </div>
                 {isOpen ? (
                   days.map(({ date, items: dayItems, taken }) => {
@@ -225,9 +227,9 @@ const MedicinePage = () => {
                             {' '}📅 {formatDateWithWeekday(date)}
                           </span>
                           {taken ? (
-                            <span className={styles.dayTotal}>{dayItems.length} dose{dayItems.length !== 1 ? 's' : ''}</span>
+                            <span className={styles.dayTotal}>{dayItems.length} {dayItems.length !== 1 ? t('MEDICINE_PAGE_DOSES') : t('MEDICINE_PAGE_DOSE')}</span>
                           ) : (
-                            <span className={styles.missedLabel}>❌ Not taken</span>
+                            <span className={styles.missedLabel}>{t('MEDICINE_PAGE_NOT_TAKEN')}</span>
                           )}
                         </div>
                         {isDayOpen && taken ? (
@@ -246,8 +248,8 @@ const MedicinePage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>All days loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_DAYS_LOADED')}</p> : null}
       </div>
     );
   };
@@ -257,7 +259,7 @@ const MedicinePage = () => {
     return (
       <div className={styles.list}>
         {logs.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 💊</p>
+          <p className={styles.empty}>{t('MEDICINE_PAGE_NO_RECORDS')}</p>
         ) : (
           groups.map(({ name, items }, idx) => {
             const medKey = `week-med-${name}`;
@@ -272,7 +274,7 @@ const MedicinePage = () => {
                   onClick={() => toggleMed(medKey)}
                 >
                   <span><span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}💊 {name}</span>
-                  <span className={styles.dayTotal}>{items.length} dose{items.length !== 1 ? 's' : ''}</span>
+                  <span className={styles.dayTotal}>{items.length} {items.length !== 1 ? t('MEDICINE_PAGE_DOSES') : t('MEDICINE_PAGE_DOSE')}</span>
                 </div>
                 {isOpen ? (
                   weeks.map(({ weekKey, weekLabel, days }) => {
@@ -282,7 +284,7 @@ const MedicinePage = () => {
                       <div key={weekKey} className={styles.weekGroup}>
                         <div className={styles.weekHeader} onClick={() => toggleWeek(weekKey)}>
                           <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
-                          <span className={styles.weekTotal}>{weekCount} doses</span>
+                          <span className={styles.weekTotal}>{weekCount} {t('MEDICINE_PAGE_DOSES')}</span>
                         </div>
                         {isWeekOpen ? (
                           days.map(({ date, items: dayItems }) => {
@@ -291,7 +293,7 @@ const MedicinePage = () => {
                               <div key={date} className={styles.dayGroup}>
                                 <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
                                   <span><span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date, false)}</span>
-                                  <span className={styles.dayTotal}>{dayItems.length} dose{dayItems.length !== 1 ? 's' : ''}</span>
+                                  <span className={styles.dayTotal}>{dayItems.length} {dayItems.length !== 1 ? t('MEDICINE_PAGE_DOSES') : t('MEDICINE_PAGE_DOSE')}</span>
                                 </div>
                                 {isDayOpen ? (
                                   dayItems.map((item) => (
@@ -313,14 +315,14 @@ const MedicinePage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && logs.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_WEEKS_LOADED')}</p> : null}
       </div>
     );
   };
 
   return (
-    <PageLayout title="Medicines" emoji="💊" gradient="green" ref={visibilityRef}>
+    <PageLayout title={t('MEDICINE_PAGE_TITLE')} emoji="💊" gradient="green" ref={visibilityRef}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
 
       {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}
@@ -330,13 +332,13 @@ const MedicinePage = () => {
 
       <div className={styles.settingsSection}>
         <button className={styles.settingsToggle} onClick={() => setSettingsOpen((o) => !o)}>
-          <span className={`${styles.chevron} ${settingsOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}⚙️ Settings
+          <span className={`${styles.chevron} ${settingsOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}{t('MEDICINE_PAGE_SETTINGS')}
         </button>
         {settingsOpen ? (
           <div className={styles.settingsBody}>
-            <h3 className={styles.settingsTitle}>Medicines</h3>
+            <h3 className={styles.settingsTitle}>{t('MEDICINE_PAGE_MEDICINES')}</h3>
             {allMedicines.length === 0 ? (
-              <p className={styles.empty}>No medicines added yet.</p>
+              <p className={styles.empty}>{t('MEDICINE_PAGE_NONE_ADDED')}</p>
             ) : (
               <div className={styles.medicineList}>
                 {allMedicines.map((m) => (
@@ -348,11 +350,11 @@ const MedicinePage = () => {
                 ))}
               </div>
             )}
-            <h3 className={styles.settingsTitle}>Add medicine</h3>
+            <h3 className={styles.settingsTitle}>{t('MEDICINE_PAGE_ADD_MEDICINE')}</h3>
             {addError ? <p className={styles.errorMsg}>⚠️ {addError}</p> : null}
             <div className={styles.addForm}>
-              <Input label="Name" value={newName} onChange={setNewName} placeholder="e.g. Vitamin D" name="medicineName" />
-              <Button text="Add medicine" emoji="➕" onClick={handleAddMedicine} loading={addLoading} disabled={!newName.trim()} />
+              <Input label={t('COMMON_NAME')} value={newName} onChange={setNewName} placeholder={t('MEDICINE_PAGE_NAME_PLACEHOLDER')} name="medicineName" />
+              <Button text={t('MEDICINE_PAGE_ADD_MEDICINE')} emoji="➕" onClick={handleAddMedicine} loading={addLoading} disabled={!newName.trim()} />
             </div>
           </div>
         ) : null}

@@ -5,6 +5,7 @@ import type { TDrankMilk, TDrankMilkSource } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import Button from '../../components/Button/Button';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './EditDrankMilkPage.module.css';
 
 const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
@@ -12,6 +13,7 @@ const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
 const EditDrankMilkPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [amount, setAmount] = useState('');
   const [source, setSource] = useState<TDrankMilkSource>('FRIDGE');
@@ -48,7 +50,7 @@ const EditDrankMilkPage = () => {
   const handleSubmit = async () => {
     const parsedAmount = Number(amount);
     if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError('Amount must be a positive number');
+      setError(t('EDIT_AMOUNT_POSITIVE'));
       return;
     }
     setSaving(true);
@@ -67,14 +69,14 @@ const EditDrankMilkPage = () => {
   };
 
   return (
-    <PageLayout title="Edit Drank Milk" emoji="🍼" gradient="green">
+    <PageLayout title={t('EDIT_DRANK_MILK_TITLE')} emoji="🍼" gradient="green">
       <div className={styles.page}>
         {loading ? (
-          <p className={styles.loadingMsg}>Loading… ⏳</p>
+          <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
         ) : (
           <div className={styles.form}>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="amount">Amount (ml)</label>
+              <label className={styles.label} htmlFor="amount">{t('EDIT_AMOUNT_ML')}</label>
               <input
                 id="amount"
                 className={styles.input}
@@ -85,20 +87,20 @@ const EditDrankMilkPage = () => {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="source">Source</label>
+              <label className={styles.label} htmlFor="source">{t('EDIT_SOURCE')}</label>
               <select
                 id="source"
                 className={styles.select}
                 value={source}
                 onChange={(e) => setSource(e.target.value as TDrankMilkSource)}
               >
-                <option value="FRIDGE">🥛 FRIDGE</option>
-                <option value="FREEZER">❄️ FREEZER</option>
-                <option value="BOOB">🤱 BOOB</option>
+                <option value="FRIDGE">{t('EDIT_SOURCE_FRIDGE')}</option>
+                <option value="FREEZER">{t('EDIT_SOURCE_FREEZER')}</option>
+                <option value="BOOB">{t('EDIT_SOURCE_BOOB')}</option>
               </select>
             </div>
             <DateTimeInput
-              label="Time"
+              label={t('COMMON_TIME')}
               name="createdAt"
               value={createdAt}
               onChange={setCreatedAt}
@@ -107,7 +109,7 @@ const EditDrankMilkPage = () => {
             <div className={styles.actions}>
               <Button
                 className={styles.saveBtn}
-                text="Save"
+                text={t('COMMON_SAVE')}
                 emoji="💾"
                 onClick={handleSubmit}
                 loading={saving}
@@ -116,7 +118,7 @@ const EditDrankMilkPage = () => {
               <div className={styles.secondaryRow}>
                 <Button
                   className={styles.secondaryBtn}
-                  text="Cancel"
+                  text={t('COMMON_CANCEL')}
                   emoji="↩️"
                   variant="secondary"
                   onClick={goBack}
@@ -124,7 +126,7 @@ const EditDrankMilkPage = () => {
 
                 <Button
                   className={styles.secondaryBtn}
-                  text="Delete"
+                  text={t('COMMON_DELETE')}
                   emoji="🗑️"
                   variant="ghost"
                   loading={deleting}

@@ -5,6 +5,7 @@ import type { TServedMilk, TServedMilkStatus } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import Button from '../../components/Button/Button';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './EditStoredMilkPage.module.css';
 
 const VALID_STATUSES: TServedMilkStatus[] = ['FRIDGE', 'FREEZER', 'USED', 'EXPIRED'];
@@ -21,6 +22,7 @@ const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
 const EditStoredMilkPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [amount, setAmount] = useState('');
   const [originalAmount, setOriginalAmount] = useState('');
@@ -63,11 +65,11 @@ const EditStoredMilkPage = () => {
     const parsedAmount = Number(amount);
     const parsedOriginal = Number(originalAmount);
     if (!amount || isNaN(parsedAmount) || parsedAmount < 0) {
-      setError('Amount must be a non-negative number');
+      setError(t('EDIT_AMOUNT_NON_NEGATIVE'));
       return;
     }
     if (!originalAmount || isNaN(parsedOriginal) || parsedOriginal <= 0) {
-      setError('Original amount must be a positive number');
+      setError(t('EDIT_ORIGINAL_AMOUNT_POSITIVE'));
       return;
     }
     setSaving(true);
@@ -92,14 +94,14 @@ const EditStoredMilkPage = () => {
   };
 
   return (
-    <PageLayout title="Edit Stored Milk" emoji="🧊" gradient="blue">
+    <PageLayout title={t('EDIT_STORED_MILK_TITLE')} emoji="🧊" gradient="blue">
       <div className={styles.page}>
         {loading ? (
-          <p className={styles.loadingMsg}>Loading… ⏳</p>
+          <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
         ) : (
           <div className={styles.form}>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="amount">Amount (ml)</label>
+              <label className={styles.label} htmlFor="amount">{t('EDIT_AMOUNT_ML')}</label>
               <input
                 id="amount"
                 className={styles.input}
@@ -110,7 +112,7 @@ const EditStoredMilkPage = () => {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="originalAmount">Original Amount (ml)</label>
+              <label className={styles.label} htmlFor="originalAmount">{t('EDIT_ORIGINAL_AMOUNT_ML')}</label>
               <input
                 id="originalAmount"
                 className={styles.input}
@@ -121,7 +123,7 @@ const EditStoredMilkPage = () => {
               />
             </div>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="status">Status</label>
+              <label className={styles.label} htmlFor="status">{t('COMMON_STATUS')}</label>
               <select
                 id="status"
                 className={styles.select}
@@ -135,19 +137,19 @@ const EditStoredMilkPage = () => {
             </div>
             <div className={styles.fieldGroup}>
               <DateTimeInput
-                label="Expiry Date (optional)"
+                label={t('EDIT_EXPIRY_DATE_OPTIONAL')}
                 name="expiryDate"
                 value={expiryDate}
                 onChange={setExpiryDate}
               />
               {expiryDate ? (
                 <button type="button" className={styles.clearBtn} onClick={() => setExpiryDate('')}>
-                  Clear expiry date
+                  {t('EDIT_CLEAR_EXPIRY_DATE')}
                 </button>
               ) : null}
             </div>
             <DateTimeInput
-              label="Created At"
+              label={t('COMMON_CREATED_AT')}
               name="createdAt"
               value={createdAt}
               onChange={setCreatedAt}
@@ -156,7 +158,7 @@ const EditStoredMilkPage = () => {
             <div className={styles.actions}>
               <Button
                 className={styles.saveBtn}
-                text="Save"
+                text={t('COMMON_SAVE')}
                 emoji="💾"
                 onClick={handleSubmit}
                 loading={saving}
@@ -165,7 +167,7 @@ const EditStoredMilkPage = () => {
               <div className={styles.secondaryRow}>
                 <Button
                   className={styles.secondaryBtn}
-                  text="Cancel"
+                  text={t('COMMON_CANCEL')}
                   emoji="↩️"
                   variant="secondary"
                   onClick={goBack}
@@ -173,7 +175,7 @@ const EditStoredMilkPage = () => {
 
                 <Button
                   className={styles.secondaryBtn}
-                  text="Delete"
+                  text={t('COMMON_DELETE')}
                   emoji="🗑️"
                   variant="ghost"
                   loading={deleting}

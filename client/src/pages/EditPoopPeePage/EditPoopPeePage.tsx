@@ -5,6 +5,7 @@ import type { TPee, TPoop } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import Button from '../../components/Button/Button';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './EditPoopPeePage.module.css';
 
 type TEventType = 'pee' | 'poop';
@@ -18,6 +19,7 @@ const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
 const EditPoopPeePage = ({ type }: TProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [createdAt, setCreatedAt] = useState('');
   const [loading, setLoading] = useState(true);
@@ -64,17 +66,17 @@ const EditPoopPeePage = ({ type }: TProps) => {
   };
 
   const emoji = type === 'poop' ? '💩' : '💧';
-  const label = type === 'poop' ? 'Poop' : 'Pee';
+  const title = type === 'poop' ? t('EDIT_POOP_TITLE') : t('EDIT_PEE_TITLE');
 
   return (
-    <PageLayout title={`Edit ${label}`} emoji={emoji} gradient="amber">
+    <PageLayout title={title} emoji={emoji} gradient="amber">
       <div className={styles.page}>
         {loading ? (
-          <p className={styles.loadingMsg}>Loading… ⏳</p>
+          <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
         ) : (
           <div className={styles.form}>
             <DateTimeInput
-              label="Time"
+              label={t('COMMON_TIME')}
               name="createdAt"
               value={createdAt}
               onChange={setCreatedAt}
@@ -83,7 +85,7 @@ const EditPoopPeePage = ({ type }: TProps) => {
             <div className={styles.actions}>
               <Button
                 className={styles.saveBtn}
-                text="Save"
+                text={t('COMMON_SAVE')}
                 emoji="💾"
                 onClick={handleSubmit}
                 loading={saving}
@@ -92,7 +94,7 @@ const EditPoopPeePage = ({ type }: TProps) => {
               <div className={styles.secondaryRow}>
                 <Button
                   className={styles.secondaryBtn}
-                  text="Cancel"
+                  text={t('COMMON_CANCEL')}
                   emoji="↩️"
                   variant="secondary"
                   onClick={goBack}
@@ -100,7 +102,7 @@ const EditPoopPeePage = ({ type }: TProps) => {
 
                 <Button
                   className={styles.secondaryBtn}
-                  text="Delete"
+                  text={t('COMMON_DELETE')}
                   emoji="🗑️"
                   variant="ghost"
                   loading={deleting}

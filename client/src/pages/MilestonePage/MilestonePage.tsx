@@ -9,6 +9,7 @@ import Textarea from '../../components/Textarea/Textarea';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import { formatDateTime } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './MilestonePage.module.css';
 
 const nowInputValue = (): string => {
@@ -20,6 +21,7 @@ const nowInputValue = (): string => {
 
 const MilestonePage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [milestones, setMilestones] = useState<TMilestone[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,28 +81,28 @@ const MilestonePage = () => {
   };
 
   return (
-    <PageLayout title="My first" emoji="🏆" gradient="amber" ref={visibilityRef}>
+    <PageLayout title={t('MILESTONE_PAGE_TITLE')} emoji="🏆" gradient="amber" ref={visibilityRef}>
       {addOpen ? (
         <div className={styles.addForm}>
-          <Input label="Title" value={newTitle} onChange={setNewTitle} placeholder="e.g. First steps" name="milestoneTitle" />
-          <Textarea label="Description (optional)" value={newDescription} onChange={setNewDescription} placeholder="Add more details…" name="milestoneDescription" />
-          <DateTimeInput label="Date & time" value={newOccurredAt} onChange={setNewOccurredAt} name="milestoneOccurredAt" />
+          <Input label={t('MILESTONE_PAGE_TITLE_LABEL')} value={newTitle} onChange={setNewTitle} placeholder={t('MILESTONE_PAGE_TITLE_PLACEHOLDER')} name="milestoneTitle" />
+          <Textarea label={t('MILESTONE_PAGE_DESCRIPTION_LABEL')} value={newDescription} onChange={setNewDescription} placeholder={t('MILESTONE_PAGE_DESCRIPTION_PLACEHOLDER')} name="milestoneDescription" />
+          <DateTimeInput label={t('MILESTONE_PAGE_DATE_TIME_LABEL')} value={newOccurredAt} onChange={setNewOccurredAt} name="milestoneOccurredAt" />
           {addError ? <p className={styles.errorMsg}>⚠️ {addError}</p> : null}
           <div className={styles.addFormActions}>
-            <Button text="Save" emoji="💾" onClick={handleAdd} loading={addLoading} disabled={!newTitle.trim()} />
-            <Button text="Cancel" emoji="↩️" variant="secondary" onClick={() => setAddOpen(false)} />
+            <Button text={t('COMMON_SAVE')} emoji="💾" onClick={handleAdd} loading={addLoading} disabled={!newTitle.trim()} />
+            <Button text={t('COMMON_CANCEL')} emoji="↩️" variant="secondary" onClick={() => setAddOpen(false)} />
           </div>
         </div>
       ) : (
-        <Button className={styles.newBtn} text="Add milestone" emoji="➕" onClick={openAddForm} />
+        <Button className={styles.newBtn} text={t('MILESTONE_PAGE_ADD_MILESTONE')} emoji="➕" onClick={openAddForm} />
       )}
 
       {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}
 
       {loading ? (
-        <p className={styles.loadingMsg}>Loading… ⏳</p>
+        <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
       ) : milestones.length === 0 ? (
-        <p className={styles.empty}>No milestones logged yet 🏆</p>
+        <p className={styles.empty}>{t('MILESTONE_PAGE_NONE_LOGGED')}</p>
       ) : (
         <div className={styles.list}>
           {milestones.map((m) => {

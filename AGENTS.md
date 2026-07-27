@@ -130,6 +130,17 @@ Do **not** use Sass/SCSS — the project uses plain CSS only.
 ### Icons
 Use plain emoji characters for all icons. Pass them via the `emoji` prop on the `Button` component, or render them directly as text. Do **not** use FontAwesome or any icon library.
 
+### Internationalization (i18n)
+The client supports English (`en`), Norwegian Bokmål (`nb`), and Norwegian Nynorsk (`nn`). **Every user-visible string in `client/src` must go through a translation key — never hardcode literal UI text.**
+- `client/src/i18n/translations.json` — flat dictionary: `SCREAMING_SNAKE_CASE_KEY -> { en, nb, nn }`. Keys are human-readable and descriptive (e.g. `MEDICINE_PAGE_ADD_MEDICINE`, `EDIT_AMOUNT_POSITIVE`), grouped by a page/component prefix.
+- `client/src/i18n/i18n.tsx` — exports `useTranslation()` returning `{ language, setLanguage, t }`. Call `t('YOUR_KEY')` (optionally `t('KEY', { varName: value })` for `{varName}` interpolation) in every component/page that renders text.
+- **Whenever you add or change any UI text** (JSX text, `placeholder`/`title`/`aria-label`/`alt` attributes, `confirm()`/`alert()` messages, client-side validation/error strings, `<option>` labels, etc.), you must:
+  1. Add a new entry to `translations.json` with all three languages filled in (`en`, `nb`, `nn` — never leave one blank or copy a placeholder).
+  2. Reference it via `t('YOUR_NEW_KEY')` instead of the literal string.
+- Do not reuse an existing key for unrelated text just to avoid adding a new one — add a new descriptively-named key instead.
+- The Settings page exposes a language toggle that persists the choice to `localStorage` under the `language` key; no need to touch this when adding new keys.
+- See `doc/client.md` → "Internationalization" for full details.
+
 ### Auth
 - `client/src/utils/authStore.ts` holds auth state (access/refresh tokens, current user) in localStorage; `client/src/utils/authFetch.ts` wraps `fetch2` calls with the `Authorization` header and handles token refresh.
 - `client/src/components/ProtectedRoute/ProtectedRoute.tsx` gates routes behind login (and optionally role) — wrap pages that require auth with it in the router, rather than checking auth state ad hoc in each page.
@@ -225,4 +236,5 @@ The `doc/` folder contains living documentation for each layer of the project:
 * Don't specify return types for React components; Don't import React in files that only use JSX.
 * Make your explanations short and don't talk too much in general.
 * After writing code, do not try to run it, unless specifically asked to do so.
+* **Never hardcode user-visible strings in `client/src`** — always add/use a `SCREAMING_SNAKE_CASE` key in `client/src/i18n/translations.json` (with `en`, `nb`, and `nn` translations) and render it via `t('KEY')` from `useTranslation()`.
 

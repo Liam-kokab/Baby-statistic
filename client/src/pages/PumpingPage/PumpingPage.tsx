@@ -12,6 +12,7 @@ import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/f
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './PumpingPage.module.css';
 
 const getDefaultFrom = (): string => {
@@ -29,6 +30,7 @@ const getDefaultTo = (): string => {
 const PumpingPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const from = searchParams.get('from') ?? getDefaultFrom();
   const to   = searchParams.get('to')   ?? getDefaultTo();
@@ -77,7 +79,7 @@ const PumpingPage = () => {
     return (
       <div className={styles.list}>
         {data.length === 0 && !loading ? (
-          <p className={styles.empty}>No pumping records found 🥛</p>
+          <p className={styles.empty}>{t('PUMPING_PAGE_NO_RECORDS')}</p>
         ) : (
           data.map((item, idx) => (
             <div key={item.id} ref={idx === sentinelIdx ? sentinelRef : undefined} className={styles.card}>
@@ -87,8 +89,8 @@ const PumpingPage = () => {
             </div>
           ))
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && data.length > 0 && !loading ? <p className={styles.endMsg}>All {data.length} records loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && data.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_RECORDS_LOADED', { count: data.length })}</p> : null}
       </div>
     );
   };
@@ -98,7 +100,7 @@ const PumpingPage = () => {
     return (
       <div className={styles.list}>
         {groups.length === 0 && !loading ? (
-          <p className={styles.empty}>No pumping records found 🥛</p>
+          <p className={styles.empty}>{t('PUMPING_PAGE_NO_RECORDS')}</p>
         ) : (
           groups.map(({ date, items }, idx) => {
             const isOpen = openDays.has(date);
@@ -121,8 +123,8 @@ const PumpingPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>All days loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_DAYS_LOADED')}</p> : null}
       </div>
     );
   };
@@ -132,7 +134,7 @@ const PumpingPage = () => {
     return (
       <div className={styles.list}>
         {weeks.length === 0 && !loading ? (
-          <p className={styles.empty}>No pumping records found 🥛</p>
+          <p className={styles.empty}>{t('PUMPING_PAGE_NO_RECORDS')}</p>
         ) : (
           weeks.map(({ weekKey, weekLabel, days }, idx) => {
             const weekCount  = days.reduce((s, { items }) => s + items.length, 0);
@@ -145,7 +147,7 @@ const PumpingPage = () => {
                   <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
                   <div className={styles.weekStats}>
                     <span className={styles.weekTotal}>🥛 {weekCount}</span>
-                    <span className={styles.weekAvg}>~{weekAvg}/day</span>
+                    <span className={styles.weekAvg}>~{weekAvg}{t('LIST_PER_DAY')}</span>
                   </div>
                 </div>
                 {isWeekOpen ? (
@@ -173,18 +175,18 @@ const PumpingPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_WEEKS_LOADED')}</p> : null}
       </div>
     );
   };
 
   return (
-    <PageLayout title="Pumping" emoji="🥛" gradient="indigo" ref={visibilityRef}>
+    <PageLayout title={t('PUMPING_PAGE_TITLE')} emoji="🥛" gradient="indigo" ref={visibilityRef}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
-        <div className={styles.statChip}>🥛 Total: <strong>{summary ? summary.count : '—'}</strong></div>
-        <div className={styles.statChip}>📊 Avg/day: <strong>{summary ? `~${summary.avgPerDay}` : '—'}</strong></div>
+        <div className={styles.statChip}>{t('PUMPING_PAGE_TOTAL')} <strong>{summary ? summary.count : t('COMMON_DASH')}</strong></div>
+        <div className={styles.statChip}>{t('PUMPING_PAGE_AVG_PER_DAY')} <strong>{summary ? `~${summary.avgPerDay}` : t('COMMON_DASH')}</strong></div>
       </div>
       <>
         {view === 'item' ? renderItemView() : view === 'day' ? renderDayView() : renderWeekView()}

@@ -2,44 +2,46 @@ import { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authStore } from '../../utils/authStore';
 import { authFetch } from '../../utils/authFetch';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './NavBar.module.css';
 
 type TNavItem = {
   path: string;
   emoji: string;
-  label: string;
+  labelKey: string;
 };
 
 // ── User nav ──────────────────────────────────────────────────────────────────
 const USER_MAIN_ITEMS: TNavItem[] = [
-  { path: '/pumping',    emoji: '🥛', label: 'Pumping'   },
-  { path: '/',           emoji: '🏠', label: 'Home'       },
-  { path: '/milk-drank', emoji: '🍼', label: 'Milk Drank' },
-  { path: '/sleep',      emoji: '🌙', label: 'Sleep'      },
+  { path: '/pumping',    emoji: '🥛', labelKey: 'NAV_PUMPING'   },
+  { path: '/',           emoji: '🏠', labelKey: 'NAV_HOME'       },
+  { path: '/milk-drank', emoji: '🍼', labelKey: 'NAV_MILK_DRANK' },
+  { path: '/sleep',      emoji: '🌙', labelKey: 'NAV_SLEEP'      },
 ];
 
 const USER_MENU_ITEMS: TNavItem[] = [
-  { path: '/poop-pee',   emoji: '💩', label: 'Poop & Pee' },
-  { path: '/medicine',   emoji: '💊', label: 'Medicine'   },
-  { path: '/milk-saved', emoji: '🧊', label: 'Milk Saved' },
-  { path: '/milestones', emoji: '🏆', label: 'Milestones' },
-  { path: '/settings',   emoji: '⚙️', label: 'Settings'   },
+  { path: '/poop-pee',   emoji: '💩', labelKey: 'NAV_POOP_AND_PEE' },
+  { path: '/medicine',   emoji: '💊', labelKey: 'NAV_MEDICINE'   },
+  { path: '/milk-saved', emoji: '🧊', labelKey: 'NAV_MILK_SAVED' },
+  { path: '/milestones', emoji: '🏆', labelKey: 'NAV_MILESTONES' },
+  { path: '/settings',   emoji: '⚙️', labelKey: 'NAV_SETTINGS'   },
 ];
 
 // ── Admin nav ─────────────────────────────────────────────────────────────────
 const ADMIN_MAIN_ITEMS: TNavItem[] = [
-  { path: '/admin/babies', emoji: '👶', label: 'Babies' },
-  { path: '/admin',        emoji: '🔑', label: 'Admin'  },
-  { path: '/admin/users',  emoji: '👥', label: 'Users'  },
+  { path: '/admin/babies', emoji: '👶', labelKey: 'NAV_BABIES' },
+  { path: '/admin',        emoji: '🔑', labelKey: 'NAV_ADMIN'  },
+  { path: '/admin/users',  emoji: '👥', labelKey: 'NAV_USERS'  },
 ];
 
 const ADMIN_MENU_ITEMS: TNavItem[] = [
-  { path: '/settings', emoji: '⚙️', label: 'Settings' },
+  { path: '/settings', emoji: '⚙️', labelKey: 'NAV_SETTINGS' },
 ];
 
 const NavBar = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const isAdmin = authStore.getUser()?.role === 'admin';
 
@@ -76,20 +78,20 @@ const NavBar = () => {
         <div className={styles.menuAnchor}>
           <button
             type="button"
-            aria-label="Menu"
-            data-tooltip="Menu"
+            aria-label={t('NAV_MENU')}
+            data-tooltip={t('NAV_MENU')}
             className={`${styles.navBtn} ${menuOpen ? styles.active : ''}`}
             onClick={toggleMenu}
           >
             ☰
           </button>
 
-          {menuItems.map(({ path, emoji, label }, index) => (
+          {menuItems.map(({ path, emoji, labelKey }, index) => (
             <button
               key={path}
               type="button"
-              aria-label={label}
-              data-tooltip={label}
+              aria-label={t(labelKey)}
+              data-tooltip={t(labelKey)}
               className={`${styles.menuItem} ${menuOpen ? styles.menuItemOpen : ''} ${pathname === path ? styles.menuItemActive : ''}`}
               style={{ '--i': index } as React.CSSProperties}
               onClick={() => handleMenuNavigate(path)}
@@ -99,8 +101,8 @@ const NavBar = () => {
           ))}
           <button
             type="button"
-            aria-label="Log out"
-            data-tooltip="Log out"
+            aria-label={t('NAV_LOGOUT')}
+            data-tooltip={t('NAV_LOGOUT')}
             className={`${styles.menuItem} ${menuOpen ? styles.menuItemOpen : ''}`}
             style={{ '--i': menuItems.length } as React.CSSProperties}
             onClick={handleLogout}
@@ -109,12 +111,12 @@ const NavBar = () => {
           </button>
         </div>
 
-        {mainItems.map(({ path, emoji, label }) => (
+        {mainItems.map(({ path, emoji, labelKey }) => (
           <button
             key={path}
             type="button"
-            aria-label={label}
-            data-tooltip={label}
+            aria-label={t(labelKey)}
+            data-tooltip={t(labelKey)}
             className={`${styles.navBtn} ${pathname === path ? styles.active : ''}`}
             onClick={() => navigateAndClose(path)}
           >
@@ -127,3 +129,5 @@ const NavBar = () => {
 };
 
 export default NavBar;
+
+

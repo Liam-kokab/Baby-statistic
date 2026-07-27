@@ -2,9 +2,11 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { TLoginRequest, TLoginResponse } from 'baby-statistic-common';
 import { authStore } from '../../utils/authStore';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './LoginPage.module.css';
 
 const LoginPage = () => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ const LoginPage = () => {
 
       if (!res.ok) {
         const data = await res.json() as { error?: string };
-        setError(data.error ?? 'Login failed');
+        setError(data.error ?? t('LOGIN_FAILED'));
         return;
       }
 
@@ -33,20 +35,20 @@ const LoginPage = () => {
       authStore.setTokens(data.accessToken, data.refreshToken, data.user);
       navigate('/', { replace: true });
     } catch {
-      setError('Network error — please try again');
+      setError(t('LOGIN_NETWORK_ERROR'));
     } finally {
       setLoading(false);
     }
-  }, [username, password, navigate]);
+  }, [username, password, navigate, t]);
 
   return (
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.emoji}>👶</div>
-        <h1 className={styles.title}>Baby Statistics</h1>
+        <h1 className={styles.title}>{t('LOGIN_TITLE')}</h1>
         <form onSubmit={handleSubmit} className={styles.form}>
           <label className={styles.label}>
-            Username
+            {t('LOGIN_USERNAME')}
             <input
               className={styles.input}
               type="text"
@@ -58,7 +60,7 @@ const LoginPage = () => {
             />
           </label>
           <label className={styles.label}>
-            Password
+            {t('LOGIN_PASSWORD')}
             <input
               className={styles.input}
               type="password"
@@ -71,7 +73,7 @@ const LoginPage = () => {
           </label>
           {error ? <p className={styles.error}>{error}</p> : null}
           <button className={styles.button} type="submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? t('LOGIN_SIGNING_IN') : t('LOGIN_SIGN_IN')}
           </button>
         </form>
       </div>

@@ -12,6 +12,7 @@ import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/f
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './PoopPeePage.module.css';
 
 type TCombinedEvent = { id: number; type: 'pee' | 'poop'; createdAt: string };
@@ -33,6 +34,7 @@ const eventEmoji = (type: 'pee' | 'poop'): string => type === 'poop' ? '💩' : 
 const PoopPeePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const from = searchParams.get('from') ?? getDefaultFrom();
   const to   = searchParams.get('to')   ?? getDefaultTo();
@@ -81,19 +83,19 @@ const PoopPeePage = () => {
     return (
       <div className={styles.list}>
         {data.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 💩</p>
+          <p className={styles.empty}>{t('POOP_PEE_PAGE_NO_RECORDS')}</p>
         ) : (
           data.map((item, idx) => (
             <div key={`${item.type}-${item.id}`} ref={idx === sentinelIdx ? sentinelRef : undefined} className={styles.card}>
               <span className={styles.cardEmoji}>{eventEmoji(item.type)}</span>
-              <span className={styles.eventType}>{item.type === 'poop' ? 'Poop' : 'Pee'}</span>
+              <span className={styles.eventType}>{item.type === 'poop' ? t('POOP_PEE_PAGE_POOP') : t('POOP_PEE_PAGE_PEE')}</span>
               <span className={styles.date}>{formatDateTime(item.createdAt)}</span>
               <Button emoji="✏️" variant="ghost" className={styles.editBtn} onClick={() => navigate(`/${item.type}/${item.id}`)} />
             </div>
           ))
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && data.length > 0 && !loading ? <p className={styles.endMsg}>All {data.length} records loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && data.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_RECORDS_LOADED', { count: data.length })}</p> : null}
       </div>
     );
   };
@@ -103,7 +105,7 @@ const PoopPeePage = () => {
     return (
       <div className={styles.list}>
         {groups.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 💩</p>
+          <p className={styles.empty}>{t('POOP_PEE_PAGE_NO_RECORDS')}</p>
         ) : (
           groups.map(({ date, items }, idx) => {
             const dayPoop = items.filter((i) => i.type === 'poop').length;
@@ -120,7 +122,7 @@ const PoopPeePage = () => {
                   items.map((item) => (
                     <div key={`${item.type}-${item.id}`} className={styles.dayItem}>
                       <span className={styles.dayItemEmoji}>{eventEmoji(item.type)}</span>
-                      <span className={styles.dayItemType}>{item.type === 'poop' ? 'Poop' : 'Pee'}</span>
+                      <span className={styles.dayItemType}>{item.type === 'poop' ? t('POOP_PEE_PAGE_POOP') : t('POOP_PEE_PAGE_PEE')}</span>
                       <span className={styles.time}>{formatTime(item.createdAt)}</span>
                     </div>
                   ))
@@ -129,8 +131,8 @@ const PoopPeePage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>All days loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_DAYS_LOADED')}</p> : null}
       </div>
     );
   };
@@ -140,7 +142,7 @@ const PoopPeePage = () => {
     return (
       <div className={styles.list}>
         {weeks.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 💩</p>
+          <p className={styles.empty}>{t('POOP_PEE_PAGE_NO_RECORDS')}</p>
         ) : (
           weeks.map(({ weekKey, weekLabel, days }, idx) => {
             const weekPoop   = days.reduce((s, { items }) => s + items.filter((i) => i.type === 'poop').length, 0);
@@ -155,7 +157,7 @@ const PoopPeePage = () => {
                   <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
                   <div className={styles.weekStats}>
                     <span className={styles.weekTotal}>💩 {weekPoop} &nbsp;💧 {weekPee}</span>
-                    <span className={styles.weekAvg}>~{avgPoop}/day &nbsp;~{avgPee}/day</span>
+                    <span className={styles.weekAvg}>~{avgPoop}{t('LIST_PER_DAY')} &nbsp;~{avgPee}{t('LIST_PER_DAY')}</span>
                   </div>
                 </div>
                 {isWeekOpen ? (
@@ -173,7 +175,7 @@ const PoopPeePage = () => {
                           items.map((item) => (
                             <div key={`${item.type}-${item.id}`} className={styles.dayItem}>
                               <span className={styles.dayItemEmoji}>{eventEmoji(item.type)}</span>
-                              <span className={styles.dayItemType}>{item.type === 'poop' ? 'Poop' : 'Pee'}</span>
+                              <span className={styles.dayItemType}>{item.type === 'poop' ? t('POOP_PEE_PAGE_POOP') : t('POOP_PEE_PAGE_PEE')}</span>
                               <span className={styles.time}>{formatTime(item.createdAt)}</span>
                             </div>
                           ))
@@ -186,18 +188,18 @@ const PoopPeePage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_WEEKS_LOADED')}</p> : null}
       </div>
     );
   };
 
   return (
-    <PageLayout title="Poop & Pee" emoji="💩" gradient="amber" ref={visibilityRef}>
+    <PageLayout title={t('POOP_PEE_PAGE_TITLE')} emoji="💩" gradient="amber" ref={visibilityRef}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
-        <div className={styles.statChip}>💩 Poop: <strong>{summary ? summary.poopCount : '—'}</strong></div>
-        <div className={styles.statChip}>💧 Pee: <strong>{summary ? summary.peeCount : '—'}</strong></div>
+        <div className={styles.statChip}>{t('POOP_PEE_PAGE_POOP_STAT')} <strong>{summary ? summary.poopCount : t('COMMON_DASH')}</strong></div>
+        <div className={styles.statChip}>{t('POOP_PEE_PAGE_PEE_STAT')} <strong>{summary ? summary.peeCount : t('COMMON_DASH')}</strong></div>
       </div>
       <>
         {view === 'item' ? renderItemView() : view === 'day' ? renderDayView() : renderWeekView()}

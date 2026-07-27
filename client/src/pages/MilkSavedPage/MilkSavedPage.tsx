@@ -12,6 +12,7 @@ import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/f
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './MilkSavedPage.module.css';
 
 const STATUS_EMOJI: Record<TServedMilkStatus, string> = { FRIDGE: '🥛', FREEZER: '❄️', USED: '✅', EXPIRED: '⚠️' };
@@ -32,6 +33,7 @@ const getDefaultTo = (): string => {
 const MilkSavedPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const from = searchParams.get('from') ?? getDefaultFrom();
   const to   = searchParams.get('to')   ?? getDefaultTo();
@@ -85,7 +87,7 @@ const MilkSavedPage = () => {
     return (
       <div className={styles.list}>
         {filtered.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 🧊</p>
+          <p className={styles.empty}>{t('MILK_SAVED_NO_RECORDS')}</p>
         ) : (
           filtered.map((item, idx) => (
             <div key={item.id} ref={idx === sentinelIdx ? sentinelRef : undefined} className={styles.card}>
@@ -96,8 +98,8 @@ const MilkSavedPage = () => {
             </div>
           ))
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && filtered.length > 0 && !loading ? <p className={styles.endMsg}>All {filtered.length} records loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && filtered.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_RECORDS_LOADED', { count: filtered.length })}</p> : null}
       </div>
     );
   };
@@ -107,7 +109,7 @@ const MilkSavedPage = () => {
     return (
       <div className={styles.list}>
         {groups.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 🧊</p>
+          <p className={styles.empty}>{t('MILK_SAVED_NO_RECORDS')}</p>
         ) : (
           groups.map(({ date, items }, idx) => {
             const dayTotal = items.reduce((sum, i) => sum + i.amount, 0);
@@ -132,8 +134,8 @@ const MilkSavedPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>All days loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_DAYS_LOADED')}</p> : null}
       </div>
     );
   };
@@ -143,7 +145,7 @@ const MilkSavedPage = () => {
     return (
       <div className={styles.list}>
         {weeks.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 🧊</p>
+          <p className={styles.empty}>{t('MILK_SAVED_NO_RECORDS')}</p>
         ) : (
           weeks.map(({ weekKey, weekLabel, days }, idx) => {
             const weekTotal  = days.reduce((sum, { items }) => sum + items.reduce((s, i) => s + i.amount, 0), 0);
@@ -156,7 +158,7 @@ const MilkSavedPage = () => {
                   <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
                   <div className={styles.weekStats}>
                     <span className={styles.weekTotal}>{weekTotal} ml</span>
-                    <span className={styles.weekAvg}>~{weekAvg} ml/day</span>
+                    <span className={styles.weekAvg}>~{weekAvg} {t('LIST_ML_PER_DAY')}</span>
                   </div>
                 </div>
                 {isWeekOpen ? (
@@ -186,18 +188,18 @@ const MilkSavedPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_WEEKS_LOADED')}</p> : null}
       </div>
     );
   };
 
   return (
-    <PageLayout title="Milk Saved" emoji="🧊" gradient="blue" ref={visibilityRef}>
+    <PageLayout title={t('MILK_SAVED_TITLE')} emoji="🧊" gradient="blue" ref={visibilityRef}>
       <div className={styles.statsBar}>
-        <div className={styles.statChip}>🥛 Fridge: <strong>{totals.fridge} ml</strong></div>
-        <div className={styles.statChip}>❄️ Freezer: <strong>{totals.freezer} ml</strong></div>
-        <div className={styles.statChip}>🧊 Total: <strong>{totals.total} ml</strong></div>
+        <div className={styles.statChip}>{t('MILK_SAVED_FRIDGE')} <strong>{totals.fridge} ml</strong></div>
+        <div className={styles.statChip}>{t('MILK_SAVED_FREEZER')} <strong>{totals.freezer} ml</strong></div>
+        <div className={styles.statChip}>{t('MILK_SAVED_TOTAL')} <strong>{totals.total} ml</strong></div>
       </div>
       <div className={styles.statusFilter}>
         {ALL_STATUSES.map((s) => (

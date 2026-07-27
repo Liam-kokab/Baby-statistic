@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { authFetch } from '../../utils/authFetch';
 import type { TBaby, TAdminCreateBaby } from 'baby-statistic-common';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './AdminBabiesPage.module.css';
 
 const AdminBabiesPage = () => {
+  const { t } = useTranslation();
   const [babies, setBabies] = useState<TBaby[]>([]);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -36,7 +38,7 @@ const AdminBabiesPage = () => {
   }, [newName, load]);
 
   const handleDelete = useCallback(async (id: number) => {
-    if (!confirm('Delete this baby and all their data?')) return;
+    if (!confirm(t('ADMIN_CONFIRM_DELETE_BABY'))) return;
     await authFetch(`/api/admin/babies/${id}`, { method: 'DELETE' });
     load();
   }, [load]);
@@ -52,24 +54,24 @@ const AdminBabiesPage = () => {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>👶 Babies</h1>
+      <h1 className={styles.title}>{t('ADMIN_BABIES_TITLE')}</h1>
 
       <form onSubmit={handleAdd} className={styles.addForm}>
         <input
           className={styles.input}
-          placeholder="Baby name…"
+          placeholder={t('ADMIN_BABY_NAME_PLACEHOLDER')}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
         />
-        <button className={styles.addBtn} type="submit">Add</button>
+        <button className={styles.addBtn} type="submit">{t('COMMON_ADD')}</button>
       </form>
 
       {error ? <p className={styles.error}>{error}</p> : null}
 
       {loading ? (
-        <p className={styles.empty}>Loading…</p>
+        <p className={styles.empty}>{t('COMMON_LOADING_SIMPLE')}</p>
       ) : babies.length === 0 ? (
-        <p className={styles.empty}>No babies yet.</p>
+        <p className={styles.empty}>{t('ADMIN_NO_BABIES_YET')}</p>
       ) : (
         <ul className={styles.list}>
           {babies.map((b) => (

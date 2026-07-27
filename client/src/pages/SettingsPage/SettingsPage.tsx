@@ -9,22 +9,25 @@ import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TUser, TUpdateMeRequest } from 'baby-statistic-common';
 import styles from './SettingsPage.module.css';
 import { getSavedTheme, setTheme, themeToIndex, indexToTheme, getSavedMode, setMode, modeToIndex, indexToMode } from '../../utils/theme';
+import { useTranslation, languageToIndex, indexToLanguage } from '../../i18n/i18n';
 
 type TBuildTimeResponse = {
   buildTime: string;
 };
 
-const formatBuildTime = (iso: string): string => {
-  if (iso === 'unknown') return 'Unknown';
-  const d = new Date(iso);
-  return d.toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'medium' });
-};
-
 const SettingsPage = () => {
-  const [serverBuildTime, setServerBuildTime] = useState<string>('loading...');
+  const { t, language, setLanguage } = useTranslation();
+  const [serverBuildTime, setServerBuildTime] = useState<string>(t('COMMON_LOADING_SIMPLE'));
   const clientBuildTime = __CLIENT_BUILD_TIME__;
   const [themeIndex, setThemeIndex] = useState<number>(() => themeToIndex(getSavedTheme() ?? 'neutral'));
   const [modeIndex, setModeIndex] = useState<number>(() => modeToIndex(getSavedMode() ?? 'auto'));
+  const [languageIndex, setLanguageIndex] = useState<number>(() => languageToIndex(language));
+
+  const formatBuildTime = (iso: string): string => {
+    if (iso === 'unknown') return t('SETTINGS_UNKNOWN');
+    const d = new Date(iso);
+    return d.toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'medium' });
+  };
 
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -43,11 +46,11 @@ const SettingsPage = () => {
       if (res.ok) {
         setServerBuildTime(res.data.buildTime);
       } else {
-        setServerBuildTime('error');
+        setServerBuildTime(t('SETTINGS_ERROR'));
       }
     };
     load();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const loadUser = async (): Promise<void> => {
@@ -62,8 +65,8 @@ const SettingsPage = () => {
   }, []);
 
   const onThemeChange = (i: number): void => {
-    const t = indexToTheme(i);
-    setTheme(t);
+    const th = indexToTheme(i);
+    setTheme(th);
     setThemeIndex(i);
   };
 
@@ -71,6 +74,11 @@ const SettingsPage = () => {
     const m = indexToMode(i);
     setMode(m);
     setModeIndex(i);
+  };
+
+  const onLanguageChange = (i: number): void => {
+    setLanguage(indexToLanguage(i));
+    setLanguageIndex(i);
   };
 
   const handleSaveProfile = (): void => {
@@ -92,11 +100,11 @@ const SettingsPage = () => {
   const handleChangePassword = (): void => {
     setPasswordError(null);
     if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
+      setPasswordError(t('SETTINGS_PASSWORD_TOO_SHORT'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('New password and confirmation do not match');
+      setPasswordError(t('SETTINGS_PASSWORD_MISMATCH'));
       return;
     }
     passwordAction.run(async () => {
@@ -114,40 +122,40 @@ const SettingsPage = () => {
   };
 
   return (
-    <PageLayout title="Settings" emoji="⚙️">
+    <PageLayout title={t('SETTINGS_TITLE')} emoji="⚙️">
       <div className={styles.content}>
       {/* Account card */}
       <section className={styles.card}>
-        <h2 className={styles.sectionTitle}>Account</h2>
+        <h2 className={styles.sectionTitle}>{t('SETTINGS_ACCOUNT')}</h2>
         <div className={styles.formGrid}>
-          <Input label="Display name" value={displayName} onChange={setDisplayName} name="displayName" placeholder="Your name" />
-          <Input label="Username" value={username} onChange={setUsername} name="username" placeholder="Username" />
+          <Input label={t('SETTINGS_DISPLAY_NAME')} value={displayName} onChange={setDisplayName} name="displayName" placeholder={t('SETTINGS_DISPLAY_NAME_PLACEHOLDER')} />
+          <Input label={t('SETTINGS_USERNAME')} value={username} onChange={setUsername} name="username" placeholder={t('SETTINGS_USERNAME_PLACEHOLDER')} />
         </div>
         {profileError ? <p className={styles.formError}>{profileError}</p> : null}
         <div className={styles.formActions}>
-          <Button text="Save profile" onClick={handleSaveProfile} status={profileAction.status} />
+          <Button text={t('SETTINGS_SAVE_PROFILE')} onClick={handleSaveProfile} status={profileAction.status} />
         </div>
 
-        <h2 className={styles.sectionTitle}>Change Password</h2>
+        <h2 className={styles.sectionTitle}>{t('SETTINGS_CHANGE_PASSWORD_TITLE')}</h2>
         <div className={styles.formGrid}>
-          <Input label="Current password" type="password" value={currentPassword} onChange={setCurrentPassword} name="currentPassword" placeholder="••••••••" />
-          <Input label="New password" type="password" value={newPassword} onChange={setNewPassword} name="newPassword" placeholder="••••••••" />
-          <Input label="Confirm new password" type="password" value={confirmPassword} onChange={setConfirmPassword} name="confirmPassword" placeholder="••••••••" />
+          <Input label={t('SETTINGS_CURRENT_PASSWORD')} type="password" value={currentPassword} onChange={setCurrentPassword} name="currentPassword" placeholder="••••••••" />
+          <Input label={t('SETTINGS_NEW_PASSWORD')} type="password" value={newPassword} onChange={setNewPassword} name="newPassword" placeholder="••••••••" />
+          <Input label={t('SETTINGS_CONFIRM_NEW_PASSWORD')} type="password" value={confirmPassword} onChange={setConfirmPassword} name="confirmPassword" placeholder="••••••••" />
         </div>
         {passwordError ? <p className={styles.formError}>{passwordError}</p> : null}
         <div className={styles.formActions}>
-          <Button text="Change password" onClick={handleChangePassword} status={passwordAction.status} />
+          <Button text={t('SETTINGS_CHANGE_PASSWORD')} onClick={handleChangePassword} status={passwordAction.status} />
         </div>
       </section>
 
       {/* Appearance card */}
       <section className={styles.card}>
-        <h2 className={styles.sectionTitle}>Appearance</h2>
+        <h2 className={styles.sectionTitle}>{t('SETTINGS_APPEARANCE')}</h2>
         <div className={`${styles.row} ${styles.rowStack}`}>
-          <span className={styles.label}>Theme</span>
+          <span className={styles.label}>{t('SETTINGS_THEME')}</span>
           <div className={`${styles.value} ${styles.control}`}>
             <Toggle
-              options={["👧 Girl", "🌿 Neutral", "👦 Boy"]}
+              options={[t('SETTINGS_THEME_GIRL'), t('SETTINGS_THEME_NEUTRAL'), t('SETTINGS_THEME_BOY')]}
               value={themeIndex}
               onChange={onThemeChange}
             />
@@ -155,12 +163,23 @@ const SettingsPage = () => {
         </div>
 
         <div className={`${styles.row} ${styles.rowStack}`}>
-          <span className={styles.label}>Mode</span>
+          <span className={styles.label}>{t('SETTINGS_MODE')}</span>
           <div className={`${styles.value} ${styles.control}`}>
             <Toggle
-              options={["🌞 Light", "⚙️ Auto", "🌙 Dark"]}
+              options={[t('SETTINGS_MODE_LIGHT'), t('SETTINGS_MODE_AUTO'), t('SETTINGS_MODE_DARK')]}
               value={modeIndex}
               onChange={onModeChange}
+            />
+          </div>
+        </div>
+
+        <div className={`${styles.row} ${styles.rowStack}`}>
+          <span className={styles.label}>{t('SETTINGS_LANGUAGE')}</span>
+          <div className={`${styles.value} ${styles.control}`}>
+            <Toggle
+              options={[t('SETTINGS_LANGUAGE_ENGLISH'), t('SETTINGS_LANGUAGE_BOKMAL'), t('SETTINGS_LANGUAGE_NYNORSK')]}
+              value={languageIndex}
+              onChange={onLanguageChange}
             />
           </div>
         </div>
@@ -168,13 +187,13 @@ const SettingsPage = () => {
 
       {/* Build & Info card */}
       <section className={styles.card}>
-        <h2 className={styles.sectionTitle}>Build & Info</h2>
+        <h2 className={styles.sectionTitle}>{t('SETTINGS_BUILD_INFO')}</h2>
         <div className={styles.row}>
-          <span className={styles.label}>Frontend</span>
+          <span className={styles.label}>{t('SETTINGS_FRONTEND')}</span>
           <span className={styles.value}>{formatBuildTime(clientBuildTime)}</span>
         </div>
         <div className={styles.row}>
-          <span className={styles.label}>Backend</span>
+          <span className={styles.label}>{t('SETTINGS_BACKEND')}</span>
           <span className={styles.value}>{formatBuildTime(serverBuildTime)}</span>
         </div>
       </section>

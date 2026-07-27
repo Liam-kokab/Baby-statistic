@@ -5,6 +5,7 @@ import type { TSleep, TPostSleep } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import Button from '../../components/Button/Button';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './EditSleepPage.module.css';
 
 const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
@@ -12,6 +13,7 @@ const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
 const EditSleepPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
@@ -45,7 +47,7 @@ const EditSleepPage = () => {
 
   const handleSubmit = async () => {
     if (!start) {
-      setError('Start time is required');
+      setError(t('EDIT_START_REQUIRED'));
       return;
     }
     setSaving(true);
@@ -65,28 +67,28 @@ const EditSleepPage = () => {
   };
 
   return (
-    <PageLayout title="Edit Sleep" emoji="😴" gradient="indigo">
+    <PageLayout title={t('EDIT_SLEEP_TITLE')} emoji="😴" gradient="indigo">
       <div className={styles.page}>
         {loading ? (
-          <p className={styles.loadingMsg}>Loading… ⏳</p>
+          <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
         ) : (
           <div className={styles.form}>
             <DateTimeInput
-              label="Start"
+              label={t('EDIT_START')}
               name="start"
               value={start}
               onChange={setStart}
             />
             <div className={styles.fieldGroup}>
               <DateTimeInput
-                label="End (leave empty if ongoing)"
+                label={t('EDIT_END_LEAVE_EMPTY')}
                 name="end"
                 value={end}
                 onChange={setEnd}
               />
               {end ? (
                 <button type="button" className={styles.clearBtn} onClick={() => setEnd('')}>
-                  Clear end (mark as ongoing)
+                  {t('EDIT_CLEAR_END_ONGOING')}
                 </button>
               ) : null}
             </div>
@@ -94,7 +96,7 @@ const EditSleepPage = () => {
             <div className={styles.actions}>
               <Button
                 className={styles.saveBtn}
-                text="Save"
+                text={t('COMMON_SAVE')}
                 emoji="💾"
                 onClick={handleSubmit}
                 loading={saving}
@@ -103,7 +105,7 @@ const EditSleepPage = () => {
               <div className={styles.secondaryRow}>
                 <Button
                   className={styles.secondaryBtn}
-                  text="Cancel"
+                  text={t('COMMON_CANCEL')}
                   emoji="↩️"
                   variant="secondary"
                   onClick={goBack}
@@ -111,7 +113,7 @@ const EditSleepPage = () => {
 
                 <Button
                   className={styles.secondaryBtn}
-                  text="Delete"
+                  text={t('COMMON_DELETE')}
                   emoji="🗑️"
                   variant="ghost"
                   loading={deleting}

@@ -7,6 +7,7 @@ import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TActionStatus } from '../../utils/useActionFeedback';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import { ACTION_MIN_MS, ACTION_DONE_MS } from '../../config';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './HomePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
@@ -16,13 +17,6 @@ const getMilkAgeClass = (createdAt: string): string => {
   if (ageMin < 90) return 'milkLastGreen';
   if (ageMin < 120) return 'milkLastYellow';
   return 'milkLastDefault';
-};
-
-const formatAgo = (isoString: string): string => {
-  const totalMin = Math.floor((Date.now() - new Date(isoString).getTime()) / 60_000);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return h > 0 ? `${h}h ${m}m ago` : `${m}m ago`;
 };
 
 const formatTime = (seconds: number): string => {
@@ -36,6 +30,15 @@ const elapsedSeconds = (isoString: string): number =>
   Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
 
 const HomePage = () => {
+  const { t } = useTranslation();
+
+  const formatAgo = (isoString: string): string => {
+    const totalMin = Math.floor((Date.now() - new Date(isoString).getTime()) / 60_000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return h > 0 ? t('HOME_AGO_HOURS_MINUTES', { h, m }) : t('HOME_AGO_MINUTES', { m });
+  };
+
   // ── Sleep ─────────────────────────────────────────────────────────────────
   const [activeSleep, setActiveSleep]   = useState<TSleep | null>(null);
   const [timerRef,    setTimerRef]      = useState<string | null>(null);
@@ -268,27 +271,27 @@ const HomePage = () => {
     <div className={styles.page} ref={visibilityRef}>
       <div className={styles.hero}>
         <p className={styles.heroEmoji}>{isSleeping ? '😴' : '🌸'}</p>
-        <h1 className={styles.heroTitle}>Baby Stats</h1>
-        <p className={styles.heroSub}>Track every little moment 💕</p>
+        <h1 className={styles.heroTitle}>{t('HOME_TITLE')}</h1>
+        <p className={styles.heroSub}>{t('HOME_SUBTITLE')}</p>
       </div>
 
       <div className={styles.content}>
 
         {/* ── Sleep ── */}
         <section className={styles.card}>
-          <h2 className={styles.sectionTitle}>😴 Sleep</h2>
+          <h2 className={styles.sectionTitle}>{t('HOME_SLEEP_TITLE')}</h2>
           <div className={styles.sleepRow}>
             <div className={styles.sleepLeft}>
               <span className={`${styles.sleepBadge} ${isSleeping ? styles.sleeping : styles.awake}`}>
-                {isSleeping ? 'Sleeping' : 'Awake'}
+                {isSleeping ? t('HOME_SLEEP_SLEEPING') : t('HOME_SLEEP_AWAKE')}
               </span>
               <span className={styles.timer}>{timerDisplay}</span>
               <span className={styles.timerLabel}>
-                {isSleeping ? 'Sleeping for' : 'Awake for'}
+                {isSleeping ? t('HOME_SLEEP_SLEEPING_FOR') : t('HOME_SLEEP_AWAKE_FOR')}
               </span>
             </div>
             <Button
-              text={isSleeping ? 'End' : 'Start'}
+              text={isSleeping ? t('HOME_SLEEP_END') : t('HOME_SLEEP_START')}
               emoji={isSleeping ? '☀️' : '🌙'}
               onClick={handleSleepToggle}
               status={sleep.status}
@@ -302,11 +305,11 @@ const HomePage = () => {
             <div className={styles.sleepLeft}>
               <span className={styles.timer}>{pumpingDisplay}</span>
               <span className={styles.timerLabel}>
-                {lastPumping ? 'Since last pump' : 'No pump logged yet'}
+                {lastPumping ? t('HOME_SLEEP_SINCE_LAST_PUMP') : t('HOME_SLEEP_NO_PUMP_LOGGED')}
               </span>
             </div>
             <Button
-              text="Pumped"
+              text={t('HOME_SLEEP_PUMPED')}
               emoji="🥛"
               onClick={handlePump}
               status={pump.status}
@@ -318,22 +321,22 @@ const HomePage = () => {
         {/* ── Milk ── */}
         <section className={styles.card}>
           <div className={styles.milkHeader}>
-            <h2 className={styles.sectionTitle}>🍼 Milk</h2>
+            <h2 className={styles.sectionTitle}>{t('HOME_MILK_TITLE')}</h2>
             {latestDrank ? (
               <span className={`${styles.milkLastInfo} ${styles[getMilkAgeClass(latestDrank.createdAt)]}`}>
                 {latestDrank.amount} ml · {formatAgo(latestDrank.createdAt)}
               </span>
             ) : (
               <span className={`${styles.milkLastInfo} ${styles.milkLastDefault}`}>
-                No last dranked milk
+                {t('HOME_MILK_NO_LAST_DRANK')}
               </span>
             )}
           </div>
 
           <div className={styles.subSection}>
-            <p className={styles.subLabel}>Baby drank</p>
+            <p className={styles.subLabel}>{t('HOME_MILK_BABY_DRANK')}</p>
             <Input
-              label="Amount (ml)"
+              label={t('HOME_MILK_AMOUNT_ML')}
               value={drankAmount}
               onChange={setDrankAmount}
               type="tel"
@@ -342,14 +345,14 @@ const HomePage = () => {
             />
             <div className={styles.btnRowFull}>
                 <Button
-                  text="Prev bottle"
+                  text={t('HOME_MILK_PREV_BOTTLE')}
                   emoji="🍼"
                   onClick={() => handleDrankMilk('FRIDGE', false)}
                   status={bottle.status}
                   disabled={!drankAmount || !prevBottleEnabled}
                 />
                 <Button
-                  text="New bottle"
+                  text={t('HOME_MILK_NEW_BOTTLE')}
                   emoji="🍼"
                   onClick={() => handleDrankMilk('FRIDGE', true)}
                   status={bottle.status}
@@ -358,7 +361,7 @@ const HomePage = () => {
               </div>
               <div className={styles.btnRowFull}>
                 <Button
-                  text="Boob"
+                  text={t('HOME_MILK_BOOB')}
                   emoji="🤱"
                   onClick={() => handleDrankMilk('BOOB', true)}
                   status={boob.status}
@@ -371,17 +374,17 @@ const HomePage = () => {
           <div className={styles.divider} />
 
           <div className={styles.subSection}>
-            <p className={styles.subLabel}>Waste — subtracts from last log</p>
+            <p className={styles.subLabel}>{t('HOME_MILK_WASTE_LABEL')}</p>
             <Input
-              label="Amount (ml)"
+              label={t('HOME_MILK_AMOUNT_ML')}
               value={wasteAmount}
               onChange={setWasteAmount}
               type="tel"
-              placeholder="e.g. 10"
+              placeholder={t('HOME_MILK_WASTE_PLACEHOLDER')}
               name="wasteAmount"
             />
             <Button
-              text="Subtract waste"
+              text={t('HOME_MILK_SUBTRACT_WASTE')}
               emoji="➖"
               onClick={handleWasteMilk}
               status={waste.status}
@@ -394,20 +397,20 @@ const HomePage = () => {
         {/* ── Nappy ── */}
         <section className={styles.card}>
           <div className={styles.milkHeader}>
-            <h2 className={styles.sectionTitle}>🚽 Nappy</h2>
+            <h2 className={styles.sectionTitle}>{t('HOME_NAPPY_TITLE')}</h2>
             <span className={`${styles.milkLastInfo} ${styles.milkLastDefault}`}>
-              {latestNappy ? `Changed ${formatAgo(latestNappy)}` : 'No diaper change logged'}
+              {latestNappy ? t('HOME_NAPPY_CHANGED', { time: formatAgo(latestNappy) }) : t('HOME_NAPPY_NONE_LOGGED')}
             </span>
           </div>
           <div className={styles.btnRowFull}>
             <Button
-              text="Poop 💩"
+              text={t('HOME_NAPPY_POOP')}
               onClick={handlePoop}
               status={poop.status}
               variant="secondary"
             />
             <Button
-              text="Pee 💧"
+              text={t('HOME_NAPPY_PEE')}
               onClick={handlePee}
               status={pee.status}
               variant="secondary"
@@ -419,7 +422,7 @@ const HomePage = () => {
         {/* ── Medicines ── */}
         {medicines.length > 0 ? (
           <section className={styles.card}>
-            <h2 className={styles.sectionTitle}>💊 Medicines</h2>
+            <h2 className={styles.sectionTitle}>{t('HOME_MEDICINES_TITLE')}</h2>
             <div className={styles.medList}>
               {medicines.map((m) => {
                 const takenToday = isTakenToday(m);
@@ -428,11 +431,11 @@ const HomePage = () => {
                     <div className={styles.medInfo}>
                       <span className={styles.medName}>{m.name}</span>
                       <span className={`${styles.medLabel} ${takenToday ? styles.medLabelCountdown : styles.medLabelOverdue}`}>
-                        {takenToday ? '✓ Taken today' : 'Not taken today'}
+                        {takenToday ? t('HOME_MEDICINES_TAKEN_TODAY') : t('HOME_MEDICINES_NOT_TAKEN_TODAY')}
                       </span>
                     </div>
                     <Button
-                      text="Take"
+                      text={t('HOME_MEDICINES_TAKE')}
                       emoji="💊"
                       onClick={() => handleMarkTaken(m.id)}
                       status={medStatuses[m.id] ?? 'idle'}

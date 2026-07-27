@@ -12,6 +12,7 @@ import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/f
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './MilkDrankPage.module.css';
 
 const getTopCardAgeClass = (createdAt: string): string => {
@@ -44,6 +45,7 @@ const getDefaultTo = (): string => {
 const MilkDrankPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const from = searchParams.get('from') ?? getDefaultFrom();
   const to   = searchParams.get('to')   ?? getDefaultTo();
@@ -95,7 +97,7 @@ const MilkDrankPage = () => {
     return (
       <div className={styles.list}>
         {data.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 🍼</p>
+          <p className={styles.empty}>{t('MILK_DRANK_NO_RECORDS')}</p>
         ) : (
           data.map((item, idx) => {
             const ageClass = idx < 5 ? getTopCardAgeClass(item.createdAt) : '';
@@ -113,8 +115,8 @@ const MilkDrankPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && data.length > 0 && !loading ? <p className={styles.endMsg}>All {data.length} records loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && data.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_RECORDS_LOADED', { count: data.length })}</p> : null}
       </div>
     );
   };
@@ -124,7 +126,7 @@ const MilkDrankPage = () => {
     return (
       <div className={styles.list}>
         {groups.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 🍼</p>
+          <p className={styles.empty}>{t('MILK_DRANK_NO_RECORDS')}</p>
         ) : (
           groups.map(({ date, items }, idx) => {
             const dayTotal = items.reduce((sum, i) => sum + i.amount, 0);
@@ -150,8 +152,8 @@ const MilkDrankPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>Scroll up to load earlier weeks</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_SCROLL_UP_EARLIER_WEEKS')}</p> : null}
       </div>
     );
   };
@@ -161,7 +163,7 @@ const MilkDrankPage = () => {
     return (
       <div className={styles.list}>
         {weeks.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 🍼</p>
+          <p className={styles.empty}>{t('MILK_DRANK_NO_RECORDS')}</p>
         ) : (
           weeks.map(({ weekKey, weekLabel, days }, idx) => {
             const weekTotal  = days.reduce((sum, { items }) => sum + items.reduce((s, i) => s + i.amount, 0), 0);
@@ -175,7 +177,7 @@ const MilkDrankPage = () => {
                   <span><span className={`${styles.chevron} ${isWeekOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📆 {weekLabel}</span>
                   <div className={styles.weekStats}>
                     <span className={styles.weekTotal}>{weekTotal}{weekHasBoob ? '*' : ''} ml</span>
-                    <span className={styles.weekAvg}>~{weekAvg}{weekHasBoob ? '*' : ''} ml/day</span>
+                    <span className={styles.weekAvg}>~{weekAvg}{weekHasBoob ? '*' : ''} {t('LIST_ML_PER_DAY')}</span>
                   </div>
                 </div>
                 {isWeekOpen ? (
@@ -206,19 +208,19 @@ const MilkDrankPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_WEEKS_LOADED')}</p> : null}
       </div>
     );
   };
 
   return (
     <div ref={visibilityRef}>
-    <PageLayout title="Milk Drank" emoji="🍼" gradient="green">
+    <PageLayout title={t('MILK_DRANK_TITLE')} emoji="🍼" gradient="green">
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
-        <div className={styles.statChip}>🍼 Total: <strong>{summary ? `${summary.totalMl}${summary.hasBoob ? '*' : ''} ml` : '—'}</strong></div>
-        <div className={styles.statChip}>📊 Avg/day: <strong>{summary ? `~${summary.avgPerDay}${summary.hasBoob ? '*' : ''} ml` : '—'}</strong></div>
+        <div className={styles.statChip}>{t('MILK_DRANK_TOTAL')} <strong>{summary ? `${summary.totalMl}${summary.hasBoob ? '*' : ''} ml` : t('COMMON_DASH')}</strong></div>
+        <div className={styles.statChip}>{t('MILK_DRANK_AVG_PER_DAY')} <strong>{summary ? `~${summary.avgPerDay}${summary.hasBoob ? '*' : ''} ml` : t('COMMON_DASH')}</strong></div>
       </div>
       {error ? (
         <p className={styles.errorMsg}>⚠️ {error}</p>

@@ -5,6 +5,7 @@ import type { TPumping } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import Button from '../../components/Button/Button';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './EditPumpingPage.module.css';
 
 const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
@@ -12,6 +13,7 @@ const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
 const EditPumpingPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [createdAt, setCreatedAt] = useState('');
   const [loading, setLoading] = useState(true);
@@ -58,14 +60,14 @@ const EditPumpingPage = () => {
   };
 
   return (
-    <PageLayout title="Edit Pumping" emoji="🥛" gradient="indigo">
+    <PageLayout title={t('EDIT_PUMPING_TITLE')} emoji="🥛" gradient="indigo">
       <div className={styles.page}>
         {loading ? (
-          <p className={styles.loadingMsg}>Loading… ⏳</p>
+          <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
         ) : (
           <div className={styles.form}>
             <DateTimeInput
-              label="Time"
+              label={t('COMMON_TIME')}
               name="createdAt"
               value={createdAt}
               onChange={setCreatedAt}
@@ -74,7 +76,7 @@ const EditPumpingPage = () => {
             <div className={styles.actions}>
               <Button
                 className={styles.saveBtn}
-                text="Save"
+                text={t('COMMON_SAVE')}
                 emoji="💾"
                 onClick={handleSubmit}
                 loading={saving}
@@ -83,7 +85,7 @@ const EditPumpingPage = () => {
               <div className={styles.secondaryRow}>
                 <Button
                   className={styles.secondaryBtn}
-                  text="Cancel"
+                  text={t('COMMON_CANCEL')}
                   emoji="↩️"
                   variant="secondary"
                   onClick={goBack}
@@ -91,7 +93,7 @@ const EditPumpingPage = () => {
 
                 <Button
                   className={styles.secondaryBtn}
-                  text="Delete"
+                  text={t('COMMON_DELETE')}
                   emoji="🗑️"
                   variant="ghost"
                   loading={deleting}

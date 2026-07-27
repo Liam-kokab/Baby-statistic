@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { authFetch } from '../../utils/authFetch';
 import type { TUser, TBaby, TAdminCreateUser, TAdminUpdateUser } from 'baby-statistic-common';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './AdminUsersPage.module.css';
 
 type TCreateForm = {
@@ -14,6 +15,7 @@ type TCreateForm = {
 const EMPTY_FORM: TCreateForm = { username: '', password: '', role: 'user', babyId: '', name: '' };
 
 const AdminUsersPage = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<TUser[]>([]);
   const [babies, setBabies] = useState<TBaby[]>([]);
   const [form, setForm] = useState<TCreateForm>(EMPTY_FORM);
@@ -79,7 +81,7 @@ const AdminUsersPage = () => {
   const handleSavePassword = useCallback(async (id: number) => {
     setPasswordError(null);
     if (passwordValue.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
+      setPasswordError(t('ADMIN_PASSWORD_MIN_LENGTH'));
       return;
     }
     const body: TAdminUpdateUser = { password: passwordValue };
@@ -96,7 +98,7 @@ const AdminUsersPage = () => {
   }, [passwordValue]);
 
   const handleDelete = useCallback(async (id: number) => {
-    if (!confirm('Delete this user?')) return;
+    if (!confirm(t('ADMIN_CONFIRM_DELETE_USER'))) return;
     await authFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
     load();
   }, [load]);
@@ -106,38 +108,38 @@ const AdminUsersPage = () => {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>👥 Users</h1>
+      <h1 className={styles.title}>{t('ADMIN_USERS_TITLE')}</h1>
 
       <form onSubmit={handleAdd} className={styles.addForm}>
-        <input className={styles.input} placeholder="Display name" value={form.name}
+        <input className={styles.input} placeholder={t('ADMIN_DISPLAY_NAME_PLACEHOLDER')} value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-        <input className={styles.input} placeholder="Username" value={form.username}
+        <input className={styles.input} placeholder={t('ADMIN_USERNAME_PLACEHOLDER')} value={form.username}
           onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required />
-        <input className={styles.input} placeholder="Password" type="password" value={form.password}
+        <input className={styles.input} placeholder={t('ADMIN_PASSWORD_PLACEHOLDER')} type="password" value={form.password}
           onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
         <select className={styles.input} value={form.role}
           onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as 'user' | 'admin' }))}>
-          <option value="user">user</option>
-          <option value="admin">admin</option>
+          <option value="user">{t('ADMIN_ROLE_USER')}</option>
+          <option value="admin">{t('ADMIN_ROLE_ADMIN')}</option>
         </select>
         {form.role === 'user' ? (
           <select className={styles.input} value={form.babyId}
             onChange={(e) => setForm((f) => ({ ...f, babyId: e.target.value }))} required>
-            <option value="">— Select baby —</option>
+            <option value="">{t('ADMIN_SELECT_BABY')}</option>
             {babies.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
         ) : null}
-        <button className={styles.addBtn} type="submit">Add</button>
+        <button className={styles.addBtn} type="submit">{t('COMMON_ADD')}</button>
       </form>
 
       {error ? <p className={styles.error}>{error}</p> : null}
 
       {loading ? (
-        <p className={styles.empty}>Loading…</p>
+        <p className={styles.empty}>{t('COMMON_LOADING_SIMPLE')}</p>
       ) : users.length === 0 ? (
-        <p className={styles.empty}>No users yet.</p>
+        <p className={styles.empty}>{t('ADMIN_NO_USERS_YET')}</p>
       ) : (
         <ul className={styles.list}>
           {users.map((u) => (
@@ -147,11 +149,11 @@ const AdminUsersPage = () => {
                   {u.role === 'admin' ? '🔑' : '👤'}
                 </span>
                 <span className={styles.name}>{u.username}</span>
-                <span className={styles.meta}>{u.name ? u.name : <em>no name</em>}</span>
-                <span className={styles.meta}>{u.role === 'user' ? `👶 ${babyName(u.babyId)}` : 'admin'}</span>
+                <span className={styles.meta}>{u.name ? u.name : <em>{t('ADMIN_NO_NAME')}</em>}</span>
+                <span className={styles.meta}>{u.role === 'user' ? `👶 ${babyName(u.babyId)}` : t('ADMIN_ROLE_ADMIN')}</span>
                 <button
                   className={styles.editBtn}
-                  title="Edit name / username"
+                  title={t('ADMIN_EDIT_NAME_USERNAME')}
                   onClick={() => {
                     setEditingId(u.id);
                     setEditName(u.name ?? '');
@@ -162,7 +164,7 @@ const AdminUsersPage = () => {
                 >✏️</button>
                 <button
                   className={styles.editBtn}
-                  title="Set new password"
+                  title={t('ADMIN_SET_NEW_PASSWORD')}
                   onClick={() => {
                     setPasswordId(u.id);
                     setPasswordValue('');
@@ -179,14 +181,14 @@ const AdminUsersPage = () => {
                     className={styles.editInput}
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Display name"
+                    placeholder={t('ADMIN_DISPLAY_NAME_PLACEHOLDER')}
                     autoFocus
                   />
                   <input
                     className={styles.editInput}
                     value={editUsername}
                     onChange={(e) => setEditUsername(e.target.value)}
-                    placeholder="Username"
+                    placeholder={t('ADMIN_USERNAME_PLACEHOLDER')}
                   />
                   <button className={styles.saveBtn} onClick={() => handleSaveEdit(u.id)}>✓</button>
                   <button className={styles.cancelBtn} onClick={() => setEditingId(null)}>✕</button>
@@ -201,7 +203,7 @@ const AdminUsersPage = () => {
                     type="password"
                     value={passwordValue}
                     onChange={(e) => setPasswordValue(e.target.value)}
-                    placeholder="New password"
+                    placeholder={t('ADMIN_NEW_PASSWORD_PLACEHOLDER')}
                     autoFocus
                   />
                   <button className={styles.saveBtn} onClick={() => handleSavePassword(u.id)}>✓</button>

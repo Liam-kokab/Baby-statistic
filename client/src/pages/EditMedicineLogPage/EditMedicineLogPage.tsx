@@ -5,6 +5,7 @@ import type { TMedicineLog } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import Button from '../../components/Button/Button';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './EditMedicineLogPage.module.css';
 
 const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
@@ -12,6 +13,7 @@ const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
 const EditMedicineLogPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [takenAt, setTakenAt]   = useState('');
   const [loading, setLoading]   = useState(true);
@@ -70,14 +72,14 @@ const EditMedicineLogPage = () => {
   };
 
   return (
-    <PageLayout title="Edit Medicine Log" emoji="💊" gradient="green">
+    <PageLayout title={t('EDIT_MEDICINE_LOG_TITLE')} emoji="💊" gradient="green">
       <div className={styles.page}>
         {loading ? (
-          <p className={styles.loadingMsg}>Loading… ⏳</p>
+          <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
         ) : (
           <div className={styles.form}>
             <DateTimeInput
-              label="Taken at"
+              label={t('EDIT_TAKEN_AT')}
               name="takenAt"
               value={takenAt}
               onChange={setTakenAt}
@@ -86,7 +88,7 @@ const EditMedicineLogPage = () => {
             <div className={styles.actions}>
               <Button
                 className={styles.saveBtn}
-                text="Save"
+                text={t('COMMON_SAVE')}
                 emoji="💾"
                 onClick={handleSave}
                 loading={saving}
@@ -95,7 +97,7 @@ const EditMedicineLogPage = () => {
               <div className={styles.secondaryRow}>
                 <Button
                   className={styles.secondaryBtn}
-                  text="Cancel"
+                  text={t('COMMON_CANCEL')}
                   emoji="↩️"
                   variant="secondary"
                   onClick={goBack}
@@ -103,7 +105,7 @@ const EditMedicineLogPage = () => {
 
                 <Button
                   className={styles.secondaryBtn}
-                  text="Delete"
+                  text={t('COMMON_DELETE')}
                   emoji="🗑️"
                   variant="ghost"
                   loading={deleting}

@@ -5,6 +5,7 @@ import type { TMedicine } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import Input from '../../components/Input/Input';
 import Button from '../../components/Button/Button';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './EditMedicinePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
@@ -12,6 +13,7 @@ const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
 const EditMedicinePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [name, setName]         = useState('');
   const [loading, setLoading]   = useState(true);
@@ -68,24 +70,24 @@ const EditMedicinePage = () => {
   };
 
   return (
-    <PageLayout title="Edit Medicine" emoji="💊" gradient="green">
+    <PageLayout title={t('EDIT_MEDICINE_TITLE')} emoji="💊" gradient="green">
       <div className={styles.page}>
         {loading ? (
-          <p className={styles.loadingMsg}>Loading… ⏳</p>
+          <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
         ) : (
           <div className={styles.form}>
             <Input
-              label="Name"
+              label={t('COMMON_NAME')}
               value={name}
               onChange={setName}
-              placeholder="e.g. Vitamin D"
+              placeholder={t('MEDICINE_PAGE_NAME_PLACEHOLDER')}
               name="medicineName"
             />
             {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}
             <div className={styles.actions}>
               <Button
                 className={styles.saveBtn}
-                text="Save"
+                text={t('COMMON_SAVE')}
                 emoji="💾"
                 onClick={handleSave}
                 loading={saving}
@@ -95,7 +97,7 @@ const EditMedicinePage = () => {
               <div className={styles.secondaryRow}>
                 <Button
                   className={styles.secondaryBtn}
-                  text="Cancel"
+                  text={t('COMMON_CANCEL')}
                   emoji="↩️"
                   variant="secondary"
                   onClick={goBack}
@@ -103,7 +105,7 @@ const EditMedicinePage = () => {
 
                 <Button
                   className={styles.secondaryBtn}
-                  text="Delete"
+                  text={t('COMMON_DELETE')}
                   emoji="🗑️"
                   variant="ghost"
                   loading={deleting}

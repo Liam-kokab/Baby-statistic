@@ -12,6 +12,7 @@ import { groupByWeek } from '../../utils/groupByWeek';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './SleepPage.module.css';
 
 const getDefaultFrom = (): string => {
@@ -33,8 +34,8 @@ const formatMs = (ms: number): string => {
   return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 };
 
-const formatDuration = (start: string, end: string | null): string => {
-  if (!end) return 'Ongoing ⏱️';
+const formatDuration = (start: string, end: string | null, ongoingText: string): string => {
+  if (!end) return ongoingText;
   return formatMs(new Date(end).getTime() - new Date(start).getTime());
 };
 
@@ -64,6 +65,7 @@ const sleepKeyFn = (item: TSleep): string => item.start;
 const SleepPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const from = searchParams.get('from') ?? getDefaultFrom();
   const to   = searchParams.get('to')   ?? getDefaultTo();
@@ -117,9 +119,9 @@ const SleepPage = () => {
           : null;
       return [
         <div key={item.id} className={styles.dayItem}>
-          <span className={styles.dayItemDuration}>😴 {formatDuration(item.start, item.end)}</span>
+          <span className={styles.dayItemDuration}>😴 {formatDuration(item.start, item.end, t('SLEEP_PAGE_ONGOING'))}</span>
           <span className={styles.time}>
-            {formatTime(item.start)}{item.end ? ` → ${formatTime(item.end)}` : ' → Ongoing'}
+            {formatTime(item.start)}{item.end ? ` → ${formatTime(item.end)}` : ` → ${t('SLEEP_PAGE_ONGOING')}`}
           </span>
         </div>,
         ...(awakeMs !== null && awakeMs > 0
@@ -139,7 +141,7 @@ const SleepPage = () => {
     return (
       <div className={styles.list}>
         {sorted.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 😴</p>
+          <p className={styles.empty}>{t('SLEEP_PAGE_NO_RECORDS')}</p>
         ) : (
           sorted.flatMap((item, i) => {
             const isSentinel = i === sentinelIdx;
@@ -152,7 +154,7 @@ const SleepPage = () => {
               <div key={item.id} ref={isSentinel ? sentinelRef : undefined} className={styles.card}>
                 <span className={styles.cardEmoji}>😴</span>
                 <div className={styles.cardBody}>
-                  <span className={styles.duration}>{formatDuration(item.start, item.end)}</span>
+                  <span className={styles.duration}>{formatDuration(item.start, item.end, t('SLEEP_PAGE_ONGOING'))}</span>
                   <span className={styles.timeRange}>
                     {formatDateTime(item.start)}{item.end ? ` → ${formatTime(item.end)}` : ''}
                   </span>
@@ -173,8 +175,8 @@ const SleepPage = () => {
             ];
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && sorted.length > 0 && !loading ? <p className={styles.endMsg}>All {sorted.length} records loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && sorted.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_RECORDS_LOADED', { count: sorted.length })}</p> : null}
       </div>
     );
   };
@@ -184,7 +186,7 @@ const SleepPage = () => {
     return (
       <div className={styles.list}>
         {groups.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 😴</p>
+          <p className={styles.empty}>{t('SLEEP_PAGE_NO_RECORDS')}</p>
         ) : (
           groups.map(({ date, items }, idx) => {
             const dayMs    = totalDurationMs(items);
@@ -205,8 +207,8 @@ const SleepPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>All days loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && groups.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_DAYS_LOADED')}</p> : null}
       </div>
     );
   };
@@ -216,7 +218,7 @@ const SleepPage = () => {
     return (
       <div className={styles.list}>
         {weeks.length === 0 && !loading ? (
-          <p className={styles.empty}>No records found 😴</p>
+          <p className={styles.empty}>{t('SLEEP_PAGE_NO_RECORDS')}</p>
         ) : (
           weeks.map(({ weekKey, weekLabel, days }, idx) => {
             const weekMs      = days.reduce((sum, { items }) => sum + totalDurationMs(items), 0);
@@ -233,12 +235,12 @@ const SleepPage = () => {
                   <div className={styles.weekStats}>
                     <div className={styles.weekStatsRow}>
                       <span className={styles.weekTotal}>😴 {formatMs(weekMs)}</span>
-                      <span className={styles.weekAvg}>~{formatMs(weekAvgMs)}/day</span>
+                      <span className={styles.weekAvg}>~{formatMs(weekAvgMs)}{t('LIST_PER_DAY')}</span>
                     </div>
                     {weekAwakeMs > 0 ? (
                       <div className={styles.weekStatsRow}>
                         <span className={styles.weekAwake}>☀️ {formatMs(weekAwakeMs)}</span>
-                        <span className={styles.weekAvg}>~{formatMs(weekAwakeAvgMs)}/day</span>
+                        <span className={styles.weekAvg}>~{formatMs(weekAwakeAvgMs)}{t('LIST_PER_DAY')}</span>
                       </div>
                     ) : null}
                   </div>
@@ -266,20 +268,20 @@ const SleepPage = () => {
             );
           })
         )}
-        {loading ? <p className={styles.loadingMsg}>Loading… ⏳</p> : null}
-        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>All weeks loaded</p> : null}
+        {loading ? <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p> : null}
+        {!hasMore && weeks.length > 0 && !loading ? <p className={styles.endMsg}>{t('LIST_ALL_WEEKS_LOADED')}</p> : null}
       </div>
     );
   };
 
   return (
-    <PageLayout title="Sleep" emoji="😴" gradient="indigo" ref={visibilityRef}>
+    <PageLayout title={t('SLEEP_PAGE_TITLE')} emoji="😴" gradient="indigo" ref={visibilityRef}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
-        <div className={styles.statChip}>😴 Total: <strong>{summary ? formatMs(summary.totalMs) : '—'}</strong></div>
-        <div className={styles.statChip}>📊 Avg/day: <strong>{summary ? `~${formatMs(summary.avgMs)}` : '—'}</strong></div>
-        <div className={styles.statChip}>⏳ Awake Total: <strong>{summary ? formatMs(summary.totalAwakeMs) : '—'}</strong></div>
-        <div className={styles.statChip}>📈 Avg Awake: <strong>{summary ? `~${formatMs(summary.avgAwakeMs)}` : '—'}</strong></div>
+        <div className={styles.statChip}>{t('SLEEP_PAGE_TOTAL')} <strong>{summary ? formatMs(summary.totalMs) : t('COMMON_DASH')}</strong></div>
+        <div className={styles.statChip}>{t('SLEEP_PAGE_AVG_PER_DAY')} <strong>{summary ? `~${formatMs(summary.avgMs)}` : t('COMMON_DASH')}</strong></div>
+        <div className={styles.statChip}>{t('SLEEP_PAGE_AWAKE_TOTAL')} <strong>{summary ? formatMs(summary.totalAwakeMs) : t('COMMON_DASH')}</strong></div>
+        <div className={styles.statChip}>{t('SLEEP_PAGE_AVG_AWAKE')} <strong>{summary ? `~${formatMs(summary.avgAwakeMs)}` : t('COMMON_DASH')}</strong></div>
       </div>
       <>
         {view === 'item' ? renderItemView() : view === 'day' ? renderDayView() : renderWeekView()}

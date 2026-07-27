@@ -284,6 +284,19 @@ The app is installable as a PWA on Android (requires HTTPS). Key files:
 | `src/utils/useInstallPrompt.ts` | Hook that captures `beforeinstallprompt` |
 | `src/components/InstallBanner/` | Banner shown when install is available; has Install + dismiss buttons |
 
+## Internationalization (`src/i18n/`)
+The client supports English (`en`), Norwegian Bokmål (`nb`), and Norwegian Nynorsk (`nn`).
+
+| File | Purpose |
+|---|---|
+| `src/i18n/translations.json` | Flat dictionary: `SCREAMING_SNAKE_CASE_KEY -> { en, nb, nn }`. Every user-visible string in the app lives here — no hardcoded UI text in components/pages. |
+| `src/i18n/i18n.tsx` | `TLanguage = 'en' \| 'nb' \| 'nn'`; `getSavedLanguage()`/`saveLanguage()` (localStorage key `language`); `LanguageProvider` (React Context); `useTranslation()` hook returning `{ language, setLanguage, t }`. |
+
+- `t(key: string, vars?: Record<string, string | number>)` looks up `key` in the current language, falling back to `en`, then to the raw key if missing. Supports `{varName}` interpolation (e.g. `t('LIST_ALL_RECORDS_LOADED', { count: 5 })` for a template like `"All {count} records loaded"`).
+- `main.tsx` wraps the app in `<LanguageProvider>` (alongside `ensureInitialTheme()`), so `useTranslation()` is available in every component/page.
+- The Settings page (**Appearance card**) exposes a three-way `Toggle` (🇬🇧 English / 🇳🇴 Bokmål / 🇳🇴 Nynorsk) that calls `setLanguage`, persisting the choice to localStorage under the `language` key.
+- Adding new UI text: add a new key to `translations.json` with all three languages, then reference it via `t('YOUR_KEY')` — never inline literal strings in JSX/placeholders/titles/`confirm()` calls.
+
 ## Dev Proxy
 `vite.config.ts` proxies `/api/*` → `http://localhost:3000`.
 

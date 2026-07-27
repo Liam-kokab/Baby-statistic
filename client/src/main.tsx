@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import './styles/global.css';
 import App from './App';
 import { ensureInitialTheme } from './utils/theme';
+import { LanguageProvider } from './i18n/i18n';
 
 // Apply saved theme early to avoid a flash of the default theme
 ensureInitialTheme();
@@ -13,9 +14,11 @@ const rootEl = document.getElementById('root');
 if (rootEl) {
   createRoot(rootEl).render(
     <StrictMode>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </LanguageProvider>
     </StrictMode>
   );
 }

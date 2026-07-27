@@ -7,6 +7,7 @@ import Input from '../../components/Input/Input';
 import Textarea from '../../components/Textarea/Textarea';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import Button from '../../components/Button/Button';
+import { useTranslation } from '../../i18n/i18n';
 import styles from './EditMilestonePage.module.css';
 
 const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
@@ -14,6 +15,7 @@ const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
 const EditMilestonePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -65,7 +67,7 @@ const EditMilestonePage = () => {
   };
 
   const handleDelete = async (): Promise<void> => {
-    if (!window.confirm('Delete this milestone? This cannot be undone.')) return;
+    if (!window.confirm(t('MILESTONE_PAGE_CONFIRM_DELETE'))) return;
     setDeleting(true);
     setError(null);
     const res = await authFetch<null>(`/api/milestones/${id}`, { method: 'DELETE' });
@@ -78,20 +80,20 @@ const EditMilestonePage = () => {
   };
 
   return (
-    <PageLayout title="Edit My First" emoji="🏆" gradient="amber">
+    <PageLayout title={t('MILESTONE_PAGE_EDIT_TITLE')} emoji="🏆" gradient="amber">
       <div className={styles.page}>
         {loading ? (
-          <p className={styles.loadingMsg}>Loading… ⏳</p>
+          <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
         ) : (
           <div className={styles.form}>
-            <Input label="Title" value={title} onChange={setTitle} placeholder="e.g. First steps" name="milestoneTitle" />
-            <Textarea label="Description (optional)" value={description} onChange={setDescription} placeholder="Add more details…" name="milestoneDescription" />
-            <DateTimeInput label="Date & time" value={occurredAt} onChange={setOccurredAt} name="milestoneOccurredAt" />
+            <Input label={t('MILESTONE_PAGE_TITLE_LABEL')} value={title} onChange={setTitle} placeholder={t('MILESTONE_PAGE_TITLE_PLACEHOLDER')} name="milestoneTitle" />
+            <Textarea label={t('MILESTONE_PAGE_DESCRIPTION_LABEL')} value={description} onChange={setDescription} placeholder={t('MILESTONE_PAGE_DESCRIPTION_PLACEHOLDER')} name="milestoneDescription" />
+            <DateTimeInput label={t('MILESTONE_PAGE_DATE_TIME_LABEL')} value={occurredAt} onChange={setOccurredAt} name="milestoneOccurredAt" />
             {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}
             <div className={styles.actions}>
               <Button
                 className={styles.saveBtn}
-                text="Save"
+                text={t('COMMON_SAVE')}
                 emoji="💾"
                 onClick={handleSave}
                 loading={saving}
@@ -101,7 +103,7 @@ const EditMilestonePage = () => {
               <div className={styles.secondaryRow}>
                 <Button
                   className={styles.secondaryBtn}
-                  text="Cancel"
+                  text={t('COMMON_CANCEL')}
                   emoji="↩️"
                   variant="secondary"
                   onClick={goBack}
@@ -109,7 +111,7 @@ const EditMilestonePage = () => {
 
                 <Button
                   className={styles.secondaryBtn}
-                  text="Delete"
+                  text={t('COMMON_DELETE')}
                   emoji="🗑️"
                   variant="ghost"
                   loading={deleting}
