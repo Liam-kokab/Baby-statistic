@@ -98,7 +98,7 @@ const MilkDrankPage = () => {
           <p className={styles.empty}>No records found 🍼</p>
         ) : (
           data.map((item, idx) => {
-            const ageClass = idx === 0 ? getTopCardAgeClass(item.createdAt) : '';
+            const ageClass = idx < 5 ? getTopCardAgeClass(item.createdAt) : '';
             return (
               <div
                 key={item.id}

@@ -31,6 +31,12 @@ const app = express();
 // public 80/443 (with Let's Encrypt TLS) to this port. See doc/nginx.md.
 const PORT = process.env.PORT ?? 3000;
 
+// Behind nginx (see deploy/nginx/baby-statistic.conf), so trust the
+// X-Forwarded-Proto/X-Forwarded-Host headers it sets — needed so req.protocol
+// and req.get('host') reflect the public-facing origin (used by the dynamic
+// Swagger UI "servers" entry below) rather than the internal 127.0.0.1:3000.
+app.set('trust proxy', 1);
+
 // Security headers (X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy, etc.).
 // CSP is disabled here: the SPA loads Google Fonts from a CDN, registers a service
 // worker via an inline <script>, and /api-docs (Swagger UI) relies on inline
@@ -77,7 +83,18 @@ app.use((req, res, next) => {
   express.json()(req, res, next);
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Swagger UI's "servers" entry must reflect wherever the app is actually
+// reached from (localhost:3000 in dev, the public domain in prod), so the
+// document is rebuilt per-request from req.protocol/req.get('host') instead
+// of using swaggerUi.setup()'s static document.
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', (req: Request, res: Response): void => {
+  const dynamicDocument = {
+    ...swaggerDocument,
+    servers: [{ url: `${req.protocol}://${req.get('host')}`, description: 'Current server' }],
+  };
+  res.send(swaggerUi.generateHTML(dynamicDocument));
+});
 
 // Public routes (no auth required)
 app.use('/api/ping', pingRouter);

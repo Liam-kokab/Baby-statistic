@@ -10,6 +10,7 @@ import Input from '../../components/Input/Input';
 import Checkmark from '../../components/Checkmark/Checkmark';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
+import { fillDayRange } from '../../utils/fillDayRange';
 import { formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
@@ -85,10 +86,29 @@ const MedicinePage = () => {
     () => new Map(allMedicines.map((m) => [m.id, m.name])),
     [allMedicines],
   );
+  const medicineByIdMap = useMemo(
+    () => new Map(allMedicines.map((m) => [m.id, m])),
+    [allMedicines],
+  );
   const logs: TLogWithName[] = useMemo(
     () => data.map((l) => ({ ...l, medicineName: nameMap.get(l.medicineId) ?? `#${l.medicineId}` })),
     [data, nameMap],
   );
+
+  // Earliest loaded date across all medicines, used as the lower bound when
+  // filling in "not taken" days so gaps stay accurate as more pages load.
+  const globalMinDate = useMemo(
+    () =>
+      logs.reduce<string>((min, l) => {
+        const d = l.takenAt.slice(0, 10);
+        return !min || d < min ? d : min;
+      }, ''),
+    [logs],
+  );
+  const upperBoundDate = useMemo(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return to < todayStr ? to : todayStr;
+  }, [to]);
 
   const toggleDay = (date: string): void =>
     setOpenDays((prev) => { const n = new Set(prev); if (n.has(date)) n.delete(date); else n.add(date); return n; });
@@ -176,7 +196,10 @@ const MedicinePage = () => {
           groups.map(({ name, items }, idx) => {
             const medKey = `day-med-${name}`;
             const isOpen = openMed === medKey;
-            const days = groupByDay(items, (l) => l.takenAt);
+            const medicine = medicineByIdMap.get(items[0]?.medicineId);
+            const rangeFrom = medicine?.createdAt.slice(0, 10) ?? '';
+            const lowerBound = !globalMinDate || rangeFrom > globalMinDate ? rangeFrom : globalMinDate;
+            const days = fillDayRange(groupByDay(items, (l) => l.takenAt), lowerBound, upperBoundDate);
             const isSentinel = hasMore && idx === Math.max(0, groups.length - 5);
             return (
               <div key={medKey} className={styles.medGroup}>
@@ -189,15 +212,25 @@ const MedicinePage = () => {
                   <span className={styles.dayTotal}>{items.length} dose{items.length !== 1 ? 's' : ''}</span>
                 </div>
                 {isOpen ? (
-                  days.map(({ date, items: dayItems }) => {
+                  days.map(({ date, items: dayItems, taken }) => {
                     const isDayOpen = openDays.has(date);
                     return (
-                      <div key={date} className={styles.dayGroup}>
-                        <div className={styles.dayHeader} onClick={() => toggleDay(date)}>
-                          <span><span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span>{' '}📅 {formatDateWithWeekday(date)}</span>
-                          <span className={styles.dayTotal}>{dayItems.length} dose{dayItems.length !== 1 ? 's' : ''}</span>
+                      <div key={date} className={`${styles.dayGroup} ${taken ? '' : styles.dayGroupMissed}`}>
+                        <div
+                          className={`${styles.dayHeader} ${taken ? '' : styles.dayHeaderMissed}`}
+                          onClick={taken ? () => toggleDay(date) : undefined}
+                        >
+                          <span>
+                            {taken ? <span className={`${styles.chevron} ${isDayOpen ? styles.chevronOpen : ''}`}>{'>'}</span> : null}
+                            {' '}📅 {formatDateWithWeekday(date)}
+                          </span>
+                          {taken ? (
+                            <span className={styles.dayTotal}>{dayItems.length} dose{dayItems.length !== 1 ? 's' : ''}</span>
+                          ) : (
+                            <span className={styles.missedLabel}>❌ Not taken</span>
+                          )}
                         </div>
-                        {isDayOpen ? (
+                        {isDayOpen && taken ? (
                           dayItems.map((item) => (
                             <div key={item.id} className={styles.dayItem}>
                               <span className={styles.time}>{formatDateTime(item.takenAt)}</span>

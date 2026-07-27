@@ -78,6 +78,21 @@
   filter: brightness(0.95);
 }
 
+.dayGroupMissed {
+  border-color: rgba(211, 47, 47, 0.4);
+}
+
+.dayHeaderMissed {
+  background: rgba(211, 47, 47, 0.08);
+  cursor: default;
+}
+
+.missedLabel {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #d32f2f;
+}
+
 .dayTotal {
   font-size: 1rem;
   font-weight: 900;

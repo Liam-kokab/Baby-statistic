@@ -235,6 +235,11 @@ Groups items by ISO Mon–Sun week, sorted newest-first. Uses UTC date arithmeti
 Returns `{ weekKey: string; weekLabel: string; days: { date: string; items: T[] }[] }[]`.
 `weekLabel` is formatted as e.g. `"14-04 – 20-04-2026"` using `formatDate` from `format.ts`.
 
+### `fillDayRange<T>(days, rangeFrom, rangeTo)`
+Expands a `groupByDay` result into a **contiguous** descending list of every calendar day between `rangeFrom` and `rangeTo` (both `YYYY-MM-DD`, inclusive). Days without a matching group are filled with `items: []` and `taken: false`.
+Returns `{ date: string; items: T[]; taken: boolean }[]`.
+Used by `MedicinePage`'s day view so days a medicine dose was forgotten show up as a marked "❌ Not taken" row instead of silently disappearing, without affecting infinite-scroll pagination (which is still driven by raw log counts via `hasEnoughForView`).
+
 ## Date / Time Formatting (`src/utils/format.ts`)
 All display formatting uses `Intl.DateTimeFormat` with `timeZone: 'Europe/Oslo'` and `hourCycle: 'h23'`. No locale-dependent `toLocaleString` calls in components.
 

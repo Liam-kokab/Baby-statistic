@@ -79,7 +79,7 @@ server/
 - Imports `'./loadEnv'` **first** — loads `.env` before any other module reads `process.env`
 - Imports `'./db'` on startup — this triggers migrations automatically
 - Registers `express.json()` middleware globally (default `100kb` body limit), **except** for `POST /api/backup/restore`, which is skipped globally and parses its own body in `routes/backup.ts` with a raised `20mb` limit (full-database restore payloads can exceed the default limit)
-- Mounts Swagger UI at `/api-docs` (reads `doc/openAPI.json` at startup)
+- Mounts Swagger UI at `/api-docs` (reads `doc/openAPI.json` at startup). The `servers` entry is rebuilt per-request from `req.protocol`/`req.get('host')` (via `app.set('trust proxy', 1)` + nginx's `X-Forwarded-Proto`/`Host` headers) instead of using the static `localhost:3000` URL from the JSON file, so "Try it out" works against whatever origin the docs were actually loaded from (dev or prod)
 - Mounts all API routers under `/api/<name>`
 - `authenticate` middleware is mounted on the `/api` prefix only (`app.use('/api', authenticate)`) — it never gates static assets or the SPA shell, since the browser can't send a Bearer token on page navigation and the login page itself must load before any token exists
 - In `NODE_ENV=production`: serves `server/public/` as static files and falls back to `index.html` for all non-API routes
