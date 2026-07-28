@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react';
 import styles from './Button.module.css';
 import type { TActionStatus } from '../../utils/useActionFeedback';
 
@@ -6,7 +7,7 @@ type TVariant = 'primary' | 'secondary' | 'ghost';
 type TProps = {
   text?: string;
   emoji?: string;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   loading?: boolean;
   status?: TActionStatus;
