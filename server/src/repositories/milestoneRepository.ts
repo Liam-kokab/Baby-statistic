@@ -1,22 +1,26 @@
 import type { TMilestone, TMilestoneDb, TPostMilestone, TUpdateMilestone } from 'baby-statistic-common';
 import { db } from '../db';
-import { nowOslo, toOsloIso, toOsloLocal } from '../utils/time';
+import { nowOslo, toOsloIso } from '../utils/time';
 import type { TTimeFilter } from '../types';
+
+const normalizeDateOnly = (value: string): string => value.slice(0, 10);
 
 const fromDb = (row: TMilestoneDb): TMilestone => ({
   id: row.id,
   title: row.title,
   description: row.description,
-  occurredAt: toOsloIso(row.occurred_at),
+  occurredAt: normalizeDateOnly(row.occurred_at),
   createdAt: toOsloIso(row.created_at),
 });
 
 export const milestoneRepository = {
   findAll: (filter: TTimeFilter, babyId: number): TMilestone[] => {
-    const conditions = ['baby_id = ?', ...(filter.from ? ['occurred_at >= ?'] : []), ...(filter.to ? ['occurred_at <= ?'] : [])];
-    const params = [babyId, ...(filter.from ? [filter.from] : []), ...(filter.to ? [filter.to] : [])];
+    const from = filter.from ? normalizeDateOnly(filter.from) : undefined;
+    const to = filter.to ? normalizeDateOnly(filter.to) : undefined;
+    const conditions = ['baby_id = ?', ...(from ? ['substr(occurred_at, 1, 10) >= ?'] : []), ...(to ? ['substr(occurred_at, 1, 10) <= ?'] : [])];
+    const params = [babyId, ...(from ? [from] : []), ...(to ? [to] : [])];
     const rows = db.prepare<unknown[], TMilestoneDb>(
-      `SELECT * FROM milestone WHERE ${conditions.join(' AND ')} ORDER BY occurred_at DESC`
+      `SELECT * FROM milestone WHERE ${conditions.join(' AND ')} ORDER BY substr(occurred_at, 1, 10) DESC, id DESC`
     ).all(...params);
     return rows.map(fromDb);
   },
@@ -28,7 +32,7 @@ export const milestoneRepository = {
 
   insert: (data: TPostMilestone, babyId: number, createdBy: number): TMilestone => {
     const now = nowOslo();
-    const occurredAt = toOsloLocal(data.occurredAt ?? now);
+    const occurredAt = normalizeDateOnly(data.occurredAt ?? now);
     const result = db.prepare<{ title: string; description: string | null; occurred_at: string; created_at: string; baby_id: number; created_by: number }>(
       `INSERT INTO milestone (title, description, occurred_at, created_at, baby_id, created_by)
        VALUES (@title, @description, @occurred_at, @created_at, @baby_id, @created_by)`
@@ -49,7 +53,7 @@ export const milestoneRepository = {
     if (!existing) return null;
     const title = data.title ?? existing.title;
     const description = data.description !== undefined ? data.description : existing.description;
-    const occurredAt = data.occurredAt ? toOsloLocal(data.occurredAt) : existing.occurred_at;
+    const occurredAt = data.occurredAt ? normalizeDateOnly(data.occurredAt) : normalizeDateOnly(existing.occurred_at);
     db.prepare<[string, string | null, string, number, number]>(
       'UPDATE milestone SET title = ?, description = ?, occurred_at = ? WHERE id = ? AND baby_id = ?'
     ).run(title, description, occurredAt, id, babyId);
@@ -63,9 +67,11 @@ export const milestoneRepository = {
   },
 
   getBackup: (from: string, to: string, babyId: number): TMilestone[] => {
+    const fromDate = normalizeDateOnly(from);
+    const toDate = normalizeDateOnly(to);
     const rows = db.prepare<[string, string, number], TMilestoneDb>(
-      'SELECT * FROM milestone WHERE occurred_at >= ? AND occurred_at <= ? AND baby_id = ?'
-    ).all(from, to, babyId);
+      'SELECT * FROM milestone WHERE substr(occurred_at, 1, 10) >= ? AND substr(occurred_at, 1, 10) <= ? AND baby_id = ?'
+    ).all(fromDate, toDate, babyId);
     return rows.map(fromDb);
   },
 };

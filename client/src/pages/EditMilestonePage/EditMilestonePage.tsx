@@ -10,7 +10,7 @@ import Button from '../../components/Button/Button';
 import { useTranslation } from '../../i18n/i18n';
 import styles from './EditMilestonePage.module.css';
 
-const toInputValue = (isoStr: string): string => isoStr.slice(0, 16);
+const toInputValue = (isoStr: string): string => isoStr.slice(0, 10);
 
 const EditMilestonePage = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,7 +80,7 @@ const EditMilestonePage = () => {
   };
 
   return (
-    <PageLayout title={t('MILESTONE_PAGE_EDIT_TITLE')} emoji="🏆" gradient="amber">
+    <PageLayout title={t('MILESTONE_PAGE_EDIT_TITLE')} emoji="🏆" gradient="amber" bannerSlug="edit-my-first">
       <div className={styles.page}>
         {loading ? (
           <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
@@ -88,7 +88,7 @@ const EditMilestonePage = () => {
           <div className={styles.form}>
             <Input label={t('MILESTONE_PAGE_TITLE_LABEL')} value={title} onChange={setTitle} placeholder={t('MILESTONE_PAGE_TITLE_PLACEHOLDER')} name="milestoneTitle" />
             <Textarea label={t('MILESTONE_PAGE_DESCRIPTION_LABEL')} value={description} onChange={setDescription} placeholder={t('MILESTONE_PAGE_DESCRIPTION_PLACEHOLDER')} name="milestoneDescription" />
-            <DateTimeInput label={t('MILESTONE_PAGE_DATE_TIME_LABEL')} value={occurredAt} onChange={setOccurredAt} name="milestoneOccurredAt" />
+            <DateTimeInput label={t('MILESTONE_PAGE_DATE_LABEL')} value={occurredAt} onChange={setOccurredAt} name="milestoneOccurredAt" inputType="date" />
             {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}
             <div className={styles.actions}>
               <Button

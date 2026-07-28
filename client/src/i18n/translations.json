@@ -68,6 +68,9 @@
   "HOME_MEDICINES_TAKE": { "en": "Take", "nb": "Ta", "nn": "Ta" },
   "HOME_AGO_HOURS_MINUTES": { "en": "{h}h {m}m ago", "nb": "{h}t {m}m siden", "nn": "{h}t {m}m sidan" },
   "HOME_AGO_MINUTES": { "en": "{m}m ago", "nb": "{m}m siden", "nn": "{m}m sidan" },
+  "HOME_BLACK_SCREEN_OPEN": { "en": "Open black screen", "nb": "Åpne svart skjerm", "nn": "Opne svart skjerm" },
+  "HOME_BLACK_SCREEN_OVERLAY": { "en": "Black screen", "nb": "Svart skjerm", "nn": "Svart skjerm" },
+  "HOME_BLACK_SCREEN_EXIT": { "en": "Exit", "nb": "Avslutt", "nn": "Avslutt" },
 
   "SETTINGS_TITLE": { "en": "Settings", "nb": "Innstillinger", "nn": "Innstillingar" },
   "SETTINGS_ACCOUNT": { "en": "Account", "nb": "Konto", "nn": "Konto" },
@@ -170,7 +173,7 @@
   "MILESTONE_PAGE_TITLE_PLACEHOLDER": { "en": "e.g. First steps", "nb": "f.eks. Første steg", "nn": "t.d. Første steg" },
   "MILESTONE_PAGE_DESCRIPTION_LABEL": { "en": "Description (optional)", "nb": "Beskrivelse (valgfritt)", "nn": "Beskrivelse (valfritt)" },
   "MILESTONE_PAGE_DESCRIPTION_PLACEHOLDER": { "en": "Add more details…", "nb": "Legg til flere detaljer…", "nn": "Legg til flere detaljar…" },
-  "MILESTONE_PAGE_DATE_TIME_LABEL": { "en": "Date & time", "nb": "Dato & tid", "nn": "Dato & tid" },
+  "MILESTONE_PAGE_DATE_LABEL": { "en": "Date", "nb": "Dato", "nn": "Dato" },
   "MILESTONE_PAGE_NONE_LOGGED": { "en": "No milestones logged yet 🏆", "nb": "Ingen milepæler registrert enda 🏆", "nn": "Ingen milepælar registrert enno 🏆" },
   "MILESTONE_PAGE_CONFIRM_DELETE": { "en": "Delete this milestone? This cannot be undone.", "nb": "Slette denne milepælen? Dette kan ikke angres.", "nn": "Slette denne milepælen? Dette kan ikkje angres." },
 

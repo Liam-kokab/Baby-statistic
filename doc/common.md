@@ -110,9 +110,9 @@ Each DB table has its own type file with three types:
 | Type | Description |
 |---|---|
 | `TMilestoneDb` | DB row — `id`, `title`, `description`, `occurred_at`, `baby_id`, `created_by`, `created_at` |
-| `TMilestone` | App type — camelCase: `id`, `title`, `description`, `occurredAt`, `createdAt` |
-| `TPostMilestone` | POST body — `title`, `description?`, `occurredAt?` (defaults to now if omitted) |
-| `TUpdateMilestone` | PUT body — `title?`, `description?`, `occurredAt?` (partial update) |
+| `TMilestone` | App type — camelCase: `id`, `title`, `description`, `occurredAt` (`YYYY-MM-DD`), `createdAt` |
+| `TPostMilestone` | POST body — `title`, `description?`, `occurredAt?` (`YYYY-MM-DD`, defaults to today's date if omitted) |
+| `TUpdateMilestone` | PUT body — `title?`, `description?`, `occurredAt?` (`YYYY-MM-DD`, partial update) |
 
 ### `TUtils.ts`
 | Type | Description |

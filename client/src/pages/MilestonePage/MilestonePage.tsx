@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../../utils/authFetch';
 import type { TMilestone } from 'baby-statistic-common';
@@ -7,21 +7,49 @@ import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
 import Textarea from '../../components/Textarea/Textarea';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
-import { formatDateTime } from '../../utils/format';
+import { formatDate } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
-import { useTranslation } from '../../i18n/i18n';
+import { useTranslation, type TLanguage } from '../../i18n/i18n';
 import styles from './MilestonePage.module.css';
+
+type TMilestoneMonthGroup = {
+  monthKey: string;
+  monthLabel: string;
+  items: TMilestone[];
+};
+
+const languageToLocale: Record<TLanguage, string> = {
+  en: 'en-GB',
+  nb: 'nb-NO',
+  nn: 'nn-NO',
+};
 
 const nowInputValue = (): string => {
   const d = new Date();
-  d.setSeconds(0, 0);
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 16);
+  return d.toISOString().slice(0, 10);
+};
+
+const getMilestoneDateOnly = (value: string): string => value.slice(0, 10);
+
+const parseMilestoneDate = (value: string): number => {
+  const parsed = Date.parse(`${getMilestoneDateOnly(value)}T00:00:00`);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const formatMilestoneMonth = (monthKey: string, language: TLanguage): string => {
+  const [year, month] = monthKey.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, 1));
+  return new Intl.DateTimeFormat(languageToLocale[language], {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(d);
 };
 
 const MilestonePage = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const [milestones, setMilestones] = useState<TMilestone[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +75,19 @@ const MilestonePage = () => {
   useEffect(() => { loadMilestones(); }, [loadMilestones]);
 
   const visibilityRef = useRefetchOnVisible(() => { loadMilestones(); });
+
+  const groupedMilestones = useMemo<TMilestoneMonthGroup[]>(() => {
+    const sortedMilestones = [...milestones].sort((a, b) => parseMilestoneDate(b.occurredAt) - parseMilestoneDate(a.occurredAt));
+    return sortedMilestones.reduce<TMilestoneMonthGroup[]>((groups, item) => {
+      const dateOnly = getMilestoneDateOnly(item.occurredAt);
+      const monthKey = dateOnly.slice(0, 7);
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup?.monthKey === monthKey) {
+        return [...groups.slice(0, -1), { ...lastGroup, items: [...lastGroup.items, item] }];
+      }
+      return [...groups, { monthKey, monthLabel: formatMilestoneMonth(monthKey, language), items: [item] }];
+    }, []);
+  }, [language, milestones]);
 
   const toggleExpanded = (id: number): void =>
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -81,12 +122,12 @@ const MilestonePage = () => {
   };
 
   return (
-    <PageLayout title={t('MILESTONE_PAGE_TITLE')} emoji="🏆" gradient="amber" ref={visibilityRef}>
+    <PageLayout title={t('MILESTONE_PAGE_TITLE')} emoji="🏆" gradient="amber" bannerSlug="my-first" ref={visibilityRef}>
       {addOpen ? (
         <div className={styles.addForm}>
           <Input label={t('MILESTONE_PAGE_TITLE_LABEL')} value={newTitle} onChange={setNewTitle} placeholder={t('MILESTONE_PAGE_TITLE_PLACEHOLDER')} name="milestoneTitle" />
           <Textarea label={t('MILESTONE_PAGE_DESCRIPTION_LABEL')} value={newDescription} onChange={setNewDescription} placeholder={t('MILESTONE_PAGE_DESCRIPTION_PLACEHOLDER')} name="milestoneDescription" />
-          <DateTimeInput label={t('MILESTONE_PAGE_DATE_TIME_LABEL')} value={newOccurredAt} onChange={setNewOccurredAt} name="milestoneOccurredAt" />
+          <DateTimeInput label={t('MILESTONE_PAGE_DATE_LABEL')} value={newOccurredAt} onChange={setNewOccurredAt} name="milestoneOccurredAt" inputType="date" />
           {addError ? <p className={styles.errorMsg}>⚠️ {addError}</p> : null}
           <div className={styles.addFormActions}>
             <Button text={t('COMMON_SAVE')} emoji="💾" onClick={handleAdd} loading={addLoading} disabled={!newTitle.trim()} />
@@ -105,28 +146,33 @@ const MilestonePage = () => {
         <p className={styles.empty}>{t('MILESTONE_PAGE_NONE_LOGGED')}</p>
       ) : (
         <div className={styles.list}>
-          {milestones.map((m) => {
-            const isOpen = expanded.has(m.id);
-            return (
-              <div key={m.id} className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <div className={styles.cardHeaderText} onClick={() => toggleExpanded(m.id)}>
-                    <span className={styles.cardTitle}>🏆 {m.title}</span>
-                    <span className={styles.cardDate}>{formatDateTime(m.occurredAt)}</span>
+          {groupedMilestones.map((group) => (
+            <div key={group.monthKey} className={styles.monthSection}>
+              <p className={styles.monthHeading}>{group.monthLabel}</p>
+              {group.items.map((m) => {
+                const isOpen = expanded.has(m.id);
+                return (
+                  <div key={m.id} className={styles.card}>
+                    <div className={styles.cardHeader}>
+                      <div className={styles.cardHeaderText} onClick={() => toggleExpanded(m.id)}>
+                        <span className={styles.cardTitle}>🏆 {m.title}</span>
+                        <span className={styles.cardDate}>{formatDate(m.occurredAt)}</span>
+                      </div>
+                      <Button emoji="✏️" variant="ghost" className={styles.editBtn} onClick={() => navigate(`/milestones/${m.id}`)} />
+                    </div>
+                    {m.description ? (
+                      <p
+                        className={`${styles.description} ${isOpen ? styles.descriptionOpen : styles.descriptionClamped}`}
+                        onClick={() => toggleExpanded(m.id)}
+                      >
+                        {m.description}
+                      </p>
+                    ) : null}
                   </div>
-                  <Button emoji="✏️" variant="ghost" className={styles.editBtn} onClick={() => navigate(`/milestones/${m.id}`)} />
-                </div>
-                {m.description ? (
-                  <p
-                    className={`${styles.description} ${isOpen ? styles.descriptionOpen : styles.descriptionClamped}`}
-                    onClick={() => toggleExpanded(m.id)}
-                  >
-                    {m.description}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          ))}
         </div>
       )}
     </PageLayout>

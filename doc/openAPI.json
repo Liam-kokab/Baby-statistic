@@ -1160,10 +1160,22 @@
       "get": {
         "tags": ["Milestones"],
         "summary": "List all milestones",
-        "description": "from/to filter on occurredAt instead of created_at.",
+        "description": "from/to filter on occurredAt date instead of created_at.",
         "parameters": [
-          { "$ref": "#/components/parameters/From" },
-          { "$ref": "#/components/parameters/To" }
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Filter by occurredAt date >= value",
+            "schema": { "type": "string", "format": "date", "example": "2026-07-01" }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Filter by occurredAt date <= value",
+            "schema": { "type": "string", "format": "date", "example": "2026-07-31" }
+          }
         ],
         "responses": {
           "200": {
@@ -1175,7 +1187,7 @@
       "post": {
         "tags": ["Milestones"],
         "summary": "Create a milestone",
-        "description": "occurredAt defaults to now if omitted.",
+        "description": "occurredAt defaults to today's date if omitted.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MilestonePost" } } }
@@ -1553,7 +1565,7 @@
           "id":          { "type": "integer" },
           "title":       { "type": "string", "example": "First steps" },
           "description": { "type": "string", "nullable": true },
-          "occurredAt":  { "type": "string", "format": "date-time" },
+          "occurredAt":  { "type": "string", "format": "date", "example": "2026-07-27" },
           "createdAt":   { "type": "string", "format": "date-time" }
         }
       },
@@ -1562,7 +1574,7 @@
         "properties": {
           "title":       { "type": "string", "example": "First steps" },
           "description": { "type": "string", "nullable": true },
-          "occurredAt":  { "type": "string", "format": "date-time", "description": "Defaults to now if omitted" }
+          "occurredAt":  { "type": "string", "format": "date", "example": "2026-07-27", "description": "Defaults to today's date if omitted" }
         },
         "required": ["title"]
       },
@@ -1571,7 +1583,7 @@
         "properties": {
           "title":       { "type": "string" },
           "description": { "type": "string", "nullable": true },
-          "occurredAt":  { "type": "string", "format": "date-time" }
+          "occurredAt":  { "type": "string", "format": "date", "example": "2026-07-27" }
         }
       }
     }

@@ -464,11 +464,11 @@ Logs a new pumping event (timestamp = now).
 
 **Handler**: `server/src/routes/milestone.ts`
 
-**GET query params**: `from`, `to` (ISO datetime, filter on `occurredAt`)
+**GET query params**: `from`, `to` (ISO date `YYYY-MM-DD`, filter on `occurredAt`)
 
-**POST body**: `{ "title": "First steps", "description"?: "...", "occurredAt"?: "2026-07-27T10:00:00" }` — `occurredAt` defaults to now if omitted.
+**POST body**: `{ "title": "First steps", "description"?: "...", "occurredAt"?: "2026-07-27" }` — `occurredAt` defaults to today's date if omitted.
 
-**PUT body**: `{ "title"?: "...", "description"?: "..." | null, "occurredAt"?: "..." }` (partial update)
+**PUT body**: `{ "title"?: "...", "description"?: "..." | null, "occurredAt"?: "YYYY-MM-DD" }` (partial update)
 
 **Response `200`/`201`**: `TMilestone`
 

@@ -210,10 +210,11 @@ Wraps every secondary page with a gradient header banner (curved bottom edge) an
 | `SleepPage` | `/sleep` | indigo | 😴 |
 | `MilestonePage` | `/milestones` | amber (gold) | 🏆 |
 
-Note: `MilestonePage`'s `PageLayout` heading text is **"My first"** (not "Milestones") — component/route/API names stay `Milestone*`/`/api/milestones` for clarity in code, but the displayed page title is short and personal. `EditMilestonePage` displays **"Edit My First"**. Since `PageLayout` derives its per-page CSS variable slug from the `title` prop, the banner color overrides in `styles/variables.css` are keyed as `-my-first-`/`-edit-my-first-` (not `-milestones-`) to match.
+Note: `MilestonePage`'s `PageLayout` heading text is **"My first"** (not "Milestones") — component/route/API names stay `Milestone*`/`/api/milestones` for clarity in code, but the displayed page title is short and personal. `EditMilestonePage` displays **"Edit My First"**. Milestone pages pass explicit `bannerSlug` values (`my-first`, `edit-my-first`) to `PageLayout` so banner color overrides in `styles/variables.css` stay stable across translated titles.
 
 ### `HomePage`
 - **Sleep section**: fetches `GET /api/sleep/latest` on mount; shows Sleeping/Awake badge with a live elapsed-time counter (JS `setInterval`, no polling). Timer counts up from `start` when sleeping, and from `end` of last sleep when awake. Clicking Start/End calls POST/PUT and re-fetches latest.
+- **Fullscreen black screen**: tapping/clicking the top hero emoji opens a fullscreen black overlay. While open, any click/tap or mouse movement shows an **Exit** button in the corner, and that button auto-hides after 2 seconds of inactivity.
 - **Milk — Store**: `POST /api/served-milk` with `{ amount, status: 'FRIDGE' | 'FREEZER' }`.
 - **Milk — Baby drank**: `POST /api/drank-milk` with `{ amount, source }` — three buttons: **Fridge**, **Freezer**, and **Boob** (`source: 'FRIDGE' | 'FREEZER' | 'BOOB'`). For `FRIDGE`/`FREEZER` the server deducts from stored milk; `BOOB` does not touch storage.
 - **Milk — Waste**: `POST /api/drank-milk/waste` with `{ amount }` — server subtracts from the latest drank record; does not touch storage.
@@ -231,9 +232,9 @@ Collapse state is local to the component (`useState<Set<string>>`).
 `MilkSavedPage` shows a stats bar **above** the filter with live fridge/freezer/total stock (not date-filtered).
 
 ### `MilestonePage` (`/milestones`) / `EditMilestonePage` (`/milestones/:id`)
-- Logs baby "firsts" — title, optional description, and a `DateTimeInput` for when it happened (defaults to now, editable)
-- `MilestonePage` fetches `GET /api/milestones` (no default date-range filter — history is usually short) and renders newest-first cards
-- **➕ Add milestone** button toggles an inline add form (`Input` for title, `Textarea` for description, `DateTimeInput` for date/time); posts to `POST /api/milestones`
+- Logs baby "firsts" — title, optional description, and a date-only `DateTimeInput` (`inputType="date"`) for when it happened (defaults to today, editable)
+- `MilestonePage` fetches `GET /api/milestones`, sorts by `occurredAt` date (newest first), then groups cards by month/year with a section header for each used month
+- **➕ Add milestone** button toggles an inline add form (`Input` for title, `Textarea` for description, date-only `DateTimeInput`); posts to `POST /api/milestones`
 - Each card shows title + date; if a description is present it's clamped to 2 lines (CSS `-webkit-line-clamp`) and clicking the card (or description) expands/collapses the full text — no extra network call
 - **✏️ edit** button per card navigates to `EditMilestonePage` (`PUT`/`DELETE /api/milestones/:id`)
 - Delete requires a `window.confirm(...)` before calling the API, matching `AdminBabiesPage`/`AdminUsersPage`

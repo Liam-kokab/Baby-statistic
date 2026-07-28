@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type MouseEvent } from 'react';
 import { authFetch } from '../../utils/authFetch';
 import type { TSleep, TMedicineWithLatestLog, TDrankMilk, TPumping } from 'baby-statistic-common';
 import Button from '../../components/Button/Button';
@@ -31,6 +31,8 @@ const elapsedSeconds = (isoString: string): number =>
 
 const HomePage = () => {
   const { t } = useTranslation();
+  const blackScreenExitTimeoutRef = useRef<number | null>(null);
+  const blackScreenCursorTimeoutRef = useRef<number | null>(null);
 
   const formatAgo = (isoString: string): string => {
     const totalMin = Math.floor((Date.now() - new Date(isoString).getTime()) / 60_000);
@@ -102,6 +104,11 @@ const HomePage = () => {
   const [medicines, setMedicines]   = useState<TMedicineWithLatestLog[]>([]);
   const [medStatuses, setMedStatuses] = useState<Record<number, TActionStatus>>({});
 
+  // ── Black screen mode ──────────────────────────────────────────────────────
+  const [isBlackScreenOpen, setIsBlackScreenOpen] = useState<boolean>(false);
+  const [isBlackScreenExitVisible, setIsBlackScreenExitVisible] = useState<boolean>(false);
+  const [isBlackScreenCursorVisible, setIsBlackScreenCursorVisible] = useState<boolean>(true);
+
   const loadMedicines = async (): Promise<void> => {
     const res = await authFetch<TMedicineWithLatestLog[]>('/api/medicine');
     if (res.ok) setMedicines(res.data);
@@ -136,6 +143,19 @@ const HomePage = () => {
     refetchAll();
     const medRefresh = setInterval(loadMedicines, 60_000);
     return () => { clearInterval(medRefresh); };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (blackScreenExitTimeoutRef.current !== null) {
+        clearTimeout(blackScreenExitTimeoutRef.current);
+        blackScreenExitTimeoutRef.current = null;
+      }
+      if (blackScreenCursorTimeoutRef.current !== null) {
+        clearTimeout(blackScreenCursorTimeoutRef.current);
+        blackScreenCursorTimeoutRef.current = null;
+      }
+    };
   }, []);
 
   // Timer tick — reruns whenever the reference timestamp changes
@@ -267,10 +287,84 @@ const HomePage = () => {
 
   const isSleeping = activeSleep !== null;
 
+  const clearBlackScreenExitTimeout = (): void => {
+    if (blackScreenExitTimeoutRef.current !== null) {
+      clearTimeout(blackScreenExitTimeoutRef.current);
+      blackScreenExitTimeoutRef.current = null;
+    }
+  };
+
+  const clearBlackScreenCursorTimeout = (): void => {
+    if (blackScreenCursorTimeoutRef.current !== null) {
+      clearTimeout(blackScreenCursorTimeoutRef.current);
+      blackScreenCursorTimeoutRef.current = null;
+    }
+  };
+
+  const enterFullscreen = async (): Promise<void> => {
+    if (document.fullscreenElement !== null) return;
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch {
+      // If fullscreen is blocked by the browser, still show the overlay.
+    }
+  };
+
+  const exitFullscreen = async (): Promise<void> => {
+    if (document.fullscreenElement === null) return;
+    try {
+      await document.exitFullscreen();
+    } catch {
+      // Ignore exit failures; the overlay state is still cleared.
+    }
+  };
+
+  const showBlackScreenExit = (): void => {
+    setIsBlackScreenExitVisible(true);
+    setIsBlackScreenCursorVisible(true);
+    clearBlackScreenExitTimeout();
+    blackScreenExitTimeoutRef.current = window.setTimeout(() => {
+      setIsBlackScreenExitVisible(false);
+      blackScreenExitTimeoutRef.current = null;
+    }, 1000);
+
+    clearBlackScreenCursorTimeout();
+    blackScreenCursorTimeoutRef.current = window.setTimeout(() => {
+      setIsBlackScreenCursorVisible(false);
+      blackScreenCursorTimeoutRef.current = null;
+    }, 2000);
+  };
+
+  const handleOpenBlackScreen = (): void => {
+    clearBlackScreenExitTimeout();
+    clearBlackScreenCursorTimeout();
+    setIsBlackScreenExitVisible(false);
+    setIsBlackScreenCursorVisible(true);
+    setIsBlackScreenOpen(true);
+    void enterFullscreen();
+  };
+
+  const handleCloseBlackScreen = (event: MouseEvent<HTMLButtonElement>): void => {
+    event.stopPropagation();
+    clearBlackScreenExitTimeout();
+    clearBlackScreenCursorTimeout();
+    setIsBlackScreenExitVisible(false);
+    setIsBlackScreenCursorVisible(true);
+    setIsBlackScreenOpen(false);
+    void exitFullscreen();
+  };
+
   return (
     <div className={styles.page} ref={visibilityRef}>
       <div className={styles.hero}>
-        <p className={styles.heroEmoji}>{isSleeping ? '😴' : '🌸'}</p>
+        <button
+          type="button"
+          className={styles.heroEmojiButton}
+          onClick={handleOpenBlackScreen}
+          aria-label={t('HOME_BLACK_SCREEN_OPEN')}
+        >
+          <span className={styles.heroEmoji}>{isSleeping ? '😴' : '🌸'}</span>
+        </button>
         <h1 className={styles.heroTitle}>{t('HOME_TITLE')}</h1>
         <p className={styles.heroSub}>{t('HOME_SUBTITLE')}</p>
       </div>
@@ -450,6 +544,24 @@ const HomePage = () => {
         ) : null}
 
       </div>
+
+      {isBlackScreenOpen ? (
+        <div
+          className={`${styles.blackScreenOverlay} ${isBlackScreenCursorVisible ? styles.blackScreenCursorVisible : styles.blackScreenCursorHidden}`}
+          onClick={showBlackScreenExit}
+          onMouseMove={showBlackScreenExit}
+          onTouchStart={showBlackScreenExit}
+          aria-label={t('HOME_BLACK_SCREEN_OVERLAY')}
+        >
+          <Button
+            text={t('HOME_BLACK_SCREEN_EXIT')}
+            onClick={handleCloseBlackScreen}
+            aria-label={t('HOME_BLACK_SCREEN_EXIT')}
+            variant="primary"
+            className={`${styles.blackScreenExitButton} ${isBlackScreenExitVisible ? styles.blackScreenExitButtonVisible : styles.blackScreenExitButtonHidden}`}
+          />
+        </div>
+      ) : null}
     </div>
   );
 };

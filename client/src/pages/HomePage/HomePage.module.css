@@ -28,9 +28,17 @@
 }
 
 .heroEmoji {
+  display: inline-block;
   font-size: 1.8rem;
   margin-bottom: 0.15rem;
   filter: drop-shadow(0 3px 6px rgba(236, 64, 122, 0.25));
+}
+
+.heroEmojiButton {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
 .heroTitle {
@@ -247,5 +255,39 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: #c62828;
+}
+
+.blackScreenOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+}
+
+.blackScreenCursorVisible {
+  cursor: auto;
+}
+
+.blackScreenCursorHidden {
+  cursor: none;
+}
+
+.blackScreenExitButton {
+  transition: opacity 0.2s ease;
+}
+
+.blackScreenExitButtonVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.blackScreenExitButtonHidden {
+  opacity: 0;
+  pointer-events: none;
 }
 

@@ -12,11 +12,13 @@ type TProps = {
   emoji: string;
   children: ReactNode;
   gradient?: TGradient;
+  bannerSlug?: string;
 };
 
-const PageLayout = forwardRef<HTMLDivElement, TProps>(({ title, emoji, children, gradient = 'pink' }, ref) => {
+const PageLayout = forwardRef<HTMLDivElement, TProps>(({ title, emoji, children, gradient = 'pink', bannerSlug }, ref) => {
   // create a safe slug from title to reference per-page CSS variables
-  const slug = title
+  const slugSource = bannerSlug ?? title;
+  const slug = slugSource
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');

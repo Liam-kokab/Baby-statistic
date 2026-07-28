@@ -44,7 +44,22 @@
 .list {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+}
+
+.monthSection {
+  display: flex;
+  flex-direction: column;
   gap: 0.6rem;
+}
+
+.monthHeading {
+  margin: 0;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-transform: capitalize;
+  color: var(--color-primary-dark);
 }
 
 .card {
