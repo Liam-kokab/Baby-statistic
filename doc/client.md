@@ -180,6 +180,8 @@ Props: `title`, `emoji`, `children`, `gradient?` (`'pink' | 'blue' | 'green' | '
 
 Wraps every secondary page with a gradient header banner (curved bottom edge) and a scrollable content area. Dynamic per-page CSS custom properties (`--hero-var`, `--banner-<gradient>-start/mid/end`) are typed via a local `TCSSVarProperties = CSSProperties & Record<\`--${string}\`, string>` alias — no `as any` casts needed.
 
+- The banner emoji is clickable on every page using `PageLayout`. Clicking it opens the same fullscreen black-screen interaction as the Home page icon, with a centered Exit button that appears on click/mouse movement and hides after inactivity.
+
 ## Pages
 
 ### Admin pages

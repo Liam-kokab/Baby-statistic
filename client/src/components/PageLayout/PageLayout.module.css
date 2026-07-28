@@ -47,6 +47,13 @@
   filter: drop-shadow(0 2px 4px var(--banner-emoji-shadow, rgba(0, 0, 0, 0.12)));
 }
 
+.emojiButton {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
 .title {
   font-size: 1.6rem;
   font-weight: 900;
@@ -71,5 +78,39 @@
 .content {
   flex: 1;
   padding: 1rem 1.25rem 1.5rem;
+}
+
+.blackScreenOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+}
+
+.blackScreenCursorVisible {
+  cursor: auto;
+}
+
+.blackScreenCursorHidden {
+  cursor: none;
+}
+
+.blackScreenExitButton {
+  transition: opacity 0.2s ease;
+}
+
+.blackScreenExitButtonVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.blackScreenExitButtonHidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
