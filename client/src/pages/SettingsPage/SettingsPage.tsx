@@ -5,6 +5,8 @@ import PageLayout from '../../components/PageLayout/PageLayout';
 import Toggle from '../../components/Toggle/Toggle';
 import Input from '../../components/Input/Input';
 import Button from '../../components/Button/Button';
+import Tabs from '../../components/Tabs/Tabs';
+import NavOrderEditor from '../../components/NavOrderEditor/NavOrderEditor';
 import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TUser, TUpdateMeRequest } from 'baby-statistic-common';
 import styles from './SettingsPage.module.css';
@@ -15,8 +17,11 @@ type TBuildTimeResponse = {
   buildTime: string;
 };
 
+type TSettingsTab = 'account' | 'appearance' | 'navigation' | 'about';
+
 const SettingsPage = () => {
   const { t, language, setLanguage } = useTranslation();
+  const [activeTab, setActiveTab] = useState<TSettingsTab>('account');
   const [serverBuildTime, setServerBuildTime] = useState<string>(t('COMMON_LOADING_SIMPLE'));
   const clientBuildTime = __CLIENT_BUILD_TIME__;
   const [themeIndex, setThemeIndex] = useState<number>(() => themeToIndex(getSavedTheme() ?? 'neutral'));
@@ -124,84 +129,106 @@ const SettingsPage = () => {
   return (
     <PageLayout title={t('SETTINGS_TITLE')} emoji="⚙️" bannerSlug="settings">
       <div className={styles.content}>
-      {/* Account card */}
-      <section className={styles.card}>
-        <h2 className={styles.sectionTitle}>{t('SETTINGS_ACCOUNT')}</h2>
-        <div className={styles.formGrid}>
-          <Input label={t('SETTINGS_DISPLAY_NAME')} value={displayName} onChange={setDisplayName} name="displayName" placeholder={t('SETTINGS_DISPLAY_NAME_PLACEHOLDER')} />
-          <Input label={t('SETTINGS_USERNAME')} value={username} onChange={setUsername} name="username" placeholder={t('SETTINGS_USERNAME_PLACEHOLDER')} />
-        </div>
-        {profileError ? <p className={styles.formError}>{profileError}</p> : null}
-        <div className={styles.formActions}>
-          <Button text={t('SETTINGS_SAVE_PROFILE')} onClick={handleSaveProfile} status={profileAction.status} />
-        </div>
-      </section>
+      <Tabs
+        tabs={[
+          { key: 'account',    emoji: '👤', label: t('SETTINGS_TAB_ACCOUNT') },
+          { key: 'appearance', emoji: '🎨', label: t('SETTINGS_TAB_APPEARANCE') },
+          { key: 'navigation', emoji: '🧭', label: t('SETTINGS_TAB_NAVIGATION') },
+          { key: 'about',      emoji: 'ℹ️', label: t('SETTINGS_TAB_ABOUT') },
+        ]}
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key as TSettingsTab)}
+      />
 
-      {/* Change Password card */}
-      <section className={styles.card}>
-        <h2 className={styles.sectionTitle}>{t('SETTINGS_CHANGE_PASSWORD_TITLE')}</h2>
-        <div className={styles.formGrid}>
-          <Input label={t('SETTINGS_CURRENT_PASSWORD')} type="password" value={currentPassword} onChange={setCurrentPassword} name="currentPassword" placeholder="••••••••" />
-          <Input label={t('SETTINGS_NEW_PASSWORD')} type="password" value={newPassword} onChange={setNewPassword} name="newPassword" placeholder="••••••••" />
-          <Input label={t('SETTINGS_CONFIRM_NEW_PASSWORD')} type="password" value={confirmPassword} onChange={setConfirmPassword} name="confirmPassword" placeholder="••••••••" />
-        </div>
-        {passwordError ? <p className={styles.formError}>{passwordError}</p> : null}
-        <div className={styles.formActions}>
-          <Button text={t('SETTINGS_CHANGE_PASSWORD')} onClick={handleChangePassword} status={passwordAction.status} />
-        </div>
-      </section>
+      {activeTab === 'account' ? (
+        <>
+          {/* Account card */}
+          <section className={styles.card}>
+            <h2 className={styles.sectionTitle}>{t('SETTINGS_ACCOUNT')}</h2>
+            <div className={styles.formGrid}>
+              <Input label={t('SETTINGS_DISPLAY_NAME')} value={displayName} onChange={setDisplayName} name="displayName" placeholder={t('SETTINGS_DISPLAY_NAME_PLACEHOLDER')} />
+              <Input label={t('SETTINGS_USERNAME')} value={username} onChange={setUsername} name="username" placeholder={t('SETTINGS_USERNAME_PLACEHOLDER')} />
+            </div>
+            {profileError ? <p className={styles.formError}>{profileError}</p> : null}
+            <div className={styles.formActions}>
+              <Button text={t('SETTINGS_SAVE_PROFILE')} onClick={handleSaveProfile} status={profileAction.status} />
+            </div>
+          </section>
 
-      {/* Appearance card */}
-      <section className={styles.card}>
-        <h2 className={styles.sectionTitle}>{t('SETTINGS_APPEARANCE')}</h2>
-        <div className={`${styles.row} ${styles.rowStack}`}>
-          <span className={styles.label}>{t('SETTINGS_THEME')}</span>
-          <div className={`${styles.value} ${styles.control}`}>
-            <Toggle
-              options={[t('SETTINGS_THEME_GIRL'), t('SETTINGS_THEME_NEUTRAL'), t('SETTINGS_THEME_BOY')]}
-              value={themeIndex}
-              onChange={onThemeChange}
-            />
+          {/* Change Password card */}
+          <section className={styles.card}>
+            <h2 className={styles.sectionTitle}>{t('SETTINGS_CHANGE_PASSWORD_TITLE')}</h2>
+            <div className={styles.formGrid}>
+              <Input label={t('SETTINGS_CURRENT_PASSWORD')} type="password" value={currentPassword} onChange={setCurrentPassword} name="currentPassword" placeholder="••••••••" />
+              <Input label={t('SETTINGS_NEW_PASSWORD')} type="password" value={newPassword} onChange={setNewPassword} name="newPassword" placeholder="••••••••" />
+              <Input label={t('SETTINGS_CONFIRM_NEW_PASSWORD')} type="password" value={confirmPassword} onChange={setConfirmPassword} name="confirmPassword" placeholder="••••••••" />
+            </div>
+            {passwordError ? <p className={styles.formError}>{passwordError}</p> : null}
+            <div className={styles.formActions}>
+              <Button text={t('SETTINGS_CHANGE_PASSWORD')} onClick={handleChangePassword} status={passwordAction.status} />
+            </div>
+          </section>
+        </>
+      ) : null}
+
+      {activeTab === 'appearance' ? (
+        <section className={styles.card}>
+          <h2 className={styles.sectionTitle}>{t('SETTINGS_APPEARANCE')}</h2>
+          <div className={`${styles.row} ${styles.rowStack}`}>
+            <span className={styles.label}>{t('SETTINGS_THEME')}</span>
+            <div className={`${styles.value} ${styles.control}`}>
+              <Toggle
+                options={[t('SETTINGS_THEME_GIRL'), t('SETTINGS_THEME_NEUTRAL'), t('SETTINGS_THEME_BOY')]}
+                value={themeIndex}
+                onChange={onThemeChange}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className={`${styles.row} ${styles.rowStack}`}>
-          <span className={styles.label}>{t('SETTINGS_MODE')}</span>
-          <div className={`${styles.value} ${styles.control}`}>
-            <Toggle
-              options={[t('SETTINGS_MODE_LIGHT'), t('SETTINGS_MODE_AUTO'), t('SETTINGS_MODE_DARK')]}
-              value={modeIndex}
-              onChange={onModeChange}
-            />
+          <div className={`${styles.row} ${styles.rowStack}`}>
+            <span className={styles.label}>{t('SETTINGS_MODE')}</span>
+            <div className={`${styles.value} ${styles.control}`}>
+              <Toggle
+                options={[t('SETTINGS_MODE_LIGHT'), t('SETTINGS_MODE_AUTO'), t('SETTINGS_MODE_DARK')]}
+                value={modeIndex}
+                onChange={onModeChange}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className={`${styles.row} ${styles.rowStack}`}>
-          <span className={styles.label}>{t('SETTINGS_LANGUAGE')}</span>
-          <div className={`${styles.value} ${styles.control}`}>
-            <Toggle
-              options={[t('SETTINGS_LANGUAGE_ENGLISH'), t('SETTINGS_LANGUAGE_BOKMAL')]}
-              value={languageIndex}
-              onChange={onLanguageChange}
-            />
+          <div className={`${styles.row} ${styles.rowStack}`}>
+            <span className={styles.label}>{t('SETTINGS_LANGUAGE')}</span>
+            <div className={`${styles.value} ${styles.control}`}>
+              <Toggle
+                options={[t('SETTINGS_LANGUAGE_ENGLISH'), t('SETTINGS_LANGUAGE_BOKMAL')]}
+                value={languageIndex}
+                onChange={onLanguageChange}
+              />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
-      {/* Build & Info card */}
-      <section className={styles.card}>
-        <h2 className={styles.sectionTitle}>{t('SETTINGS_BUILD_INFO')}</h2>
-        <div className={styles.row}>
-          <span className={styles.label}>{t('SETTINGS_FRONTEND')}</span>
-          <span className={styles.value}>{formatBuildTime(clientBuildTime)}</span>
-        </div>
-        <div className={styles.row}>
-          <span className={styles.label}>{t('SETTINGS_BACKEND')}</span>
-          <span className={styles.value}>{formatBuildTime(serverBuildTime)}</span>
-        </div>
-      </section>
+      {activeTab === 'navigation' ? (
+        <section className={styles.card}>
+          <h2 className={styles.sectionTitle}>{t('SETTINGS_TAB_NAVIGATION')}</h2>
+          <NavOrderEditor />
+        </section>
+      ) : null}
 
-      {/* Advanced card removed */}
+      {activeTab === 'about' ? (
+        <section className={styles.card}>
+          <h2 className={styles.sectionTitle}>{t('SETTINGS_BUILD_INFO')}</h2>
+          <div className={styles.row}>
+            <span className={styles.label}>{t('SETTINGS_FRONTEND')}</span>
+            <span className={styles.value}>{formatBuildTime(clientBuildTime)}</span>
+          </div>
+          <div className={styles.row}>
+            <span className={styles.label}>{t('SETTINGS_BACKEND')}</span>
+            <span className={styles.value}>{formatBuildTime(serverBuildTime)}</span>
+          </div>
+        </section>
+      ) : null}
       </div>
     </PageLayout>
   );

@@ -22,6 +22,7 @@ import MilestonePage from './pages/MilestonePage/MilestonePage';
 import EditMilestonePage from './pages/EditMilestonePage/EditMilestonePage';
 import AdminBabiesPage from './pages/AdminBabiesPage/AdminBabiesPage';
 import AdminUsersPage from './pages/AdminUsersPage/AdminUsersPage';
+import WhiteNoisePage from './pages/WhiteNoisePage/WhiteNoisePage';
 import styles from './App.module.css';
 
 const App = () => {
@@ -55,6 +56,7 @@ const App = () => {
           <Route path="/pumping/:id" element={<ProtectedRoute><EditPumpingPage /></ProtectedRoute>} />
           <Route path="/milestones" element={<ProtectedRoute><MilestonePage /></ProtectedRoute>} />
           <Route path="/milestones/:id" element={<ProtectedRoute><EditMilestonePage /></ProtectedRoute>} />
+          <Route path="/white-noise" element={<ProtectedRoute><WhiteNoisePage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

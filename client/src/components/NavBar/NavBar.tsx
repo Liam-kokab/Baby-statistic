@@ -3,40 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { authStore } from '../../utils/authStore';
 import { authFetch } from '../../utils/authFetch';
 import { useTranslation } from '../../i18n/i18n';
+import { HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, VISIBLE_FEATURE_COUNT } from '../../utils/navItems';
+import { getSavedNavOrder, applyNavOrder } from '../../utils/navOrder';
 import styles from './NavBar.module.css';
-
-type TNavItem = {
-  path: string;
-  emoji: string;
-  labelKey: string;
-};
-
-// ── User nav ──────────────────────────────────────────────────────────────────
-const USER_MAIN_ITEMS: TNavItem[] = [
-  { path: '/pumping',    emoji: '🥛', labelKey: 'NAV_PUMPING'   },
-  { path: '/',           emoji: '🏠', labelKey: 'NAV_HOME'       },
-  { path: '/milk-drank', emoji: '🍼', labelKey: 'NAV_MILK_DRANK' },
-  { path: '/sleep',      emoji: '🌙', labelKey: 'NAV_SLEEP'      },
-];
-
-const USER_MENU_ITEMS: TNavItem[] = [
-  { path: '/poop-pee',   emoji: '💩', labelKey: 'NAV_POOP_AND_PEE' },
-  { path: '/medicine',   emoji: '💊', labelKey: 'NAV_MEDICINE'   },
-  { path: '/milk-saved', emoji: '🧊', labelKey: 'NAV_MILK_SAVED' },
-  { path: '/milestones', emoji: '🏆', labelKey: 'NAV_MILESTONES' },
-  { path: '/settings',   emoji: '⚙️', labelKey: 'NAV_SETTINGS'   },
-];
-
-// ── Admin nav ─────────────────────────────────────────────────────────────────
-const ADMIN_MAIN_ITEMS: TNavItem[] = [
-  { path: '/admin/babies', emoji: '👶', labelKey: 'NAV_BABIES' },
-  { path: '/admin',        emoji: '🔑', labelKey: 'NAV_ADMIN'  },
-  { path: '/admin/users',  emoji: '👥', labelKey: 'NAV_USERS'  },
-];
-
-const ADMIN_MENU_ITEMS: TNavItem[] = [
-  { path: '/settings', emoji: '⚙️', labelKey: 'NAV_SETTINGS' },
-];
 
 const NavBar = () => {
   const navigate = useNavigate();
@@ -45,8 +14,18 @@ const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const isAdmin = authStore.getUser()?.role === 'admin';
 
-  const mainItems  = isAdmin ? ADMIN_MAIN_ITEMS  : USER_MAIN_ITEMS;
-  const menuItems  = isAdmin ? ADMIN_MENU_ITEMS  : USER_MENU_ITEMS;
+  // Feature items are user-reorderable (Settings page → Navigation tab); Home, Settings
+  // and Logout always stay in their fixed slots. Read on every render so a reorder made
+  // on the Settings page is reflected as soon as the user navigates back.
+  const orderedFeatureItems = isAdmin ? [] : applyNavOrder(USER_FEATURE_ITEMS, getSavedNavOrder());
+
+  const mainItems = isAdmin
+    ? ADMIN_MAIN_ITEMS
+    : [HOME_ITEM, ...orderedFeatureItems.slice(0, VISIBLE_FEATURE_COUNT)];
+
+  const menuItems = isAdmin
+    ? [SETTINGS_ITEM]
+    : [...orderedFeatureItems.slice(VISIBLE_FEATURE_COUNT), SETTINGS_ITEM];
 
   const toggleMenu = useCallback(() => setMenuOpen((prev) => !prev), []);
   const closeMenu  = useCallback(() => setMenuOpen(false), []);

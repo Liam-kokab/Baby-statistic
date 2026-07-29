@@ -35,6 +35,8 @@ client/
       Textarea/                     # Textarea.tsx + Textarea.module.css
       InstallBanner/                # PWA install prompt banner
       NavBar/                       # NavBar.tsx + NavBar.module.css (includes logout 🚪)
+      NavOrderEditor/                # NavOrderEditor.tsx + .module.css — up/down reordering of NavBar feature buttons (Settings → Navigation tab)
+      Tabs/                          # Tabs.tsx + Tabs.module.css — generic tab-bar control used by SettingsPage
       PageLayout/                   # PageLayout.tsx + PageLayout.module.css
       ProtectedRoute/               # ProtectedRoute.tsx — redirects to /login if unauthenticated
     pages/
@@ -52,15 +54,19 @@ client/
       EditPumpingPage/
       MilestonePage/
       EditMilestonePage/
+      WhiteNoisePage/                # WhiteNoisePage.tsx + .module.css — client-generated white/pink/brown noise player
     utils/
       authStore.ts   # localStorage helpers: getAccessToken/getRefreshToken/setTokens/clear/isAuthenticated
       authFetch.ts   # typed fetch wrapper: attaches Bearer token, auto-refreshes on 401, redirects to /login on failure
+      navItems.ts    # shared NavBar item constants (HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, VISIBLE_FEATURE_COUNT)
+      navOrder.ts    # localStorage-backed custom nav order (key `navOrder`): getSavedNavOrder/saveNavOrder/clearNavOrder/applyNavOrder
 
 > See [`doc/auth.md`](./auth.md) for full client auth architecture documentation.
       groupByDay.ts                 # groups items by calendar day (descending)
       groupByWeek.ts                # groups items by Mon–Sun week (descending); uses format.ts for week label
       format.ts                     # date/time formatting helpers (Oslo tz, 24h, DD-MM-YYYY)
       useInstallPrompt.ts           # hook: captures beforeinstallprompt, exposes install() / dismiss()
+      whiteNoise.ts                 # WhiteNoisePlayer singleton — synthesizes & loops white/pink/brown noise via Web Audio API (no audio files)
   index.html                        # HTML shell — Nunito font, manifest link, SW registration, viewport-fit=cover
   vite.config.ts
   package.json
@@ -87,6 +93,7 @@ client/
 | `/pee/:id` | `EditPoopPeePage` (type="pee") |
 | `/poop/:id` | `EditPoopPeePage` (type="poop") |
 | `/pumping/:id` | `EditPumpingPage` |
+| `/white-noise` | `WhiteNoisePage` |
 | `*` | Redirects to `/` |
 
 ## Theme tokens (`styles/variables.css`)
@@ -159,21 +166,33 @@ Renders two date inputs and a three-way toggle:
 ### `NavBar`
 No props. Uses `useNavigate` and `useLocation` hooks internally.
 
-Fixed bottom bar with four main emoji buttons plus a collapsible **☰ menu** (poop & pee, medicine, milk saved, milestones, settings, logout) for user accounts.
+Fixed bottom bar with a **Home** button, a collapsible **☰ menu**, and reorderable "feature" buttons for user accounts. Four positions never move: **Home** (always the first main-bar button), the **☰ menu** button itself, **Settings** (always the last item inside the arc menu), and **🚪 Logout** (always the very last arc item). Everything else — Pumping, Milk Drank, Sleep, Poop & Pee, Medicine, Milk Saved, Milestones, White Noise — is a user-reorderable "feature item" (`utils/navItems.ts` → `USER_FEATURE_ITEMS`); the user's custom order is read from `utils/navOrder.ts` (localStorage key `navOrder`) via `applyNavOrder()`. The first `VISIBLE_FEATURE_COUNT` (3) items of that ordered list render directly on the main bar (next to Home); the rest render inside the ☰ arc menu (before Settings/Logout). Users configure the order on the **Settings → Navigation** tab (`NavOrderEditor` component).
 
 Note: the NavBar includes the device safe-area inset (e.g. `env(safe-area-inset-bottom)`) in its
 total height on mobile so non-active buttons stay vertically centered above the top border. Only
 the active button is visually raised and overlaps the border. This prevents buttons from appearing
 too high on phones with a home indicator.
 
+Default order (before any user customization):
+
 | Position | Path | Emoji | Label |
 |---|---|---|---|
-| 1 | `/pumping` | 🥛 | Pumping |
-| 2 | `/` | 🏠 | Home |
+| 1 (fixed) | `/` | 🏠 | Home |
+| 2 | `/pumping` | 🥛 | Pumping |
 | 3 | `/milk-drank` | 🍼 | Milk Drank |
 | 4 | `/sleep` | 🌙 | Sleep |
 
-Menu (☰): `/poop-pee` 💩, `/medicine` 💊, `/milk-saved` 🧊, `/milestones` 🏆, `/settings` ⚙️, plus 🚪 logout.
+Menu (☰), default order: `/poop-pee` 💩, `/medicine` 💊, `/milk-saved` 🧊, `/milestones` 🏆, `/white-noise` 🎧, then `/settings` ⚙️ (fixed), plus 🚪 logout (fixed).
+
+Admin accounts keep a separate, non-reorderable nav (`ADMIN_MAIN_ITEMS`): `/admin/babies` 👶, `/admin` 🔑, `/admin/users` 👥, with `/settings` ⚙️ + 🚪 logout in the menu.
+
+### `Tabs`
+Props: `tabs: { key: string; label: string; emoji? }[]`, `activeKey`, `onChange(key)`
+
+Generic pill-style tab bar (no routing) — used by `SettingsPage` to switch between Account/Appearance/Navigation/About sections without leaving the page.
+
+### `NavOrderEditor`
+No props. Reads/writes the user's `NavBar` feature-item order via `utils/navOrder.ts`. Renders each feature item with its emoji, label, an "On bar" / "In menu" badge (based on position vs. `VISIBLE_FEATURE_COUNT`), and ⬆️/⬇️ buttons to move it; a "Reset to default" button clears the customization (`clearNavOrder()`). Used inside `SettingsPage`'s **Navigation** tab.
 
 ### `PageLayout`
 Props: `title`, `emoji`, `children`, `gradient?` (`'pink' | 'blue' | 'green' | 'indigo' | 'amber'`)
@@ -242,12 +261,14 @@ Collapse state is local to the component (`useState<Set<string>>`).
 - Delete requires a `window.confirm(...)` before calling the API, matching `AdminBabiesPage`/`AdminUsersPage`
 
 ### `SettingsPage` (`/settings`)
-- **Account card**: self-service profile management via `PATCH /api/auth/me`, available to both `user` and `admin` roles:
+Uses the `Tabs` component to split settings into four tabs (state kept local to the page, no routing):
+- **👤 Account** (`SETTINGS_TAB_ACCOUNT`): self-service profile management via `PATCH /api/auth/me`, available to both `user` and `admin` roles:
   - Display name + username fields (`Input` component), saved together via **"Save profile"** (`Button`, uses `useActionFeedback` for loading/success/error state)
   - Change-password sub-form: current password + new password + confirm (all `Input type="password"`), saved via **"Change password"**; validated client-side (new password ≥ 8 chars, confirmation must match) before calling the API
   - On load, fetches `GET /api/auth/me` and syncs the result into `authStore` (`authStore.updateUser`) so the cached user stays fresh
-- **Appearance card**: theme/mode toggles (unchanged)
-- **Build & Info card**: client/server build times (unchanged)
+- **🎨 Appearance** (`SETTINGS_TAB_APPEARANCE`): theme/mode/language toggles (unchanged)
+- **🧭 Navigation** (`SETTINGS_TAB_NAVIGATION`): renders `NavOrderEditor` — lets the user reorder the NavBar's feature buttons (see `NavBar` docs above); Home, Settings and Logout are not shown here since they never move
+- **ℹ️ About** (`SETTINGS_TAB_ABOUT`): client/server build times (unchanged)
 
 ## Utilities (`src/utils/`)
 
@@ -274,6 +295,16 @@ All display formatting uses `Intl.DateTimeFormat` with `timeZone: 'Europe/Oslo'`
 | `formatDate(str)` | `14-04-2026` |
 | `formatDateTime(str)` | `14-04-2026 14:30` |
 | `formatDateWithWeekday(str, includeYear?)` | `Tue 14-04-2026` / `Tue 14-04` |
+
+## White Noise (`src/pages/WhiteNoisePage/`, `src/utils/whiteNoise.ts`)
+`/white-noise` renders three sound cards — **White**, **Fan**, and **Wave** (rising & falling) noise — each generated live in the browser via the Web Audio API (`AudioContext` + `AudioBufferSourceNode`, looped). No audio files are shipped or downloaded.
+
+- `src/utils/whiteNoise.ts` exports a `whiteNoisePlayer` singleton (`WhiteNoisePlayer` class) that:
+  - Lazily synthesizes a ~5s `AudioBuffer` per noise type and caches it (white = random samples; fan = double low-pass-filtered noise + faint 120Hz motor hum; wave = filtered noise carrier with a slow one-cycle-per-buffer amplitude swell for an ocean-like rise & fall).
+  - `play(type, durationMinutes)` — starts looping the buffer; `durationMinutes = null` means play forever, otherwise a `setTimeout` auto-stops it.
+  - `stop()` — stops/disconnects the current source; `subscribe(listener)` lets React components react to play/stop state changes; `getPlayingType()` / `getEndAt()` / `getActiveDurationMinutes()` expose current state for the UI.
+  - Only one noise type plays at a time (starting a new one stops the previous).
+- `WhiteNoisePage.tsx` renders a card per sound with three duration buttons (♾️ Infinite, 30 min, 60 min). Pressing a button starts that duration; the pressed button itself turns into the Stop button (showing a live countdown for timed durations, or "Stop" for infinite) until pressed again or another duration is chosen. Stops playback on unmount.
 
 ## PWA (`public/manifest.json` + `public/sw.js`)
 The app is installable as a PWA on Android (requires HTTPS). Key files:

@@ -21,7 +21,6 @@ type TMilestoneMonthGroup = {
 const languageToLocale: Record<TLanguage, string> = {
   en: 'en-GB',
   nb: 'nb-NO',
-  nn: 'nn-NO',
 };
 
 const nowInputValue = (): string => {
