@@ -7,6 +7,8 @@ import Input from '../../components/Input/Input';
 import Button from '../../components/Button/Button';
 import Tabs from '../../components/Tabs/Tabs';
 import NavOrderEditor from '../../components/NavOrderEditor/NavOrderEditor';
+import HomeWidgetsEditor from '../../components/HomeWidgetsEditor/HomeWidgetsEditor';
+import WhiteNoiseSoundsEditor from '../../components/WhiteNoiseSoundsEditor/WhiteNoiseSoundsEditor';
 import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TUser, TUpdateMeRequest } from 'baby-statistic-common';
 import styles from './SettingsPage.module.css';
@@ -17,7 +19,7 @@ type TBuildTimeResponse = {
   buildTime: string;
 };
 
-type TSettingsTab = 'account' | 'appearance' | 'navigation' | 'about';
+type TSettingsTab = 'account' | 'appearance' | 'navigation' | 'home' | 'about';
 
 const SettingsPage = () => {
   const { t, language, setLanguage } = useTranslation();
@@ -134,6 +136,7 @@ const SettingsPage = () => {
           { key: 'account',    emoji: '👤', label: t('SETTINGS_TAB_ACCOUNT') },
           { key: 'appearance', emoji: '🎨', label: t('SETTINGS_TAB_APPEARANCE') },
           { key: 'navigation', emoji: '🧭', label: t('SETTINGS_TAB_NAVIGATION') },
+          { key: 'home',       emoji: '🏠', label: t('SETTINGS_TAB_HOME') },
           { key: 'about',      emoji: 'ℹ️', label: t('SETTINGS_TAB_ABOUT') },
         ]}
         activeKey={activeTab}
@@ -214,6 +217,20 @@ const SettingsPage = () => {
           <h2 className={styles.sectionTitle}>{t('SETTINGS_TAB_NAVIGATION')}</h2>
           <NavOrderEditor />
         </section>
+      ) : null}
+
+      {activeTab === 'home' ? (
+        <>
+          <section className={styles.card}>
+            <h2 className={styles.sectionTitle}>{t('SETTINGS_TAB_HOME')}</h2>
+            <HomeWidgetsEditor />
+          </section>
+
+          <section className={styles.card}>
+            <h2 className={styles.sectionTitle}>{t('SETTINGS_WHITE_NOISE_SOUNDS_TITLE')}</h2>
+            <WhiteNoiseSoundsEditor />
+          </section>
+        </>
       ) : null}
 
       {activeTab === 'about' ? (

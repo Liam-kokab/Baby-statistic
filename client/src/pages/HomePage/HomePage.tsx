@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type MouseEvent } from 'react';
+import { useState, useEffect, useRef, Fragment, type MouseEvent, type ReactNode } from 'react';
 import { authFetch } from '../../utils/authFetch';
 import type { TSleep, TMedicineWithLatestLog, TDrankMilk, TPumping } from 'baby-statistic-common';
 import Button from '../../components/Button/Button';
@@ -8,6 +8,14 @@ import type { TActionStatus } from '../../utils/useActionFeedback';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import { ACTION_MIN_MS, ACTION_DONE_MS } from '../../config';
 import { useTranslation } from '../../i18n/i18n';
+import { DEFAULT_HOME_WIDGETS } from '../../utils/homeWidgets';
+import type { THomeWidgetKey } from '../../utils/homeWidgets';
+import { getSavedHomeWidgetOrder, getHiddenHomeWidgets, applyHomeWidgetOrder } from '../../utils/homeWidgetPrefs';
+import type { TNoiseType } from '../../utils/whiteNoise';
+import { whiteNoisePlayer } from '../../utils/whiteNoise';
+import { useWhiteNoisePlayerState } from '../../utils/useWhiteNoisePlayerState';
+import { WHITE_NOISE_DURATION_OPTIONS, formatWhiteNoiseRemaining } from '../../utils/whiteNoiseDurations';
+import { getSelectedWhiteNoiseTypes, WHITE_NOISE_SOUNDS } from '../../utils/homeWhiteNoiseWidgetPrefs';
 import styles from './HomePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
@@ -103,6 +111,11 @@ const HomePage = () => {
   // ── Medicines ─────────────────────────────────────────────────────────────
   const [medicines, setMedicines]   = useState<TMedicineWithLatestLog[]>([]);
   const [medStatuses, setMedStatuses] = useState<Record<number, TActionStatus>>({});
+
+  // ── White noise widget — which sounds appear here is configured on Settings → Home; the
+  // widget itself plays/stops the selected sounds, each with all three duration options. ──
+  const [whiteNoiseSelectedTypes] = useState<TNoiseType[]>(() => getSelectedWhiteNoiseTypes());
+  const { playingType: whiteNoisePlayingType, endAt: whiteNoiseEndAt, activeDuration: whiteNoiseActiveDuration } = useWhiteNoisePlayerState();
 
   // ── Black screen mode ──────────────────────────────────────────────────────
   const [isBlackScreenOpen, setIsBlackScreenOpen] = useState<boolean>(false);
@@ -354,6 +367,232 @@ const HomePage = () => {
     void exitFullscreen();
   };
 
+  // ── Widgets — order & visibility are user-configurable (Settings → Home tab); all
+  // widgets are shown, in the order below, by default. ──────────────────────────
+  const renderSleepWidget = (): ReactNode => (
+    <section className={styles.card}>
+      <h2 className={styles.sectionTitle}>{t('HOME_SLEEP_TITLE')}</h2>
+      <div className={styles.sleepRow}>
+        <div className={styles.sleepLeft}>
+          <span className={`${styles.sleepBadge} ${isSleeping ? styles.sleeping : styles.awake}`}>
+            {isSleeping ? t('HOME_SLEEP_SLEEPING') : t('HOME_SLEEP_AWAKE')}
+          </span>
+          <span className={styles.timer}>{timerDisplay}</span>
+          <span className={styles.timerLabel}>
+            {isSleeping ? t('HOME_SLEEP_SLEEPING_FOR') : t('HOME_SLEEP_AWAKE_FOR')}
+          </span>
+        </div>
+        <Button
+          text={isSleeping ? t('HOME_SLEEP_END') : t('HOME_SLEEP_START')}
+          emoji={isSleeping ? '☀️' : '🌙'}
+          onClick={handleSleepToggle}
+          status={sleep.status}
+          variant={isSleeping ? 'ghost' : 'primary'}
+        />
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.sleepRow}>
+        <div className={styles.sleepLeft}>
+          <span className={styles.timer}>{pumpingDisplay}</span>
+          <span className={styles.timerLabel}>
+            {lastPumping ? t('HOME_SLEEP_SINCE_LAST_PUMP') : t('HOME_SLEEP_NO_PUMP_LOGGED')}
+          </span>
+        </div>
+        <Button
+          text={t('HOME_SLEEP_PUMPED')}
+          emoji="🥛"
+          onClick={handlePump}
+          status={pump.status}
+          variant="primary"
+        />
+      </div>
+    </section>
+  );
+
+  const renderMilkWidget = (): ReactNode => (
+    <section className={styles.card}>
+      <div className={styles.milkHeader}>
+        <h2 className={styles.sectionTitle}>{t('HOME_MILK_TITLE')}</h2>
+        {latestDrank ? (
+          <span className={`${styles.milkLastInfo} ${styles[getMilkAgeClass(latestDrank.createdAt)]}`}>
+            {latestDrank.amount} ml · {formatAgo(latestDrank.createdAt)}
+          </span>
+        ) : (
+          <span className={`${styles.milkLastInfo} ${styles.milkLastDefault}`}>
+            {t('HOME_MILK_NO_LAST_DRANK')}
+          </span>
+        )}
+      </div>
+
+      <div className={styles.subSection}>
+        <p className={styles.subLabel}>{t('HOME_MILK_BABY_DRANK')}</p>
+        <Input
+          label={t('HOME_MILK_AMOUNT_ML')}
+          value={drankAmount}
+          onChange={setDrankAmount}
+          type="tel"
+          placeholder={`e.g. ${suggestedAmount ?? 80}`}
+          name="drankAmount"
+        />
+        <div className={styles.btnRowFull}>
+            <Button
+              text={t('HOME_MILK_PREV_BOTTLE')}
+              emoji="🍼"
+              onClick={() => handleDrankMilk('FRIDGE', false)}
+              status={bottle.status}
+              disabled={!drankAmount || !prevBottleEnabled}
+            />
+            <Button
+              text={t('HOME_MILK_NEW_BOTTLE')}
+              emoji="🍼"
+              onClick={() => handleDrankMilk('FRIDGE', true)}
+              status={bottle.status}
+              disabled={!drankAmount}
+            />
+          </div>
+          <div className={styles.btnRowFull}>
+            <Button
+              text={t('HOME_MILK_BOOB')}
+              emoji="🤱"
+              onClick={() => handleDrankMilk('BOOB', true)}
+              status={boob.status}
+              disabled={!drankAmount}
+              variant="secondary"
+            />
+          </div>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.subSection}>
+        <p className={styles.subLabel}>{t('HOME_MILK_WASTE_LABEL')}</p>
+        <Input
+          label={t('HOME_MILK_AMOUNT_ML')}
+          value={wasteAmount}
+          onChange={setWasteAmount}
+          type="tel"
+          placeholder={t('HOME_MILK_WASTE_PLACEHOLDER')}
+          name="wasteAmount"
+        />
+        <Button
+          text={t('HOME_MILK_SUBTRACT_WASTE')}
+          emoji="➖"
+          onClick={handleWasteMilk}
+          status={waste.status}
+          disabled={!wasteAmount}
+          variant="ghost"
+        />
+      </div>
+    </section>
+  );
+
+  const renderNappyWidget = (): ReactNode => (
+    <section className={styles.card}>
+      <div className={styles.milkHeader}>
+        <h2 className={styles.sectionTitle}>{t('HOME_NAPPY_TITLE')}</h2>
+        <span className={`${styles.milkLastInfo} ${styles.milkLastDefault}`}>
+          {latestNappy ? t('HOME_NAPPY_CHANGED', { time: formatAgo(latestNappy) }) : t('HOME_NAPPY_NONE_LOGGED')}
+        </span>
+      </div>
+      <div className={styles.btnRowFull}>
+        <Button
+          text={t('HOME_NAPPY_POOP')}
+          onClick={handlePoop}
+          status={poop.status}
+          variant="secondary"
+        />
+        <Button
+          text={t('HOME_NAPPY_PEE')}
+          onClick={handlePee}
+          status={pee.status}
+          variant="secondary"
+        />
+      </div>
+    </section>
+  );
+
+  const renderMedicinesWidget = (): ReactNode =>
+    medicines.length > 0 ? (
+      <section className={styles.card}>
+        <h2 className={styles.sectionTitle}>{t('HOME_MEDICINES_TITLE')}</h2>
+        <div className={styles.medList}>
+          {medicines.map((m) => {
+            const takenToday = isTakenToday(m);
+            return (
+              <div key={m.id} className={styles.medRow}>
+                <div className={styles.medInfo}>
+                  <span className={styles.medName}>{m.name}</span>
+                  <span className={`${styles.medLabel} ${takenToday ? styles.medLabelCountdown : styles.medLabelOverdue}`}>
+                    {takenToday ? t('HOME_MEDICINES_TAKEN_TODAY') : t('HOME_MEDICINES_NOT_TAKEN_TODAY')}
+                  </span>
+                </div>
+                <Button
+                  text={t('HOME_MEDICINES_TAKE')}
+                  emoji="💊"
+                  onClick={() => handleMarkTaken(m.id)}
+                  status={medStatuses[m.id] ?? 'idle'}
+                  variant={takenToday ? 'ghost' : 'primary'}
+                  disabled={takenToday}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    ) : null;
+
+  const renderWhiteNoiseWidget = (): ReactNode => (
+    <section className={styles.card}>
+      <h2 className={styles.sectionTitle}>{t('HOME_WHITE_NOISE_TITLE')}</h2>
+      {whiteNoiseSelectedTypes.length === 0 ? (
+        <p className={styles.emptyNote}>{t('HOME_WHITE_NOISE_NONE_SELECTED')}</p>
+      ) : (
+        WHITE_NOISE_SOUNDS
+          .filter((s) => whiteNoiseSelectedTypes.includes(s.type))
+          .map(({ type, emoji, titleKey }, index) => (
+            <Fragment key={type}>
+              {index > 0 ? <div className={styles.divider} /> : null}
+              <div className={styles.subSection}>
+                <p className={styles.subLabel}>{emoji} {t(titleKey)}</p>
+                <div className={styles.btnRowFull}>
+                  {WHITE_NOISE_DURATION_OPTIONS.map((option) => {
+                    const isActive = whiteNoisePlayingType === type && whiteNoiseActiveDuration === option.minutes;
+                    const text = isActive
+                      ? (option.minutes !== null && whiteNoiseEndAt !== null ? formatWhiteNoiseRemaining(whiteNoiseEndAt) : t('WHITE_NOISE_PAGE_STOP'))
+                      : t(option.labelKey);
+                    return (
+                      <Button
+                        key={option.labelKey}
+                        text={text}
+                        emoji={isActive ? '⏹️' : option.emoji}
+                        onClick={() => (isActive ? whiteNoisePlayer.stop() : whiteNoisePlayer.play(type, option.minutes))}
+                        variant={isActive ? 'primary' : 'secondary'}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </Fragment>
+          ))
+      )}
+    </section>
+  );
+
+  const widgetRenderers: Record<THomeWidgetKey, () => ReactNode> = {
+    sleep: renderSleepWidget,
+    milk: renderMilkWidget,
+    nappy: renderNappyWidget,
+    medicines: renderMedicinesWidget,
+    whiteNoise: renderWhiteNoiseWidget,
+  };
+
+
+  const hiddenWidgets = new Set(getHiddenHomeWidgets());
+  const orderedWidgets = applyHomeWidgetOrder(DEFAULT_HOME_WIDGETS, getSavedHomeWidgetOrder())
+    .filter((w) => !hiddenWidgets.has(w.key));
+
   return (
     <div className={styles.page} ref={visibilityRef}>
       <div className={styles.hero}>
@@ -370,179 +609,9 @@ const HomePage = () => {
       </div>
 
       <div className={styles.content}>
-
-        {/* ── Sleep ── */}
-        <section className={styles.card}>
-          <h2 className={styles.sectionTitle}>{t('HOME_SLEEP_TITLE')}</h2>
-          <div className={styles.sleepRow}>
-            <div className={styles.sleepLeft}>
-              <span className={`${styles.sleepBadge} ${isSleeping ? styles.sleeping : styles.awake}`}>
-                {isSleeping ? t('HOME_SLEEP_SLEEPING') : t('HOME_SLEEP_AWAKE')}
-              </span>
-              <span className={styles.timer}>{timerDisplay}</span>
-              <span className={styles.timerLabel}>
-                {isSleeping ? t('HOME_SLEEP_SLEEPING_FOR') : t('HOME_SLEEP_AWAKE_FOR')}
-              </span>
-            </div>
-            <Button
-              text={isSleeping ? t('HOME_SLEEP_END') : t('HOME_SLEEP_START')}
-              emoji={isSleeping ? '☀️' : '🌙'}
-              onClick={handleSleepToggle}
-              status={sleep.status}
-              variant={isSleeping ? 'ghost' : 'primary'}
-            />
-          </div>
-
-          <div className={styles.divider} />
-
-          <div className={styles.sleepRow}>
-            <div className={styles.sleepLeft}>
-              <span className={styles.timer}>{pumpingDisplay}</span>
-              <span className={styles.timerLabel}>
-                {lastPumping ? t('HOME_SLEEP_SINCE_LAST_PUMP') : t('HOME_SLEEP_NO_PUMP_LOGGED')}
-              </span>
-            </div>
-            <Button
-              text={t('HOME_SLEEP_PUMPED')}
-              emoji="🥛"
-              onClick={handlePump}
-              status={pump.status}
-              variant="primary"
-            />
-          </div>
-        </section>
-
-        {/* ── Milk ── */}
-        <section className={styles.card}>
-          <div className={styles.milkHeader}>
-            <h2 className={styles.sectionTitle}>{t('HOME_MILK_TITLE')}</h2>
-            {latestDrank ? (
-              <span className={`${styles.milkLastInfo} ${styles[getMilkAgeClass(latestDrank.createdAt)]}`}>
-                {latestDrank.amount} ml · {formatAgo(latestDrank.createdAt)}
-              </span>
-            ) : (
-              <span className={`${styles.milkLastInfo} ${styles.milkLastDefault}`}>
-                {t('HOME_MILK_NO_LAST_DRANK')}
-              </span>
-            )}
-          </div>
-
-          <div className={styles.subSection}>
-            <p className={styles.subLabel}>{t('HOME_MILK_BABY_DRANK')}</p>
-            <Input
-              label={t('HOME_MILK_AMOUNT_ML')}
-              value={drankAmount}
-              onChange={setDrankAmount}
-              type="tel"
-              placeholder={`e.g. ${suggestedAmount ?? 80}`}
-              name="drankAmount"
-            />
-            <div className={styles.btnRowFull}>
-                <Button
-                  text={t('HOME_MILK_PREV_BOTTLE')}
-                  emoji="🍼"
-                  onClick={() => handleDrankMilk('FRIDGE', false)}
-                  status={bottle.status}
-                  disabled={!drankAmount || !prevBottleEnabled}
-                />
-                <Button
-                  text={t('HOME_MILK_NEW_BOTTLE')}
-                  emoji="🍼"
-                  onClick={() => handleDrankMilk('FRIDGE', true)}
-                  status={bottle.status}
-                  disabled={!drankAmount}
-                />
-              </div>
-              <div className={styles.btnRowFull}>
-                <Button
-                  text={t('HOME_MILK_BOOB')}
-                  emoji="🤱"
-                  onClick={() => handleDrankMilk('BOOB', true)}
-                  status={boob.status}
-                  disabled={!drankAmount}
-                  variant="secondary"
-                />
-              </div>
-          </div>
-
-          <div className={styles.divider} />
-
-          <div className={styles.subSection}>
-            <p className={styles.subLabel}>{t('HOME_MILK_WASTE_LABEL')}</p>
-            <Input
-              label={t('HOME_MILK_AMOUNT_ML')}
-              value={wasteAmount}
-              onChange={setWasteAmount}
-              type="tel"
-              placeholder={t('HOME_MILK_WASTE_PLACEHOLDER')}
-              name="wasteAmount"
-            />
-            <Button
-              text={t('HOME_MILK_SUBTRACT_WASTE')}
-              emoji="➖"
-              onClick={handleWasteMilk}
-              status={waste.status}
-              disabled={!wasteAmount}
-              variant="ghost"
-            />
-          </div>
-        </section>
-
-        {/* ── Nappy ── */}
-        <section className={styles.card}>
-          <div className={styles.milkHeader}>
-            <h2 className={styles.sectionTitle}>{t('HOME_NAPPY_TITLE')}</h2>
-            <span className={`${styles.milkLastInfo} ${styles.milkLastDefault}`}>
-              {latestNappy ? t('HOME_NAPPY_CHANGED', { time: formatAgo(latestNappy) }) : t('HOME_NAPPY_NONE_LOGGED')}
-            </span>
-          </div>
-          <div className={styles.btnRowFull}>
-            <Button
-              text={t('HOME_NAPPY_POOP')}
-              onClick={handlePoop}
-              status={poop.status}
-              variant="secondary"
-            />
-            <Button
-              text={t('HOME_NAPPY_PEE')}
-              onClick={handlePee}
-              status={pee.status}
-              variant="secondary"
-            />
-          </div>
-        </section>
-
-
-        {/* ── Medicines ── */}
-        {medicines.length > 0 ? (
-          <section className={styles.card}>
-            <h2 className={styles.sectionTitle}>{t('HOME_MEDICINES_TITLE')}</h2>
-            <div className={styles.medList}>
-              {medicines.map((m) => {
-                const takenToday = isTakenToday(m);
-                return (
-                  <div key={m.id} className={styles.medRow}>
-                    <div className={styles.medInfo}>
-                      <span className={styles.medName}>{m.name}</span>
-                      <span className={`${styles.medLabel} ${takenToday ? styles.medLabelCountdown : styles.medLabelOverdue}`}>
-                        {takenToday ? t('HOME_MEDICINES_TAKEN_TODAY') : t('HOME_MEDICINES_NOT_TAKEN_TODAY')}
-                      </span>
-                    </div>
-                    <Button
-                      text={t('HOME_MEDICINES_TAKE')}
-                      emoji="💊"
-                      onClick={() => handleMarkTaken(m.id)}
-                      status={medStatuses[m.id] ?? 'idle'}
-                      variant={takenToday ? 'ghost' : 'primary'}
-                      disabled={takenToday}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ) : null}
-
+        {orderedWidgets.map((w) => (
+          <Fragment key={w.key}>{widgetRenderers[w.key]()}</Fragment>
+        ))}
       </div>
 
       {isBlackScreenOpen ? (

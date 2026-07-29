@@ -1,9 +1,9 @@
 /**
- * Client-side white noise / fan noise / wave (rising & falling) noise generator using the Web Audio API.
- * No audio files are used — noise buffers are synthesized on the fly and looped.
+ * Client-side white noise / fan noise / wave (rising & falling) / mother's hush noise generator
+ * using the Web Audio API. No audio files are used — noise buffers are synthesized on the fly and looped.
  */
 
-export type TNoiseType = 'white' | 'fan' | 'wave';
+export type TNoiseType = 'white' | 'fan' | 'wave' | 'hush';
 
 type TListener = () => void;
 
@@ -76,10 +76,65 @@ const generateWaveNoiseBuffer = (ctx: AudioContext): AudioBuffer => {
   return buffer;
 };
 
+/** Length of one Mother's Hush pulse cycle, in seconds (silence → rise → hold → fall → silence). */
+const HUSH_CYCLE_SECONDS = 4;
+
+/**
+ * Mother's hush: band-limited "sh" noise (~1.2kHz–6kHz — cutting both the low rumble and the
+ * ultra-high hiss that made earlier versions sound like radio static) so it reads as a breathy
+ * human "shhh" rather than broadband noise, shaped by a repeating 4-second envelope like a
+ * caregiver repeating "shhh": 500ms silence → 1250ms ease-in rise → 500ms at max → 1250ms
+ * ease-out fall → 500ms silence. The rise/fall use a smootherstep curve (not linear) so the
+ * volume change accelerates out of silence and decelerates into the hold/silence, avoiding
+ * an abrupt/mechanical ramp.
+ */
+const generateHushNoiseBuffer = (ctx: AudioContext): AudioBuffer => {
+  const length = Math.floor(ctx.sampleRate * HUSH_CYCLE_SECONDS);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  const white = Float32Array.from({ length }, () => Math.random() * 2 - 1);
+
+  const sr = ctx.sampleRate;
+  // -3dB cutoff coefficient for a one-pole IIR low-pass at frequency fc.
+  const lowpassAlpha = (fc: number): number => 1 - Math.exp((-2 * Math.PI * fc) / sr);
+  const alphaLowCut = lowpassAlpha(1200);  // rumble removed below this
+  const alphaHighCut = lowpassAlpha(6000); // harsh top-end hiss removed above this
+
+  // Low-passed component of the raw noise — subtracted below to form a highpass at ~1.2kHz.
+  const rumble = new Float32Array(length);
+  white.reduce((lastOut, w, i): number => {
+    const next = lastOut + alphaLowCut * (w - lastOut);
+    rumble[i] = next;
+    return next;
+  }, 0);
+
+  const smootherstep = (x: number): number => x * x * x * (x * (x * 6 - 15) + 10);
+
+  const envelopeAt = (t: number): number => {
+    if (t < 0.5) return 0;
+    if (t < 1.75) return smootherstep((t - 0.5) / 1.25);
+    if (t < 2.25) return 1;
+    if (t < 3.5) return 1 - smootherstep((t - 2.25) / 1.25);
+    return 0;
+  };
+
+  // Second pass: low-pass the highpassed signal at ~6kHz to band-limit it, then apply the envelope.
+  let topOut = 0;
+  white.forEach((w, i) => {
+    const highpassed = w - rumble[i];
+    topOut = topOut + alphaHighCut * (highpassed - topOut);
+    const t = i / sr;
+    data[i] = topOut * 7 * envelopeAt(t);
+  });
+
+  return buffer;
+};
+
 const BUFFER_GENERATORS: Record<TNoiseType, (ctx: AudioContext) => AudioBuffer> = {
   white: generateWhiteNoiseBuffer,
   fan: generateFanNoiseBuffer,
   wave: generateWaveNoiseBuffer,
+  hush: generateHushNoiseBuffer,
 };
 
 class WhiteNoisePlayer {
@@ -182,3 +237,14 @@ class WhiteNoisePlayer {
 }
 
 export const whiteNoisePlayer = new WhiteNoisePlayer();
+
+// In dev, Vite hot-reloads this module whenever it's edited, which would otherwise create a
+// brand-new `whiteNoisePlayer` instance while any sound started by the old instance keeps
+// looping with nothing left able to stop it. Stop playback before the module is replaced.
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    whiteNoisePlayer.stop();
+  });
+}
+
+

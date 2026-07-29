@@ -1,9 +1,11 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect} from 'react';
 import Button from '../../components/Button/Button';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import {useTranslation} from '../../i18n/i18n';
 import type {TNoiseType} from '../../utils/whiteNoise';
 import {whiteNoisePlayer} from '../../utils/whiteNoise';
+import {useWhiteNoisePlayerState} from '../../utils/useWhiteNoisePlayerState';
+import {WHITE_NOISE_DURATION_OPTIONS, formatWhiteNoiseRemaining} from '../../utils/whiteNoiseDurations';
 import styles from './WhiteNoisePage.module.css';
 
 type TSound = {
@@ -12,51 +14,16 @@ type TSound = {
   titleKey: string;
 };
 
-type TDurationOption = {
-  minutes: number | null;
-  labelKey: string;
-  emoji: string;
-};
-
 const SOUNDS: TSound[] = [
   { type: 'white', emoji: '📻', titleKey: 'WHITE_NOISE_PAGE_WHITE' },
   { type: 'fan',   emoji: '🌀', titleKey: 'WHITE_NOISE_PAGE_FAN' },
   { type: 'wave',  emoji: '🌊', titleKey: 'WHITE_NOISE_PAGE_WAVE' },
+  { type: 'hush',  emoji: '🤫', titleKey: 'WHITE_NOISE_PAGE_HUSH' },
 ];
-
-const DURATION_OPTIONS: TDurationOption[] = [
-  { minutes: null, labelKey: 'WHITE_NOISE_PAGE_INFINITE', emoji: '♾️' },
-  { minutes: 30,   labelKey: 'WHITE_NOISE_PAGE_30_MIN',   emoji: '⏱️' },
-  { minutes: 60,   labelKey: 'WHITE_NOISE_PAGE_60_MIN',   emoji: '⏱️' },
-];
-
-const formatRemaining = (endAt: number): string => {
-  const remainingSec = Math.max(0, Math.round((endAt - Date.now()) / 1000));
-  const m = Math.floor(remainingSec / 60);
-  const s = remainingSec % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-};
 
 const WhiteNoisePage = () => {
   const { t } = useTranslation();
-  const [playingType, setPlayingType] = useState<TNoiseType | null>(whiteNoisePlayer.getPlayingType());
-  const [endAt, setEndAt] = useState<number | null>(whiteNoisePlayer.getEndAt());
-  const [activeDuration, setActiveDuration] = useState<number | null>(whiteNoisePlayer.getActiveDurationMinutes());
-  const [, setTick] = useState(0);
-
-  useEffect(() => {
-    return whiteNoisePlayer.subscribe(() => {
-      setPlayingType(whiteNoisePlayer.getPlayingType());
-      setEndAt(whiteNoisePlayer.getEndAt());
-      setActiveDuration(whiteNoisePlayer.getActiveDurationMinutes());
-    });
-  }, []);
-
-  useEffect(() => {
-    if (endAt === null) return;
-    const id = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, [endAt]);
+  const { playingType, endAt, activeDuration } = useWhiteNoisePlayerState();
 
   useEffect(() => {
     return () => whiteNoisePlayer.stop();
@@ -72,7 +39,6 @@ const WhiteNoisePage = () => {
 
   return (
     <PageLayout title={t('WHITE_NOISE_PAGE_TITLE')} emoji="🎧" gradient="blue">
-      <p className={styles.subtitle}>{t('WHITE_NOISE_PAGE_SUBTITLE')}</p>
       <div className={styles.list}>
         {SOUNDS.map(({ type, emoji, titleKey }) => (
           <section key={type} className={styles.card}>
@@ -81,10 +47,10 @@ const WhiteNoisePage = () => {
               <h2 className={styles.cardTitle}>{t(titleKey)}</h2>
             </div>
             <div className={styles.btnRow}>
-              {DURATION_OPTIONS.map((option) => {
+              {WHITE_NOISE_DURATION_OPTIONS.map((option) => {
                 const isActive = playingType === type && activeDuration === option.minutes;
                 const text = isActive
-                  ? (option.minutes !== null && endAt !== null ? formatRemaining(endAt) : t('WHITE_NOISE_PAGE_STOP'))
+                  ? (option.minutes !== null && endAt !== null ? formatWhiteNoiseRemaining(endAt) : t('WHITE_NOISE_PAGE_STOP'))
                   : t(option.labelKey);
                 return (
                   <Button
@@ -105,4 +71,6 @@ const WhiteNoisePage = () => {
 };
 
 export default WhiteNoisePage;
+
+
 

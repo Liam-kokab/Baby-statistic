@@ -1,6 +1,7 @@
 import type { TNavItem } from './navItems';
 
 const STORAGE_KEY = 'navOrder';
+const HIDDEN_STORAGE_KEY = 'navHidden';
 
 /** Reads the user's custom nav item order (an array of `path`s) from localStorage, if any. */
 export const getSavedNavOrder = (): string[] | null => {
@@ -31,6 +32,35 @@ export const clearNavOrder = (): void => {
   }
 };
 
+/** Reads the set of feature-item `path`s the user has hidden from the NavBar. Empty by default (all visible). */
+export const getHiddenNavItems = (): string[] => {
+  try {
+    const raw = localStorage.getItem(HIDDEN_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every((p) => typeof p === 'string')) return parsed as string[];
+    return [];
+  } catch (_e) {
+    return [];
+  }
+};
+
+export const saveHiddenNavItems = (hidden: string[]): void => {
+  try {
+    localStorage.setItem(HIDDEN_STORAGE_KEY, JSON.stringify(hidden));
+  } catch (_e) {
+    // ignore
+  }
+};
+
+export const clearHiddenNavItems = (): void => {
+  try {
+    localStorage.removeItem(HIDDEN_STORAGE_KEY);
+  } catch (_e) {
+    // ignore
+  }
+};
+
 /**
  * Reorders `defaultItems` to match `savedOrder` (a list of `path`s). Items missing from
  * `savedOrder` (e.g. newly added nav items) are appended at the end, in their default order.
@@ -49,4 +79,6 @@ export const applyNavOrder = (defaultItems: TNavItem[], savedOrder: string[] | n
   byPath.forEach((item) => ordered.push(item));
   return ordered;
 };
+
+
 

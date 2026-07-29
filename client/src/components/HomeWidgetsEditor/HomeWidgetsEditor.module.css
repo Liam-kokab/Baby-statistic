@@ -1,0 +1,46 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-md);
+  background: var(--color-ui-2);
+}
+
+.itemLabel {
+  flex: 1 1 auto;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.itemActions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+

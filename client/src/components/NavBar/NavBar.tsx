@@ -4,7 +4,7 @@ import { authStore } from '../../utils/authStore';
 import { authFetch } from '../../utils/authFetch';
 import { useTranslation } from '../../i18n/i18n';
 import { HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, VISIBLE_FEATURE_COUNT } from '../../utils/navItems';
-import { getSavedNavOrder, applyNavOrder } from '../../utils/navOrder';
+import { getSavedNavOrder, applyNavOrder, getHiddenNavItems } from '../../utils/navOrder';
 import styles from './NavBar.module.css';
 
 const NavBar = () => {
@@ -14,14 +14,19 @@ const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const isAdmin = authStore.getUser()?.role === 'admin';
 
-  // Feature items are user-reorderable (Settings page → Navigation tab); Home, Settings
-  // and Logout always stay in their fixed slots. Read on every render so a reorder made
-  // on the Settings page is reflected as soon as the user navigates back.
-  const orderedFeatureItems = isAdmin ? [] : applyNavOrder(USER_FEATURE_ITEMS, getSavedNavOrder());
+  // Feature items are user-reorderable and optional (Settings page → Navigation tab);
+  // Home, Settings and Logout always stay in their fixed slots. Read on every render so a
+  // reorder/hide made on the Settings page is reflected as soon as the user navigates back.
+  const hiddenFeatureItems = new Set(isAdmin ? [] : getHiddenNavItems());
+  const orderedFeatureItems = isAdmin
+    ? []
+    : applyNavOrder(USER_FEATURE_ITEMS, getSavedNavOrder()).filter((item) => !hiddenFeatureItems.has(item.path));
 
+  // Home is fixed at position 2 on the main bar (after the first visible feature item).
+  const visibleFeatureItems = orderedFeatureItems.slice(0, VISIBLE_FEATURE_COUNT);
   const mainItems = isAdmin
     ? ADMIN_MAIN_ITEMS
-    : [HOME_ITEM, ...orderedFeatureItems.slice(0, VISIBLE_FEATURE_COUNT)];
+    : [...visibleFeatureItems.slice(0, 1), HOME_ITEM, ...visibleFeatureItems.slice(1)];
 
   const menuItems = isAdmin
     ? [SETTINGS_ITEM]

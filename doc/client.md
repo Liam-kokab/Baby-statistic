@@ -38,6 +38,8 @@ client/
       InstallBanner/                # PWA install prompt banner
       NavBar/                       # NavBar.tsx + NavBar.module.css (includes logout 🚪)
       NavOrderEditor/                # NavOrderEditor.tsx + .module.css — up/down reordering of NavBar feature buttons (Settings → Navigation tab)
+      HomeWidgetsEditor/             # HomeWidgetsEditor.tsx + .module.css — show/hide + up/down reordering of HomePage widgets (Settings → Home tab)
+      WhiteNoiseSoundsEditor/        # WhiteNoiseSoundsEditor.tsx + .module.css — choose which sounds appear in the HomePage White Noise widget (Settings → Home tab)
       Tabs/                          # Tabs.tsx + Tabs.module.css — generic tab-bar control used by SettingsPage
       PageLayout/                   # PageLayout.tsx + PageLayout.module.css
       ProtectedRoute/               # ProtectedRoute.tsx — redirects to /login if unauthenticated
@@ -61,7 +63,10 @@ client/
       authStore.ts   # localStorage helpers: getAccessToken/getRefreshToken/setTokens/clear/isAuthenticated
       authFetch.ts   # typed fetch wrapper: attaches Bearer token, auto-refreshes on 401, redirects to /login on failure
       navItems.ts    # shared NavBar item constants (HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, VISIBLE_FEATURE_COUNT)
-      navOrder.ts    # localStorage-backed custom nav order (key `navOrder`): getSavedNavOrder/saveNavOrder/clearNavOrder/applyNavOrder
+      navOrder.ts    # localStorage-backed custom nav order + hidden set (keys `navOrder`, `navHidden`): getSavedNavOrder/saveNavOrder/clearNavOrder/applyNavOrder + getHiddenNavItems/saveHiddenNavItems/clearHiddenNavItems
+      homeWidgets.ts     # shared HomePage widget constants (DEFAULT_HOME_WIDGETS: sleep/milk/nappy/medicines/whiteNoise; DEFAULT_HIDDEN_HOME_WIDGETS: whiteNoise)
+      homeWidgetPrefs.ts # localStorage-backed HomePage widget order/visibility (keys `homeWidgetOrder`, `homeWidgetHidden`): get/save/clear + applyHomeWidgetOrder
+      homeWhiteNoiseWidgetPrefs.ts # sound metadata (`WHITE_NOISE_SOUNDS`) + localStorage-backed sound selection for the HomePage white-noise widget (key `homeWidgetWhiteNoiseTypes`): getSelectedWhiteNoiseTypes/saveSelectedWhiteNoiseTypes (defaults to all 3 sounds; configured on Settings → Home)
 
 > See [`doc/auth.md`](./auth.md) for full client auth architecture documentation.
       groupByDay.ts                 # groups items by calendar day (descending)
@@ -69,6 +74,8 @@ client/
       format.ts                     # date/time formatting helpers (Oslo tz, 24h, DD-MM-YYYY)
       useInstallPrompt.ts           # hook: captures beforeinstallprompt, exposes install() / dismiss()
       whiteNoise.ts                 # WhiteNoisePlayer singleton — synthesizes & loops white/pink/brown noise via Web Audio API (no audio files)
+      whiteNoiseDurations.ts        # shared WHITE_NOISE_DURATION_OPTIONS (infinite/30/60 min) + formatWhiteNoiseRemaining — used by WhiteNoisePage and the HomePage widget
+      useWhiteNoisePlayerState.ts   # hook: subscribes to whiteNoisePlayer, returns { playingType, endAt, activeDuration }, ticks every second while timed
   index.html                        # HTML shell — Nunito font, manifest link, SW registration, viewport-fit=cover
   vite.config.ts
   package.json
@@ -175,21 +182,22 @@ Renders two date inputs and a three-way toggle:
 ### `NavBar`
 No props. Uses `useNavigate` and `useLocation` hooks internally.
 
-Fixed bottom bar with a **Home** button, a collapsible **☰ menu**, and reorderable "feature" buttons for user accounts. Four positions never move: **Home** (always the first main-bar button), the **☰ menu** button itself, **Settings** (always the last item inside the arc menu), and **🚪 Logout** (always the very last arc item). Everything else — Pumping, Milk Drank, Sleep, Poop & Pee, Medicine, Milk Saved, Milestones, White Noise — is a user-reorderable "feature item" (`utils/navItems.ts` → `USER_FEATURE_ITEMS`); the user's custom order is read from `utils/navOrder.ts` (localStorage key `navOrder`) via `applyNavOrder()`. The first `VISIBLE_FEATURE_COUNT` (3) items of that ordered list render directly on the main bar (next to Home); the rest render inside the ☰ arc menu (before Settings/Logout). Users configure the order on the **Settings → Navigation** tab (`NavOrderEditor` component).
+Fixed bottom bar with a **Home** button, a collapsible **☰ menu**, and reorderable + optional "feature" buttons for user accounts. Four positions never move and can't be hidden: **Home** (always the 2nd main-bar button, right after the first visible feature item), the **☰ menu** button itself (always the very first button, before Home), **Settings** (always the last item inside the arc menu), and **🚪 Logout** (always the very last arc item). Everything else — Pumping, Milk Drank, Sleep, Poop & Pee, Medicine, Milk Saved, Milestones, White Noise — is a user-reorderable/hideable "feature item" (`utils/navItems.ts` → `USER_FEATURE_ITEMS`). The user's custom order is read from `utils/navOrder.ts` (localStorage key `navOrder`) via `applyNavOrder()`, and hidden feature items (localStorage key `navHidden`, via `getHiddenNavItems()`) are filtered out entirely before the remaining ones are split: of the first `VISIBLE_FEATURE_COUNT` (3) items of that ordered/filtered list, the 1st renders before Home and the remaining 2 render after Home on the main bar; the rest render inside the ☰ arc menu (before Settings/Logout). Users configure order + visibility on the **Settings → Navigation** tab (`NavOrderEditor` component).
 
 Note: the NavBar includes the device safe-area inset (e.g. `env(safe-area-inset-bottom)`) in its
 total height on mobile so non-active buttons stay vertically centered above the top border. Only
 the active button is visually raised and overlaps the border. This prevents buttons from appearing
 too high on phones with a home indicator.
 
-Default order (before any user customization):
+Default order (before any user customization), left to right:
 
 | Position | Path | Emoji | Label |
 |---|---|---|---|
-| 1 (fixed) | `/` | 🏠 | Home |
+| 1 (fixed, ☰ menu) | — | ☰ | Menu |
 | 2 | `/pumping` | 🥛 | Pumping |
-| 3 | `/milk-drank` | 🍼 | Milk Drank |
-| 4 | `/sleep` | 🌙 | Sleep |
+| 3 (fixed) | `/` | 🏠 | Home |
+| 4 | `/milk-drank` | 🍼 | Milk Drank |
+| 5 | `/sleep` | 🌙 | Sleep |
 
 Menu (☰), default order: `/poop-pee` 💩, `/medicine` 💊, `/milk-saved` 🧊, `/milestones` 🏆, `/white-noise` 🎧, then `/settings` ⚙️ (fixed), plus 🚪 logout (fixed).
 
@@ -198,10 +206,16 @@ Admin accounts keep a separate, non-reorderable nav (`ADMIN_MAIN_ITEMS`): `/admi
 ### `Tabs`
 Props: `tabs: { key: string; label: string; emoji? }[]`, `activeKey`, `onChange(key)`
 
-Generic pill-style tab bar (no routing) — used by `SettingsPage` to switch between Account/Appearance/Navigation/About sections without leaving the page.
+Generic pill-style tab bar (no routing) — used by `SettingsPage` to switch between Account/Appearance/Navigation/Home/About sections without leaving the page.
 
 ### `NavOrderEditor`
-No props. Reads/writes the user's `NavBar` feature-item order via `utils/navOrder.ts`. Renders each feature item with its emoji, label, an "On bar" / "In menu" badge (based on position vs. `VISIBLE_FEATURE_COUNT`), and ⬆️/⬇️ buttons to move it; a "Reset to default" button clears the customization (`clearNavOrder()`). Used inside `SettingsPage`'s **Navigation** tab.
+No props. Reads/writes the user's `NavBar` feature-item order and hidden set via `utils/navOrder.ts`. Renders each feature item with a `Checkmark` (visible/hidden toggle), its emoji, label, an "On bar" / "In menu" badge (computed only over the not-hidden items, based on position vs. `VISIBLE_FEATURE_COUNT` — hidden away from the badge entirely), and ⬆️/⬇️ buttons to move it; a "Reset to default" button clears both the order (`clearNavOrder()`) and hidden set (`clearHiddenNavItems()`). Used inside `SettingsPage`'s **Navigation** tab.
+
+### `HomeWidgetsEditor`
+No props. Reads/writes the user's `HomePage` widget order and hidden set via `utils/homeWidgetPrefs.ts`. Renders each widget (Sleep/Milk/Nappy/Medicines/White Noise) with a `Checkmark` (visible/hidden toggle), its label, and ⬆️/⬇️ buttons to move it; a "Reset to default" button clears both the custom order and hidden set, restoring the defaults (all widgets visible in their default order, **except** White Noise which defaults to hidden — see `DEFAULT_HIDDEN_HOME_WIDGETS`). Used inside `SettingsPage`'s **Home** tab.
+
+### `WhiteNoiseSoundsEditor`
+No props. Reads/writes which white-noise sounds (White/Fan/Wave) show up in the HomePage White Noise widget via `utils/homeWhiteNoiseWidgetPrefs.ts` (`getSelectedWhiteNoiseTypes`/`saveSelectedWhiteNoiseTypes`, localStorage key `homeWidgetWhiteNoiseTypes`). Renders one `Checkmark` per sound; defaults to all 3 selected. Used inside `SettingsPage`'s **Home** tab, alongside `HomeWidgetsEditor`.
 
 ### `PageLayout`
 Props: `title`, `emoji`, `children`, `gradient?` (`'pink' | 'blue' | 'green' | 'indigo' | 'amber'`)
@@ -243,6 +257,9 @@ Wraps every secondary page with a gradient header banner (curved bottom edge) an
 Note: `MilestonePage`'s `PageLayout` heading text is **"My first"** (not "Milestones") — component/route/API names stay `Milestone*`/`/api/milestones` for clarity in code, but the displayed page title is short and personal. `EditMilestonePage` displays **"Edit My First"**. Milestone pages pass explicit `bannerSlug` values (`my-first`, `edit-my-first`) to `PageLayout` so banner color overrides in `styles/variables.css` stay stable across translated titles.
 
 ### `HomePage`
+Widgets — **Sleep**, **Milk**, **Nappy**, **Medicines**, **White Noise** — are rendered dynamically from `utils/homeWidgets.ts` (`DEFAULT_HOME_WIDGETS`, in that order). All are visible by default except `whiteNoise`, which is hidden by default (`DEFAULT_HIDDEN_HOME_WIDGETS`) — opt-in only. The user's custom order/visibility is read from `utils/homeWidgetPrefs.ts` (localStorage keys `homeWidgetOrder` and `homeWidgetHidden`) via `applyHomeWidgetOrder()`/`getHiddenHomeWidgets()`; hidden widgets are filtered out before rendering. Configured on the **Settings → Home** tab (`HomeWidgetsEditor` component). The `medicines` widget still only renders when `medicines.length > 0`, on top of the visibility toggle.
+
+- **White noise widget**: for each sound (White/Fan/Wave) the user has selected via `utils/homeWhiteNoiseWidgetPrefs.ts` (localStorage key `homeWidgetWhiteNoiseTypes`, defaults to all 3 sounds), shows all three duration options (♾️ Infinite/30 min/60 min via shared `utils/whiteNoiseDurations.ts` → `WHITE_NOISE_DURATION_OPTIONS`), full-width (`.btnRowFull`), same as the dedicated `/white-noise` page — the sound *selection* itself is configured on the **Settings → Home** tab (`WhiteNoiseSoundsEditor` component), not on the widget itself. Reactive playback state (`playingType`/`endAt`/`activeDuration`, including the live MM:SS countdown) comes from the shared `useWhiteNoisePlayerState()` hook, wrapping the same `whiteNoisePlayer` singleton used by `/white-noise`, so state stays in sync between the widget and the full page. Shows a "no sounds selected" note (pointing the user to Settings) when nothing is selected.
 - **Sleep section**: fetches `GET /api/sleep/latest` on mount; shows Sleeping/Awake badge with a live elapsed-time counter (JS `setInterval`, no polling). Timer counts up from `start` when sleeping, and from `end` of last sleep when awake. Clicking Start/End calls POST/PUT and re-fetches latest.
 - **Fullscreen black screen**: tapping/clicking the top hero emoji opens a fullscreen black overlay. While open, any click/tap or mouse movement shows an **Exit** button in the corner, and that button auto-hides after 2 seconds of inactivity.
 - **Milk — Store**: `POST /api/served-milk` with `{ amount, status: 'FRIDGE' | 'FREEZER' }`.
@@ -270,13 +287,14 @@ Collapse state is local to the component (`useState<Set<string>>`).
 - Delete requires a `window.confirm(...)` before calling the API, matching `AdminBabiesPage`/`AdminUsersPage`
 
 ### `SettingsPage` (`/settings`)
-Uses the `Tabs` component to split settings into four tabs (state kept local to the page, no routing):
+Uses the `Tabs` component to split settings into five tabs (state kept local to the page, no routing):
 - **👤 Account** (`SETTINGS_TAB_ACCOUNT`): self-service profile management via `PATCH /api/auth/me`, available to both `user` and `admin` roles:
   - Display name + username fields (`Input` component), saved together via **"Save profile"** (`Button`, uses `useActionFeedback` for loading/success/error state)
   - Change-password sub-form: current password + new password + confirm (all `Input type="password"`), saved via **"Change password"**; validated client-side (new password ≥ 8 chars, confirmation must match) before calling the API
   - On load, fetches `GET /api/auth/me` and syncs the result into `authStore` (`authStore.updateUser`) so the cached user stays fresh
 - **🎨 Appearance** (`SETTINGS_TAB_APPEARANCE`): theme/mode/language toggles (unchanged)
 - **🧭 Navigation** (`SETTINGS_TAB_NAVIGATION`): renders `NavOrderEditor` — lets the user reorder the NavBar's feature buttons (see `NavBar` docs above); Home, Settings and Logout are not shown here since they never move
+- **🏠 Home** (`SETTINGS_TAB_HOME`): renders `HomeWidgetsEditor` — lets the user show/hide and reorder the HomePage widgets (see `HomePage` docs above) — plus `WhiteNoiseSoundsEditor`, which lets the user pick which sounds (White/Fan/Wave) appear in the HomePage White Noise widget
 - **ℹ️ About** (`SETTINGS_TAB_ABOUT`): client/server build times (unchanged)
 
 ## Utilities (`src/utils/`)
@@ -306,17 +324,22 @@ All display formatting uses `Intl.DateTimeFormat` with `timeZone: 'Europe/Oslo'`
 | `formatDateWithWeekday(str, includeYear?)` | `Tue 14-04-2026` / `Tue 14-04` |
 
 ## White Noise (`src/pages/WhiteNoisePage/`, `src/utils/whiteNoise.ts`)
-`/white-noise` renders three sound cards — **White**, **Fan**, and **Wave** (rising & falling) noise — each generated live in the browser via the Web Audio API (`AudioContext` + `AudioBufferSourceNode`, looped). No audio files are shipped or downloaded.
+`/white-noise` renders four sound cards — **White**, **Fan**, **Wave** (rising & falling), and **Mother's Hush** — each generated live in the browser via the Web Audio API (`AudioContext` + `AudioBufferSourceNode`, looped). No audio files are shipped or downloaded.
 
 - `src/utils/whiteNoise.ts` exports a `whiteNoisePlayer` singleton (`WhiteNoisePlayer` class) that:
-  - Lazily synthesizes a ~5s `AudioBuffer` per noise type and caches it (white = random samples; fan = double low-pass-filtered noise + faint 120Hz motor hum; wave = filtered noise carrier with a slow one-cycle-per-buffer amplitude swell for an ocean-like rise & fall).
+  - Lazily synthesizes a ~5s `AudioBuffer` per noise type and caches it (white = random samples; fan = double low-pass-filtered noise + faint 120Hz motor hum; wave = filtered noise carrier with a slow one-cycle-per-buffer amplitude swell for an ocean-like rise & fall; hush = noise band-limited to ~1.2kHz–6kHz — cutting both low rumble and ultra-high hiss so it reads as a breathy human "shhh" rather than radio-static — shaped by a repeating 4s envelope: 500ms silence → 1250ms ease-in rise (smootherstep, not linear) → 500ms at max → 1250ms ease-out fall → 500ms silence).
   - `play(type, durationMinutes)` — starts looping the buffer; `durationMinutes = null` means play forever, otherwise a `setTimeout` auto-stops it.
   - `stop()` — stops/disconnects the current source; `subscribe(listener)` lets React components react to play/stop state changes; `getPlayingType()` / `getEndAt()` / `getActiveDurationMinutes()` expose current state for the UI.
   - Only one noise type plays at a time (starting a new one stops the previous).
+  - Registers a Vite `import.meta.hot.dispose` hook that calls `stop()` before the module is hot-reloaded in dev, so editing `whiteNoise.ts` doesn't leave an orphaned instance looping audio that the (newly hot-reloaded) UI can no longer control.
+- `src/utils/whiteNoiseDurations.ts` exports the shared `WHITE_NOISE_DURATION_OPTIONS` (♾️ Infinite / 30 min / 60 min) and `formatWhiteNoiseRemaining(endAt)` (MM:SS) used by both `WhiteNoisePage` and the HomePage white-noise widget, so every sound gets the same three length choices everywhere.
+- `src/utils/useWhiteNoisePlayerState.ts` exports `useWhiteNoisePlayerState()` — a hook that subscribes to `whiteNoisePlayer` and returns `{ playingType, endAt, activeDuration }`, auto-ticking once per second while a timed duration is active so any countdown UI stays live. Used by both `WhiteNoisePage` and the HomePage widget to keep their controls in sync with the same playback state.
+- `src/utils/homeWhiteNoiseWidgetPrefs.ts` exports `WHITE_NOISE_SOUNDS` (shared sound metadata: type/emoji/titleKey) plus `getSelectedWhiteNoiseTypes()`/`saveSelectedWhiteNoiseTypes()` (localStorage key `homeWidgetWhiteNoiseTypes`) — used by the Settings → Home `WhiteNoiseSoundsEditor` picker and the HomePage widget to decide which sounds appear there.
 - `WhiteNoisePage.tsx` renders a card per sound with three duration buttons (♾️ Infinite, 30 min, 60 min). Pressing a button starts that duration; the pressed button itself turns into the Stop button (showing a live countdown for timed durations, or "Stop" for infinite) until pressed again or another duration is chosen. Stops playback on unmount.
 
 ## PWA (`public/manifest.json` + `public/sw.js`)
 The app is installable as a PWA on Android (requires HTTPS). Key files:
+
 
 | File | Purpose |
 |---|---|
