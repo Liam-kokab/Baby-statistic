@@ -195,7 +195,7 @@ const PoopPeePage = () => {
   };
 
   return (
-    <PageLayout title={t('POOP_PEE_PAGE_TITLE')} emoji="💩" gradient="amber" ref={visibilityRef}>
+    <PageLayout title={t('POOP_PEE_PAGE_TITLE')} emoji="💩" gradient="amber" bannerSlug="poop-pee" ref={visibilityRef}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('POOP_PEE_PAGE_POOP_STAT')} <strong>{summary ? summary.poopCount : t('COMMON_DASH')}</strong></div>

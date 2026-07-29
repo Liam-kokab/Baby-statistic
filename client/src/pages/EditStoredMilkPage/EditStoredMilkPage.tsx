@@ -94,7 +94,7 @@ const EditStoredMilkPage = () => {
   };
 
   return (
-    <PageLayout title={t('EDIT_STORED_MILK_TITLE')} emoji="🧊" gradient="blue">
+    <PageLayout title={t('EDIT_STORED_MILK_TITLE')} emoji="🧊" gradient="blue" bannerSlug="edit-stored-milk">
       <div className={styles.page}>
         {loading ? (
           <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>

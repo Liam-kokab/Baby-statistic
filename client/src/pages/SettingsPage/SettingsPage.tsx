@@ -122,7 +122,7 @@ const SettingsPage = () => {
   };
 
   return (
-    <PageLayout title={t('SETTINGS_TITLE')} emoji="⚙️">
+    <PageLayout title={t('SETTINGS_TITLE')} emoji="⚙️" bannerSlug="settings">
       <div className={styles.content}>
       {/* Account card */}
       <section className={styles.card}>
@@ -135,7 +135,10 @@ const SettingsPage = () => {
         <div className={styles.formActions}>
           <Button text={t('SETTINGS_SAVE_PROFILE')} onClick={handleSaveProfile} status={profileAction.status} />
         </div>
+      </section>
 
+      {/* Change Password card */}
+      <section className={styles.card}>
         <h2 className={styles.sectionTitle}>{t('SETTINGS_CHANGE_PASSWORD_TITLE')}</h2>
         <div className={styles.formGrid}>
           <Input label={t('SETTINGS_CURRENT_PASSWORD')} type="password" value={currentPassword} onChange={setCurrentPassword} name="currentPassword" placeholder="••••••••" />
@@ -177,7 +180,7 @@ const SettingsPage = () => {
           <span className={styles.label}>{t('SETTINGS_LANGUAGE')}</span>
           <div className={`${styles.value} ${styles.control}`}>
             <Toggle
-              options={[t('SETTINGS_LANGUAGE_ENGLISH'), t('SETTINGS_LANGUAGE_BOKMAL'), t('SETTINGS_LANGUAGE_NYNORSK')]}
+              options={[t('SETTINGS_LANGUAGE_ENGLISH'), t('SETTINGS_LANGUAGE_BOKMAL')]}
               value={languageIndex}
               onChange={onLanguageChange}
             />

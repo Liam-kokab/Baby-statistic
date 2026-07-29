@@ -182,7 +182,7 @@ const PumpingPage = () => {
   };
 
   return (
-    <PageLayout title={t('PUMPING_PAGE_TITLE')} emoji="🥛" gradient="indigo" ref={visibilityRef}>
+    <PageLayout title={t('PUMPING_PAGE_TITLE')} emoji="🥛" gradient="indigo" bannerSlug="pumping" ref={visibilityRef}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('PUMPING_PAGE_TOTAL')} <strong>{summary ? summary.count : t('COMMON_DASH')}</strong></div>

@@ -67,7 +67,7 @@ const EditSleepPage = () => {
   };
 
   return (
-    <PageLayout title={t('EDIT_SLEEP_TITLE')} emoji="😴" gradient="indigo">
+    <PageLayout title={t('EDIT_SLEEP_TITLE')} emoji="😴" gradient="indigo" bannerSlug="edit-sleep">
       <div className={styles.page}>
         {loading ? (
           <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>

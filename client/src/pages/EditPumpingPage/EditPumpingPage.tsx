@@ -60,7 +60,7 @@ const EditPumpingPage = () => {
   };
 
   return (
-    <PageLayout title={t('EDIT_PUMPING_TITLE')} emoji="🥛" gradient="indigo">
+    <PageLayout title={t('EDIT_PUMPING_TITLE')} emoji="🥛" gradient="indigo" bannerSlug="edit-pumping">
       <div className={styles.page}>
         {loading ? (
           <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>

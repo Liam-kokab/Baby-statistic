@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useMemo } from 'react
 import type { ReactNode } from 'react';
 import translations from './translations.json';
 
-export type TLanguage = 'en' | 'nb' | 'nn';
+export type TLanguage = 'en' | 'nb';
 
 const STORAGE_KEY = 'language';
 const DEFAULT_LANGUAGE: TLanguage = 'en';
@@ -13,7 +13,7 @@ const dictionary = translations as TTranslations;
 export const getSavedLanguage = (): TLanguage | null => {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
-    if (v === 'en' || v === 'nb' || v === 'nn') return v;
+    if (v === 'en' || v === 'nb') return v;
     return null;
   } catch (_e) {
     return null;
@@ -76,7 +76,7 @@ export const useTranslation = (): TLanguageContextValue => {
   return ctx;
 };
 
-export const languageToIndex = (l: TLanguage): number => (l === 'en' ? 0 : l === 'nb' ? 1 : 2);
+export const languageToIndex = (l: TLanguage): number => (l === 'en' ? 0 : 1);
 
-export const indexToLanguage = (i: number): TLanguage => (i === 1 ? 'nb' : i === 2 ? 'nn' : 'en');
+export const indexToLanguage = (i: number): TLanguage => (i === 1 ? 'nb' : 'en');
 

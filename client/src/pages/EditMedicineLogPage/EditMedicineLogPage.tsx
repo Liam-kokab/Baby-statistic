@@ -72,7 +72,7 @@ const EditMedicineLogPage = () => {
   };
 
   return (
-    <PageLayout title={t('EDIT_MEDICINE_LOG_TITLE')} emoji="💊" gradient="green">
+    <PageLayout title={t('EDIT_MEDICINE_LOG_TITLE')} emoji="💊" gradient="green" bannerSlug="edit-medicine-log">
       <div className={styles.page}>
         {loading ? (
           <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>

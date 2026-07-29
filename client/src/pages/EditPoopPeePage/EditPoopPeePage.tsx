@@ -67,9 +67,10 @@ const EditPoopPeePage = ({ type }: TProps) => {
 
   const emoji = type === 'poop' ? '💩' : '💧';
   const title = type === 'poop' ? t('EDIT_POOP_TITLE') : t('EDIT_PEE_TITLE');
+  const bannerSlug = type === 'poop' ? 'edit-poop' : 'edit-pee';
 
   return (
-    <PageLayout title={title} emoji={emoji} gradient="amber">
+    <PageLayout title={title} emoji={emoji} gradient="amber" bannerSlug={bannerSlug}>
       <div className={styles.page}>
         {loading ? (
           <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>
