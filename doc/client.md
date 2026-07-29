@@ -29,10 +29,12 @@ client/
       global.css                    # CSS reset + base html/body styles
     components/
       Button/                       # Button.tsx + Button.module.css
+      Checkmark/                    # Checkmark.tsx + Checkmark.module.css
       DateRangeFilter/              # DateRangeFilter.tsx + DateRangeFilter.module.css
       DateTimeInput/                # DateTimeInput.tsx + DateTimeInput.module.css
       Input/                        # Input.tsx + Input.module.css
       Textarea/                     # Textarea.tsx + Textarea.module.css
+      Toggle/                       # Toggle.tsx + Toggle.module.css — animated segmented control (2-4 options)
       InstallBanner/                # PWA install prompt banner
       NavBar/                       # NavBar.tsx + NavBar.module.css (includes logout 🚪)
       NavOrderEditor/                # NavOrderEditor.tsx + .module.css — up/down reordering of NavBar feature buttons (Settings → Navigation tab)
@@ -136,6 +138,13 @@ Props: `checked`, `onChange`, `label?`, `disabled?`
 - Shows a filled box with a white tick when `checked`, empty border box when unchecked
 - Uses `--color-primary` / `--color-border` design tokens
 - `label` renders an inline text label next to the box
+
+### `Toggle`
+Props: `options: string[]` (2–4 items), `value?` (controlled selected index), `defaultIndex?` (uncontrolled), `onChange?(index)`, `name?`, `className?`
+
+- Animated segmented control (pill-shaped sliding thumb) used for Theme/Mode/Language pickers on `SettingsPage`
+- Each option label may be `"<emoji> <text>"`; `Toggle` auto-detects the emoji and, based on measured available width, progressively degrades from full (icon+text) → text-only → icon-only per option so it never overflows on narrow screens
+- Fully keyboard-accessible (`role="tablist"`/`"tab"`, arrow keys/Home/End/Enter/Space)
 
 ### `Input`
 Props: `label?`, `value`, `onChange`, `type?` (`'text' | 'tel'`), `placeholder?`, `disabled?`, `error?`, `name?`
@@ -319,17 +328,17 @@ The app is installable as a PWA on Android (requires HTTPS). Key files:
 | `src/components/InstallBanner/` | Banner shown when install is available; has Install + dismiss buttons |
 
 ## Internationalization (`src/i18n/`)
-The client supports English (`en`), Norwegian Bokmål (`nb`), and Norwegian Nynorsk (`nn`).
+The client supports English (`en`) and Norwegian Bokmål (`nb`).
 
 | File | Purpose |
 |---|---|
-| `src/i18n/translations.json` | Flat dictionary: `SCREAMING_SNAKE_CASE_KEY -> { en, nb, nn }`. Every user-visible string in the app lives here — no hardcoded UI text in components/pages. |
-| `src/i18n/i18n.tsx` | `TLanguage = 'en' \| 'nb' \| 'nn'`; `getSavedLanguage()`/`saveLanguage()` (localStorage key `language`); `LanguageProvider` (React Context); `useTranslation()` hook returning `{ language, setLanguage, t }`. |
+| `src/i18n/translations.json` | Flat dictionary: `SCREAMING_SNAKE_CASE_KEY -> { en, nb }`. Every user-visible string in the app lives here — no hardcoded UI text in components/pages. |
+| `src/i18n/i18n.tsx` | `TLanguage = 'en' \| 'nb'`; `getSavedLanguage()`/`saveLanguage()` (localStorage key `language`); `LanguageProvider` (React Context); `useTranslation()` hook returning `{ language, setLanguage, t }`. |
 
 - `t(key: string, vars?: Record<string, string | number>)` looks up `key` in the current language, falling back to `en`, then to the raw key if missing. Supports `{varName}` interpolation (e.g. `t('LIST_ALL_RECORDS_LOADED', { count: 5 })` for a template like `"All {count} records loaded"`).
 - `main.tsx` wraps the app in `<LanguageProvider>` (alongside `ensureInitialTheme()`), so `useTranslation()` is available in every component/page.
-- The Settings page (**Appearance card**) exposes a three-way `Toggle` (🇬🇧 English / 🇳🇴 Bokmål / 🇳🇴 Nynorsk) that calls `setLanguage`, persisting the choice to localStorage under the `language` key.
-- Adding new UI text: add a new key to `translations.json` with all three languages, then reference it via `t('YOUR_KEY')` — never inline literal strings in JSX/placeholders/titles/`confirm()` calls.
+- The Settings page (**Appearance tab**) exposes a two-way `Toggle` (🇬🇧 English / 🇳🇴 Bokmål) that calls `setLanguage`, persisting the choice to localStorage under the `language` key.
+- Adding new UI text: add a new key to `translations.json` with both languages, then reference it via `t('YOUR_KEY')` — never inline literal strings in JSX/placeholders/titles/`confirm()` calls.
 
 ## Dev Proxy
 `vite.config.ts` proxies `/api/*` → `http://localhost:3000`.
