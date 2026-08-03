@@ -96,32 +96,43 @@ pm2 status
 systemctl status nginx   # if applicable
 ```
 
-## Scheduled Weekly Reboot
-The production machine is a Raspberry Pi **without ECC RAM**, so bit flips / memory corruption can accumulate silently over long uptimes (unlike PM2's crash restart, which only helps once a process actually crashes). To mitigate this, a systemd timer reboots the whole machine **every Monday at 04:30** local time — chosen as the quietest window (overnight, everyone asleep, low traffic).
+## Scheduled Daily Reboot
+The production machine is a Raspberry Pi **without ECC RAM**, so bit flips / memory corruption can accumulate silently over long uptimes (unlike PM2's crash restart, which only helps once a process actually crashes). To mitigate this, a systemd timer reboots the whole machine **every day at 04:30** local time — chosen as the quietest window (overnight, everyone asleep, low traffic).
 
-- `deploy/systemd/weekly-reboot.service` — oneshot unit that runs `/sbin/reboot`.
-- `deploy/systemd/weekly-reboot.timer` — `OnCalendar=Mon *-*-* 04:30:00`, `Persistent=true` (if the Pi was powered off at 04:30, it reboots as soon as it's next back up instead of silently skipping that week).
+- `deploy/systemd/daily-reboot.service` — oneshot unit that runs `/sbin/reboot`.
+- `deploy/systemd/daily-reboot.timer` — `OnCalendar=*-*-* 04:30:00`, `Persistent=true` (if the Pi was powered off at 04:30, it reboots as soon as it's next back up instead of silently skipping that day's reboot).
 
-Installed automatically by `npm run setup:autostart` (step 5). To opt out, set `SKIP_WEEKLY_REBOOT=true` before running it:
+Installed automatically by `npm run setup:autostart` (step 5), which also removes any older `weekly-reboot.timer` unit left over from a previous setup. To opt out, set `SKIP_DAILY_REBOOT=true` before running it:
 ```bash
-SKIP_WEEKLY_REBOOT=true npm run setup:autostart
+SKIP_DAILY_REBOOT=true npm run setup:autostart
 ```
 
-Since PM2's `pm2 startup` service and `pm2 save`d process list (see above) bring every app back up automatically on boot, the weekly reboot is safe — no manual intervention needed afterward.
+Since PM2's `pm2 startup` service and `pm2 save`d process list (see above) bring every app back up automatically on boot, the daily reboot is safe — no manual intervention needed afterward.
 
 To install/manage it manually instead:
 ```bash
-sudo cp deploy/systemd/weekly-reboot.service /etc/systemd/system/
-sudo cp deploy/systemd/weekly-reboot.timer /etc/systemd/system/
+sudo cp deploy/systemd/daily-reboot.service /etc/systemd/system/
+sudo cp deploy/systemd/daily-reboot.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now weekly-reboot.timer
+sudo systemctl enable --now daily-reboot.timer
 
 # Inspect / verify:
-systemctl list-timers weekly-reboot.timer --no-pager   # shows next scheduled run
-sudo systemctl status weekly-reboot.timer
+systemctl list-timers daily-reboot.timer --no-pager   # shows next scheduled run
+sudo systemctl status daily-reboot.timer
 
 # Disable:
+sudo systemctl disable --now daily-reboot.timer
+```
+
+### Migrating from the old weekly-reboot unit
+If your machine already has `weekly-reboot.timer` installed from a previous setup, either re-run `npm run setup:autostart` (which now handles the swap automatically) or do it manually:
+```bash
 sudo systemctl disable --now weekly-reboot.timer
+sudo rm -f /etc/systemd/system/weekly-reboot.service /etc/systemd/system/weekly-reboot.timer
+sudo cp deploy/systemd/daily-reboot.service /etc/systemd/system/
+sudo cp deploy/systemd/daily-reboot.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now daily-reboot.timer
 ```
 
 ## Deploying Updates (`deploy.sh`)

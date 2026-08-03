@@ -13,9 +13,9 @@
 #   3. Enables nginx to start on boot, if installed (see doc/nginx.md).
 #   4. Confirms certbot's renewal timer is enabled, if certbot is installed
 #      (see doc/nginx.md) — it self-registers on install, this just verifies.
-#   5. Installs + enables a weekly scheduled reboot (Monday 04:30) — a Pi
+#   5. Installs + enables a daily scheduled reboot (04:30) — a Pi
 #      with no ECC RAM benefits from a periodic clean restart. Set
-#      SKIP_WEEKLY_REBOOT=true to opt out. See doc/pm2.md "Scheduled Weekly
+#      SKIP_DAILY_REBOOT=true to opt out. See doc/pm2.md "Scheduled Daily
 #      Reboot" for details.
 #
 # Run this once after the app is already up under PM2 (`npm start`), and
@@ -79,15 +79,20 @@ else
   echo "    certbot.timer not found — skipping (only relevant if you use Let's Encrypt via certbot, see doc/nginx.md)."
 fi
 
-echo "==> [5/5] Installing the weekly scheduled reboot (Monday 04:30)"
-if [ "${SKIP_WEEKLY_REBOOT:-false}" = "true" ]; then
-  echo "    SKIP_WEEKLY_REBOOT=true — skipping."
+echo "==> [5/5] Installing the daily scheduled reboot (04:30)"
+if [ "${SKIP_DAILY_REBOOT:-false}" = "true" ]; then
+  echo "    SKIP_DAILY_REBOOT=true — skipping."
 else
-  sudo cp deploy/systemd/weekly-reboot.service /etc/systemd/system/weekly-reboot.service
-  sudo cp deploy/systemd/weekly-reboot.timer /etc/systemd/system/weekly-reboot.timer
+  # Remove the older weekly unit if it's still installed from a previous setup.
+  if systemctl list-unit-files 2>/dev/null | grep -q '^weekly-reboot\.timer'; then
+    sudo systemctl disable --now weekly-reboot.timer 2>/dev/null || true
+    sudo rm -f /etc/systemd/system/weekly-reboot.service /etc/systemd/system/weekly-reboot.timer
+  fi
+  sudo cp deploy/systemd/daily-reboot.service /etc/systemd/system/daily-reboot.service
+  sudo cp deploy/systemd/daily-reboot.timer /etc/systemd/system/daily-reboot.timer
   sudo systemctl daemon-reload
-  sudo systemctl enable --now weekly-reboot.timer
-  systemctl list-timers weekly-reboot.timer --no-pager
+  sudo systemctl enable --now daily-reboot.timer
+  systemctl list-timers daily-reboot.timer --no-pager
 fi
 
 echo ""

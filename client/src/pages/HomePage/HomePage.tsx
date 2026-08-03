@@ -6,7 +6,7 @@ import Input from '../../components/Input/Input';
 import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TActionStatus } from '../../utils/useActionFeedback';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
-import { ACTION_MIN_MS, ACTION_DONE_MS } from '../../config';
+import { ACTION_MIN_MS, ACTION_DONE_MS, BLACK_SCREEN_KEEP_AWAKE_MS } from '../../config';
 import { useTranslation } from '../../i18n/i18n';
 import { DEFAULT_HOME_WIDGETS } from '../../utils/homeWidgets';
 import type { THomeWidgetKey } from '../../utils/homeWidgets';
@@ -41,6 +41,9 @@ const HomePage = () => {
   const { t } = useTranslation();
   const blackScreenExitTimeoutRef = useRef<number | null>(null);
   const blackScreenCursorTimeoutRef = useRef<number | null>(null);
+  const blackScreenKeepAwakeTimeoutRef = useRef<number | null>(null);
+  const blackScreenWakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const blackScreenWakeLockAllowedRef = useRef<boolean>(true);
 
   const formatAgo = (isoString: string): string => {
     const totalMin = Math.floor((Date.now() - new Date(isoString).getTime()) / 60_000);
@@ -121,6 +124,25 @@ const HomePage = () => {
   const [isBlackScreenOpen, setIsBlackScreenOpen] = useState<boolean>(false);
   const [isBlackScreenExitVisible, setIsBlackScreenExitVisible] = useState<boolean>(false);
   const [isBlackScreenCursorVisible, setIsBlackScreenCursorVisible] = useState<boolean>(true);
+
+  // Wake locks are released automatically when the tab becomes hidden; re-request it
+  // once the black screen is visible again so the display keeps staying on.
+  useEffect(() => {
+    if (!isBlackScreenOpen) return;
+    const onVisibilityChange = (): void => {
+      if (document.visibilityState === 'visible') void requestBlackScreenWakeLock();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [isBlackScreenOpen]);
+
+  // Release the wake lock and any pending timeouts if the component unmounts while open.
+  useEffect(() => () => {
+    clearBlackScreenExitTimeout();
+    clearBlackScreenCursorTimeout();
+    clearBlackScreenKeepAwakeTimeout();
+    releaseBlackScreenWakeLock();
+  }, []);
 
   const loadMedicines = async (): Promise<void> => {
     const res = await authFetch<TMedicineWithLatestLog[]>('/api/medicine');
@@ -314,6 +336,33 @@ const HomePage = () => {
     }
   };
 
+  const clearBlackScreenKeepAwakeTimeout = (): void => {
+    if (blackScreenKeepAwakeTimeoutRef.current !== null) {
+      clearTimeout(blackScreenKeepAwakeTimeoutRef.current);
+      blackScreenKeepAwakeTimeoutRef.current = null;
+    }
+  };
+
+  const releaseBlackScreenWakeLock = (): void => {
+    const sentinel = blackScreenWakeLockRef.current;
+    blackScreenWakeLockRef.current = null;
+    if (sentinel !== null) {
+      void sentinel.release().catch(() => {
+        // Ignore release failures.
+      });
+    }
+  };
+
+  const requestBlackScreenWakeLock = async (): Promise<void> => {
+    if (!blackScreenWakeLockAllowedRef.current) return;
+    if (!('wakeLock' in navigator)) return;
+    try {
+      blackScreenWakeLockRef.current = await navigator.wakeLock.request('screen');
+    } catch {
+      // Wake lock may be denied (e.g. low battery, unsupported browser); the overlay still works.
+    }
+  };
+
   const enterFullscreen = async (): Promise<void> => {
     if (document.fullscreenElement !== null) return;
     try {
@@ -351,20 +400,40 @@ const HomePage = () => {
   const handleOpenBlackScreen = (): void => {
     clearBlackScreenExitTimeout();
     clearBlackScreenCursorTimeout();
+    clearBlackScreenKeepAwakeTimeout();
+    blackScreenWakeLockAllowedRef.current = true;
     setIsBlackScreenExitVisible(false);
     setIsBlackScreenCursorVisible(true);
     setIsBlackScreenOpen(true);
     void enterFullscreen();
+    void requestBlackScreenWakeLock();
+    blackScreenKeepAwakeTimeoutRef.current = window.setTimeout(() => {
+      blackScreenKeepAwakeTimeoutRef.current = null;
+      allowBlackScreenToTurnOff();
+    }, BLACK_SCREEN_KEEP_AWAKE_MS);
   };
 
-  const handleCloseBlackScreen = (event: MouseEvent<HTMLButtonElement>): void => {
-    event.stopPropagation();
+  // After the configured duration, stop keeping the display awake and let it turn off
+  // normally — the overlay itself (and fullscreen) stays open until the user exits it.
+  const allowBlackScreenToTurnOff = (): void => {
+    blackScreenWakeLockAllowedRef.current = false;
+    releaseBlackScreenWakeLock();
+  };
+
+  const closeBlackScreen = (): void => {
     clearBlackScreenExitTimeout();
     clearBlackScreenCursorTimeout();
+    clearBlackScreenKeepAwakeTimeout();
+    releaseBlackScreenWakeLock();
     setIsBlackScreenExitVisible(false);
     setIsBlackScreenCursorVisible(true);
     setIsBlackScreenOpen(false);
     void exitFullscreen();
+  };
+
+  const handleCloseBlackScreen = (event: MouseEvent<HTMLButtonElement>): void => {
+    event.stopPropagation();
+    closeBlackScreen();
   };
 
   // ── Widgets — order & visibility are user-configurable (Settings → Home tab); all

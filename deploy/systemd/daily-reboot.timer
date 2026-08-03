@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily scheduled reboot (04:30) — see doc/pm2.md
+
+[Timer]
+# Every day at 04:30 local time — chosen as the quietest/least-likely-
+# to-be-in-use window for this app.
+OnCalendar=*-*-* 04:30:00
+# If the machine was off/asleep at the scheduled time, run it as soon as
+# possible after boot instead of silently skipping that day's reboot.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
