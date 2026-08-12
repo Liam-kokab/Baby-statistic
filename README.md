@@ -25,7 +25,7 @@ A simple self-hosted baby statistics tracker that logs daily events for your new
 - 🔮 **Next-bottle prediction** — the server suggests a rounded `nextDrinkAmount` for the next bottle based on recent drinking patterns (configurable lookback). Predictions are logged so you can compare predicted vs actual consumption and improve the model over time.
 - 🔐 **Multi-user & multi-baby with JWT auth** — admins create users/babies; each user is scoped to one baby, with short-lived access tokens and rotating refresh tokens (no self-registration)
 - 🤖 **MCP server** — exposes the whole API as tools for AI agents (SSE transport), so you can log feeds or ask "how much milk today?" straight from an AI chat client
-- 🔄 **Backup & restore** — full DB export/import via REST API
+- 🔄 **Backup & restore** — full DB export/import via REST API; optional standalone AWS Lambda (`backup-lambda/`) can automate scheduled backups to S3
 - 📖 **Swagger UI** — interactive API docs at `/api-docs`
 - 🌐 **Self-hosted DNS updater (`ddns-keeper`)** — optional standalone service that keeps a Domeneshop DNS A record pointed at your current public IP, handy if you're hosting this at home
 

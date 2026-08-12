@@ -8,6 +8,7 @@ npm workspaces monorepo with five packages:
 - **`server/`** — Express 5, TypeScript, `better-sqlite3` (SQLite), JWT auth, multi-baby/multi-user
 - **`mcp-server/`** — Model Context Protocol server exposing the REST API as tools for AI agents (SSE transport, port 3001); talks to the main API over HTTP via `BABY_API_URL`
 - **`ddns-keeper/`** — standalone service keeping a Domeneshop DNS A record in sync with the current public IP (port 3010); independently deployable, has its own `test` script (vitest)
+- **`backup-lambda/`** — standalone, optional AWS Lambda that backs up `GET /api/backup` to S3 on a schedule and prunes old backups; not part of the npm workspaces/build, deployed manually — see `backup-lambda/README.md`. A simpler manual alternative (download `GET /api/backup`, upload to S3 by hand) works too if you don't want to set up AWS resources.
 
 Production: Express serves the Vite-built client from `server/public` (static files).
 
