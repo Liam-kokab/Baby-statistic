@@ -80,38 +80,4 @@
   padding: 1rem 1.25rem 1.5rem;
 }
 
-.blackScreenOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  background: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100vw;
-  height: 100vh;
-}
-
-.blackScreenCursorVisible {
-  cursor: auto;
-}
-
-.blackScreenCursorHidden {
-  cursor: none;
-}
-
-.blackScreenExitButton {
-  transform: scale(3);
-  transition: opacity 0.2s ease;
-}
-
-.blackScreenExitButtonVisible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.blackScreenExitButtonHidden {
-  opacity: 0;
-  pointer-events: none;
-}
 

@@ -13,6 +13,7 @@ import { groupByWeek } from '../../utils/groupByWeek';
 import { fillDayRange } from '../../utils/fillDayRange';
 import { formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useDataFreshness from '../../utils/useDataFreshness';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -57,10 +58,16 @@ const MedicinePage = () => {
   const [newName, setNewName]           = useState('');
   const [addLoading, setAddLoading]     = useState(false);
   const [addError, setAddError]         = useState<string | null>(null);
+  const freshness = useDataFreshness();
 
   const loadMedicines = useCallback(async (): Promise<void> => {
     const allRes = await authFetch<TMedicine[]>('/api/medicine/all');
-    if (allRes.ok) setAllMedicines(allRes.data);
+    if (allRes.ok) {
+      setAllMedicines(allRes.data);
+      freshness.reportSuccess();
+    } else {
+      freshness.reportError();
+    }
   }, []);
 
   useEffect(() => { loadMedicines(); }, [loadMedicines]);
@@ -322,7 +329,7 @@ const MedicinePage = () => {
   };
 
   return (
-    <PageLayout title={t('MEDICINE_PAGE_TITLE')} emoji="💊" gradient="green" ref={visibilityRef}>
+    <PageLayout title={t('MEDICINE_PAGE_TITLE')} emoji="💊" gradient="green" ref={visibilityRef} dataFreshness={freshness}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
 
       {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}

@@ -475,3 +475,47 @@ Logs a new pumping event (timestamp = now).
 **Response `400`**: `{ "error": "title is required" }` (create) or `{ "error": "title cannot be empty" }` (update)
 
 **Response `404`**: `{ "error": "Not found" }`
+
+---
+
+## Home — `/api/home`
+
+Aggregated read-only endpoints so the client doesn't have to fan out several requests. Both require `role: "user"` with a `babyId`.
+
+### `GET /api/home/summary`
+
+Everything the Home page needs for its first load and every subsequent update (initial mount, tab-visible/stale refetch, and after any action) — combines what used to be six separate calls (`sleep/latest`, `drank-milk/latest`, `drank-milk/suggested`, `pumping/latest`, `nappy/latest`, `medicine`).
+
+**Handler**: `server/src/routes/home.ts` / `server/src/services/homeService.ts`
+
+**Response `200`** (`THomeSummary`):
+```json
+{
+  "latestSleep": { "id": 1, "start": "...", "end": null, "createdAt": "..." },
+  "latestDrank": { "id": 1, "amount": 60, "source": "FRIDGE", "createdAt": "..." },
+  "suggestedAmount": 80,
+  "latestPumping": { "id": 1, "createdAt": "..." },
+  "latestNappy": { "createdAt": "..." },
+  "medicines": [ { "id": 1, "name": "Vitamin D", "latestTakenAt": "..." } ]
+}
+```
+Each field may be `null`/`[]` when no matching records exist yet.
+
+---
+
+### `GET /api/home/always-on-display`
+
+Lightweight subset used to refresh the "always on display" black-screen readout, shown on **every** page (not just Home). The client fetches this once when the black screen opens, and again every 5 minutes while it stays open.
+
+**Handler**: `server/src/routes/home.ts` / `server/src/services/homeService.ts`
+
+**Response `200`** (`TAlwaysOnDisplayData`):
+```json
+{
+  "latestSleep": { "id": 1, "start": "...", "end": null, "createdAt": "..." },
+  "latestPumping": { "id": 1, "createdAt": "..." },
+  "latestDrank": { "id": 1, "amount": 60, "source": "FRIDGE", "createdAt": "..." }
+}
+```
+
+

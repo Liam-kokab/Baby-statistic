@@ -19,6 +19,8 @@ common/
     poop.ts         # poop types (TPoopDb, TPoop, TPostPoop)
     pumping.ts      # pumping types (TPumpingDb, TPumping, TPostPumping)
     milestone.ts    # milestone types (TMilestoneDb, TMilestone, TPostMilestone, TUpdateMilestone)
+    summaries.ts    # summary types (TDrankMilkSummary, TSleepSummary, TNappySummary, TPumpingSummary)
+    home.ts         # aggregated Home/always-on-display types (THomeSummary, TAlwaysOnDisplayData)
     TUtils.ts       # shared utility types (TDataOrError)
   util/
     index.ts      # barrel re-export of all utilities
@@ -118,6 +120,12 @@ Each DB table has its own type file with three types:
 | Type | Description |
 |---|---|
 | `TDataOrError<T>` | Tagged union: `{ ok: true; data: T }` \| `{ ok: false; error: string; responseCode?: number }` |
+
+### `home.ts`
+| Type | Description |
+|---|---|
+| `THomeSummary` | `GET /api/home/summary` response — `latestSleep`, `latestDrank`, `suggestedAmount`, `latestPumping`, `latestNappy`, `medicines` (everything the Home page needs, combined into one call) |
+| `TAlwaysOnDisplayData` | `GET /api/home/always-on-display` response — `latestSleep`, `latestPumping`, `latestDrank` (lightweight subset shown on every page's black-screen readout) |
 
 ## Exported Utilities (`util/`)
 

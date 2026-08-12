@@ -10,6 +10,7 @@ import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useDataFreshness from '../../utils/useDataFreshness';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -59,11 +60,17 @@ const MilkDrankPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
+  const freshness = useDataFreshness();
 
   const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
     const result = await authFetch<TDrankMilkSummary>(`/api/drank-milk/summary?${params}`);
-    if (result.ok) setSummary(result.data);
+    if (result.ok) {
+      setSummary(result.data);
+      freshness.reportSuccess();
+    } else {
+      freshness.reportError();
+    }
   }, [from, to]);
 
   useEffect(() => { loadSummary(); }, [loadSummary]);
@@ -216,7 +223,7 @@ const MilkDrankPage = () => {
 
   return (
     <div ref={visibilityRef}>
-    <PageLayout title={t('MILK_DRANK_TITLE')} emoji="🍼" gradient="green">
+    <PageLayout title={t('MILK_DRANK_TITLE')} emoji="🍼" gradient="green" dataFreshness={freshness}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('MILK_DRANK_TOTAL')} <strong>{summary ? `${summary.totalMl}${summary.hasBoob ? '*' : ''} ml` : t('COMMON_DASH')}</strong></div>

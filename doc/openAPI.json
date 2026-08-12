@@ -1585,6 +1585,39 @@
           "description": { "type": "string", "nullable": true },
           "occurredAt":  { "type": "string", "format": "date", "example": "2026-07-27" }
         }
+      },
+      "Pumping": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Timestamps" }
+        ]
+      },
+      "LatestNappy": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "HomeSummary": {
+        "type": "object",
+        "description": "Everything the Home page needs for its first load and every subsequent update.",
+        "properties": {
+          "latestSleep":      { "oneOf": [{ "$ref": "#/components/schemas/Sleep" }, { "type": "null" }] },
+          "latestDrank":      { "oneOf": [{ "$ref": "#/components/schemas/DrankMilk" }, { "type": "null" }] },
+          "suggestedAmount":  { "type": "integer", "nullable": true, "example": 80 },
+          "latestPumping":    { "oneOf": [{ "$ref": "#/components/schemas/Pumping" }, { "type": "null" }] },
+          "latestNappy":      { "$ref": "#/components/schemas/LatestNappy" },
+          "medicines":        { "type": "array", "items": { "$ref": "#/components/schemas/Medicine" } }
+        }
+      },
+      "AlwaysOnDisplayData": {
+        "type": "object",
+        "description": "Lightweight subset shown on the always-on-display (black screen) readout, on every page.",
+        "properties": {
+          "latestSleep":   { "oneOf": [{ "$ref": "#/components/schemas/Sleep" }, { "type": "null" }] },
+          "latestPumping": { "oneOf": [{ "$ref": "#/components/schemas/Pumping" }, { "type": "null" }] },
+          "latestDrank":   { "oneOf": [{ "$ref": "#/components/schemas/DrankMilk" }, { "type": "null" }] }
+        }
       }
     }
   }

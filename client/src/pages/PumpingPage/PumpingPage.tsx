@@ -10,6 +10,7 @@ import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useDataFreshness from '../../utils/useDataFreshness';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -43,11 +44,17 @@ const PumpingPage = () => {
   const [summary, setSummary] = useState<TPumpingSummary | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
+  const freshness = useDataFreshness();
 
   const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
     const result = await authFetch<TPumpingSummary>(`/api/pumping/summary?${params}`);
-    if (result.ok) setSummary(result.data);
+    if (result.ok) {
+      setSummary(result.data);
+      freshness.reportSuccess();
+    } else {
+      freshness.reportError();
+    }
   }, [from, to]);
 
   useEffect(() => { loadSummary(); }, [loadSummary]);
@@ -182,7 +189,7 @@ const PumpingPage = () => {
   };
 
   return (
-    <PageLayout title={t('PUMPING_PAGE_TITLE')} emoji="🥛" gradient="indigo" bannerSlug="pumping" ref={visibilityRef}>
+    <PageLayout title={t('PUMPING_PAGE_TITLE')} emoji="🥛" gradient="indigo" bannerSlug="pumping" ref={visibilityRef} dataFreshness={freshness}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('PUMPING_PAGE_TOTAL')} <strong>{summary ? summary.count : t('COMMON_DASH')}</strong></div>

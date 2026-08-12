@@ -10,6 +10,7 @@ import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useDataFreshness from '../../utils/useDataFreshness';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -47,11 +48,17 @@ const PoopPeePage = () => {
   const [summary, setSummary] = useState<TNappySummary | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
+  const freshness = useDataFreshness();
 
   const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
     const result = await authFetch<TNappySummary>(`/api/nappy/summary?${params}`);
-    if (result.ok) setSummary(result.data);
+    if (result.ok) {
+      setSummary(result.data);
+      freshness.reportSuccess();
+    } else {
+      freshness.reportError();
+    }
   }, [from, to]);
 
   useEffect(() => { loadSummary(); }, [loadSummary]);
@@ -195,7 +202,7 @@ const PoopPeePage = () => {
   };
 
   return (
-    <PageLayout title={t('POOP_PEE_PAGE_TITLE')} emoji="💩" gradient="amber" bannerSlug="poop-pee" ref={visibilityRef}>
+    <PageLayout title={t('POOP_PEE_PAGE_TITLE')} emoji="💩" gradient="amber" bannerSlug="poop-pee" ref={visibilityRef} dataFreshness={freshness}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('POOP_PEE_PAGE_POOP_STAT')} <strong>{summary ? summary.poopCount : t('COMMON_DASH')}</strong></div>

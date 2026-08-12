@@ -10,6 +10,7 @@ import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useDataFreshness from '../../utils/useDataFreshness';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -47,10 +48,16 @@ const MilkSavedPage = () => {
   const [activeStatuses, setActiveStatuses] = useState<TServedMilkStatus[]>(['FRIDGE', 'FREEZER']);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
+  const freshness = useDataFreshness();
 
   const loadTotals = useCallback(async (): Promise<void> => {
     const result = await authFetch<TServedMilkTotal>('/api/served-milk/total');
-    if (result.ok) setTotals(result.data);
+    if (result.ok) {
+      setTotals(result.data);
+      freshness.reportSuccess();
+    } else {
+      freshness.reportError();
+    }
   }, []);
 
   useEffect(() => { loadTotals(); }, [loadTotals]);
@@ -195,7 +202,7 @@ const MilkSavedPage = () => {
   };
 
   return (
-    <PageLayout title={t('MILK_SAVED_TITLE')} emoji="🧊" gradient="blue" ref={visibilityRef}>
+    <PageLayout title={t('MILK_SAVED_TITLE')} emoji="🧊" gradient="blue" ref={visibilityRef} dataFreshness={freshness}>
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('MILK_SAVED_FRIDGE')} <strong>{totals.fridge} ml</strong></div>
         <div className={styles.statChip}>{t('MILK_SAVED_FREEZER')} <strong>{totals.freezer} ml</strong></div>

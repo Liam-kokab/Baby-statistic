@@ -9,6 +9,7 @@ import Textarea from '../../components/Textarea/Textarea';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import { formatDate } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useDataFreshness from '../../utils/useDataFreshness';
 import { useTranslation, type TLanguage } from '../../i18n/i18n';
 import styles from './MilestonePage.module.css';
 
@@ -61,13 +62,19 @@ const MilestonePage = () => {
   const [newOccurredAt, setNewOccurredAt] = useState(nowInputValue());
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const freshness = useDataFreshness();
 
   const loadMilestones = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
     const res = await authFetch<TMilestone[]>('/api/milestones');
-    if (res.ok) setMilestones(res.data);
-    else setError(res.error);
+    if (res.ok) {
+      setMilestones(res.data);
+      freshness.reportSuccess();
+    } else {
+      setError(res.error);
+      freshness.reportError();
+    }
     setLoading(false);
   }, []);
 
@@ -121,7 +128,7 @@ const MilestonePage = () => {
   };
 
   return (
-    <PageLayout title={t('MILESTONE_PAGE_TITLE')} emoji="🏆" gradient="amber" bannerSlug="my-first" ref={visibilityRef}>
+    <PageLayout title={t('MILESTONE_PAGE_TITLE')} emoji="🏆" gradient="amber" bannerSlug="my-first" ref={visibilityRef} dataFreshness={freshness}>
       {addOpen ? (
         <div className={styles.addForm}>
           <Input label={t('MILESTONE_PAGE_TITLE_LABEL')} value={newTitle} onChange={setNewTitle} placeholder={t('MILESTONE_PAGE_TITLE_PLACEHOLDER')} name="milestoneTitle" />

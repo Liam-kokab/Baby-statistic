@@ -1,11 +1,15 @@
-import { useState, useEffect, useRef, Fragment, type MouseEvent, type ReactNode } from 'react';
+import { useState, useEffect, useRef, Fragment, type ReactNode } from 'react';
 import { authFetch } from '../../utils/authFetch';
-import type { TSleep, TMedicineWithLatestLog, TDrankMilk, TPumping } from 'baby-statistic-common';
+import type { TSleep, TMedicineWithLatestLog, TDrankMilk, TPumping, THomeSummary } from 'baby-statistic-common';
 import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
+import BlackScreenOverlay from '../../components/BlackScreenOverlay/BlackScreenOverlay';
+import DataFreshnessDot from '../../components/DataFreshnessDot/DataFreshnessDot';
 import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TActionStatus } from '../../utils/useActionFeedback';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useBlackScreen from '../../utils/useBlackScreen';
+import useDataFreshness from '../../utils/useDataFreshness';
 import { ACTION_MIN_MS, ACTION_DONE_MS, BLACK_SCREEN_KEEP_AWAKE_MS } from '../../config';
 import { useTranslation } from '../../i18n/i18n';
 import { DEFAULT_HOME_WIDGETS } from '../../utils/homeWidgets';
@@ -16,9 +20,6 @@ import { whiteNoisePlayer } from '../../utils/whiteNoise';
 import { useWhiteNoisePlayerState } from '../../utils/useWhiteNoisePlayerState';
 import { WHITE_NOISE_DURATION_OPTIONS, formatWhiteNoiseRemaining } from '../../utils/whiteNoiseDurations';
 import { getSelectedWhiteNoiseTypes, WHITE_NOISE_SOUNDS } from '../../utils/homeWhiteNoiseWidgetPrefs';
-import { getHiddenBlackScreenFields, getBlackScreenOpacityPercent } from '../../utils/blackScreenPrefs';
-import type { TBlackScreenField } from '../../utils/blackScreenPrefs';
-import { formatTime as formatClockTime } from '../../utils/format';
 import styles from './HomePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
@@ -37,24 +38,12 @@ const formatTime = (seconds: number): string => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
-/** Hours:minutes only (no seconds) — used on the black screen readout so the text changes
- * at most once a minute instead of every second. */
-const formatTimeHM = (seconds: number): string => {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-};
-
 const elapsedSeconds = (isoString: string): number =>
   Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
 
 const HomePage = () => {
   const { t } = useTranslation();
-  const blackScreenExitTimeoutRef = useRef<number | null>(null);
-  const blackScreenCursorTimeoutRef = useRef<number | null>(null);
-  const blackScreenKeepAwakeTimeoutRef = useRef<number | null>(null);
-  const blackScreenWakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const blackScreenWakeLockAllowedRef = useRef<boolean>(true);
+  const isBlackScreenOpenRef = useRef<boolean>(false);
 
   const formatAgo = (isoString: string): string => {
     const totalMin = Math.floor((Date.now() - new Date(isoString).getTime()) / 60_000);
@@ -76,24 +65,6 @@ const HomePage = () => {
   const bottle = useActionFeedback();
   const boob   = useActionFeedback();
 
-  const loadLatestDrank = async (): Promise<void> => {
-    const res = await authFetch<TDrankMilk | null>('/api/drank-milk/latest');
-    if (res.ok) {
-      setLatestDrank(res.data);
-      if (res.data) {
-        const ageMin = Math.floor((Date.now() - new Date(res.data.createdAt).getTime()) / 60_000);
-        console.log(`[drankMilk] last entry: ${res.data.createdAt} | age: ${ageMin}m (${(ageMin / 60).toFixed(2)}h)`);
-      } else {
-        console.log('[drankMilk] no entries found');
-      }
-    }
-  };
-
-  const loadSuggested = async (): Promise<void> => {
-    const res = await authFetch<{ nextDrinkAmount: number }>('/api/drank-milk/suggested');
-    if (res.ok) setSuggestedAmount(res.data.nextDrinkAmount ?? null);
-  };
-
   // ── Waste milk ────────────────────────────────────────────────────────────
   const [wasteAmount, setWasteAmount] = useState('');
   const waste = useActionFeedback();
@@ -103,24 +74,11 @@ const HomePage = () => {
   const pee  = useActionFeedback();
   const [latestNappy, setLatestNappy] = useState<string | null>(null);
 
-  const loadLatestNappy = async (): Promise<void> => {
-    const res = await authFetch<{ createdAt: string } | null>('/api/nappy/latest');
-    if (res.ok) setLatestNappy(res.data?.createdAt ?? null);
-  };
-
   // ── Pumping ───────────────────────────────────────────────────────────────
   const [lastPumping, setLastPumping] = useState<TPumping | null>(null);
   const [pumpingTimerRef, setPumpingTimerRef] = useState<string | null>(null);
   const [pumpingDisplay, setPumpingDisplay] = useState('00:00:00');
   const pump = useActionFeedback();
-
-  const loadLatestPumping = async (): Promise<void> => {
-    const res = await authFetch<TPumping | null>('/api/pumping/latest');
-    if (res.ok) {
-      setLastPumping(res.data);
-      setPumpingTimerRef(res.data?.createdAt ?? null);
-    }
-  };
 
   // ── Medicines ─────────────────────────────────────────────────────────────
   const [medicines, setMedicines]   = useState<TMedicineWithLatestLog[]>([]);
@@ -131,53 +89,12 @@ const HomePage = () => {
   const [whiteNoiseSelectedTypes] = useState<TNoiseType[]>(() => getSelectedWhiteNoiseTypes());
   const { playingType: whiteNoisePlayingType, endAt: whiteNoiseEndAt, activeDuration: whiteNoiseActiveDuration } = useWhiteNoisePlayerState();
 
-  // ── Black screen mode ──────────────────────────────────────────────────────
-  const [isBlackScreenOpen, setIsBlackScreenOpen] = useState<boolean>(false);
-  const [isBlackScreenExitVisible, setIsBlackScreenExitVisible] = useState<boolean>(false);
-  const [isBlackScreenCursorVisible, setIsBlackScreenCursorVisible] = useState<boolean>(true);
-  const [blackScreenHiddenFields] = useState<TBlackScreenField[]>(() => getHiddenBlackScreenFields());
-  const [blackScreenOpacity] = useState<number>(() => getBlackScreenOpacityPercent() / 100);
-  const [blackScreenNow, setBlackScreenNow] = useState<Date>(() => new Date());
-  const isBlackScreenFieldShown = (field: TBlackScreenField): boolean => !blackScreenHiddenFields.includes(field);
+  // ── Everything the Home page needs, in one call — used for the first load and every
+  // subsequent update (after an action, on tab-visible/stale refetch, etc). ─────────────
+  const freshness = useDataFreshness();
 
-  // Tick once a minute while the black screen is open — the readout only ever shows
-  // hours:minutes, never seconds, so nothing on it should change more often than that.
-  useEffect(() => {
-    if (!isBlackScreenOpen) return;
-    setBlackScreenNow(new Date());
-    const id = setInterval(() => setBlackScreenNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, [isBlackScreenOpen]);
-
-  // Wake locks are released automatically when the tab becomes hidden; re-request it
-  // once the black screen is visible again so the display keeps staying on.
-  useEffect(() => {
-    if (!isBlackScreenOpen) return;
-    const onVisibilityChange = (): void => {
-      if (document.visibilityState === 'visible') void requestBlackScreenWakeLock();
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [isBlackScreenOpen]);
-
-  // Release the wake lock and any pending timeouts if the component unmounts while open.
-  useEffect(() => () => {
-    clearBlackScreenExitTimeout();
-    clearBlackScreenCursorTimeout();
-    clearBlackScreenKeepAwakeTimeout();
-    releaseBlackScreenWakeLock();
-  }, []);
-
-  const loadMedicines = async (): Promise<void> => {
-    const res = await authFetch<TMedicineWithLatestLog[]>('/api/medicine');
-    if (res.ok) setMedicines(res.data);
-  };
-
-  // Load latest sleep on mount
-  const loadSleep = async (): Promise<void> => {
-    const res = await authFetch<TSleep | null>('/api/sleep/latest');
-    if (!res.ok) return;
-    const latest = res.data;
+  const applySummary = (summary: THomeSummary): void => {
+    const latest = summary.latestSleep;
     if (latest?.end === null) {
       setActiveSleep(latest);
       setTimerRef(latest.start);
@@ -185,36 +102,50 @@ const HomePage = () => {
       setActiveSleep(null);
       setTimerRef(latest?.end ?? null);
     }
+    setLatestDrank(summary.latestDrank);
+    setSuggestedAmount(summary.suggestedAmount);
+    setLastPumping(summary.latestPumping);
+    setPumpingTimerRef(summary.latestPumping?.createdAt ?? null);
+    setLatestNappy(summary.latestNappy?.createdAt ?? null);
+    setMedicines(summary.medicines);
   };
+
+  const loadSummary = async (): Promise<void> => {
+    const res = await authFetch<THomeSummary>('/api/home/summary');
+    if (res.ok) {
+      applySummary(res.data);
+      freshness.reportSuccess();
+    } else {
+      freshness.reportError();
+    }
+  };
+
+  // ── Black screen mode ("always on display") — shared with every other page via
+  // useBlackScreen/BlackScreenOverlay; refetches Home's own data on exit. ────────────────
+  const { isOpen: isBlackScreenOpen, isExitVisible: isBlackScreenExitVisible, isCursorVisible: isBlackScreenCursorVisible, open: openBlackScreen, close: closeBlackScreen, onPointerActivity: onBlackScreenPointerActivity } = useBlackScreen({
+    keepAwakeMs: BLACK_SCREEN_KEEP_AWAKE_MS,
+    onClose: () => { void loadSummary(); },
+  });
+
+  useEffect(() => {
+    isBlackScreenOpenRef.current = isBlackScreenOpen;
+  }, [isBlackScreenOpen]);
 
   const refetchAll = (): void => {
-    loadSleep();
-    loadLatestDrank();
-    loadSuggested();
-    loadLatestPumping();
-    loadLatestNappy();
-    loadMedicines();
+    void loadSummary();
   };
 
-  const visibilityRef = useRefetchOnVisible(refetchAll);
+  // Home's own data refresh (stale-timer/tab-visibility) pauses while the black screen is
+  // open, and resumes (with an immediate refetch) as soon as it closes — see useBlackScreen's
+  // onClose above.
+  const visibilityRef = useRefetchOnVisible(refetchAll, undefined, !isBlackScreenOpen);
 
   useEffect(() => {
     refetchAll();
-    const medRefresh = setInterval(loadMedicines, 60_000);
+    const medRefresh = setInterval(() => {
+      if (!isBlackScreenOpenRef.current) refetchAll();
+    }, 60_000);
     return () => { clearInterval(medRefresh); };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (blackScreenExitTimeoutRef.current !== null) {
-        clearTimeout(blackScreenExitTimeoutRef.current);
-        blackScreenExitTimeoutRef.current = null;
-      }
-      if (blackScreenCursorTimeoutRef.current !== null) {
-        clearTimeout(blackScreenCursorTimeoutRef.current);
-        blackScreenCursorTimeoutRef.current = null;
-      }
-    };
   }, []);
 
   // Timer tick — reruns whenever the reference timestamp changes
@@ -250,7 +181,7 @@ const HomePage = () => {
             headers: JSON_HEADERS,
             body: JSON.stringify({ start: now }),
           });
-      if (res.ok) await loadSleep();
+      if (res.ok) await loadSummary();
       return res.ok;
     });
   };
@@ -267,10 +198,7 @@ const HomePage = () => {
       });
       if (res.ok) {
         setDrankAmount('');
-        await Promise.all([
-          loadLatestDrank(),
-          loadSuggested(),
-        ]);
+        await loadSummary();
       }
       return res.ok;
     });
@@ -291,10 +219,7 @@ const HomePage = () => {
         body: JSON.stringify({ amount }),
       });
       if (res.ok) setWasteAmount('');
-      await Promise.all([
-        loadLatestDrank(),
-        loadSuggested(),
-      ]);
+      await loadSummary();
       return res.ok;
     });
   };
@@ -302,7 +227,7 @@ const HomePage = () => {
   const handlePoop = (): void => {
     poop.run(async () => {
       const res = await authFetch('/api/poop', { method: 'POST' });
-      if (res.ok) await loadLatestNappy();
+      if (res.ok) await loadSummary();
       return res.ok;
     });
   };
@@ -310,7 +235,7 @@ const HomePage = () => {
   const handlePee = (): void => {
     pee.run(async () => {
       const res = await authFetch('/api/pee', { method: 'POST' });
-      if (res.ok) await loadLatestNappy();
+      if (res.ok) await loadSummary();
       return res.ok;
     });
   };
@@ -318,7 +243,7 @@ const HomePage = () => {
   const handlePump = (): void => {
     pump.run(async () => {
       const res = await authFetch<TPumping>('/api/pumping', { method: 'POST' });
-      if (res.ok) await loadLatestPumping();
+      if (res.ok) await loadSummary();
       return res.ok;
     });
   };
@@ -332,7 +257,7 @@ const HomePage = () => {
     authFetch(`/api/medicine/${id}/log`, { method: 'POST' }).then(async (res) => {
       const wait = ACTION_MIN_MS - (Date.now() - t0);
       if (wait > 0) await new Promise<void>((r) => setTimeout(r, wait));
-      if (res.ok) await loadMedicines();
+      if (res.ok) await loadSummary();
       setStatus(res.ok ? 'success' : 'error');
       setTimeout(() => setStatus('idle'), ACTION_DONE_MS);
     });
@@ -346,119 +271,6 @@ const HomePage = () => {
 
   const isSleeping = activeSleep !== null;
 
-  const clearBlackScreenExitTimeout = (): void => {
-    if (blackScreenExitTimeoutRef.current !== null) {
-      clearTimeout(blackScreenExitTimeoutRef.current);
-      blackScreenExitTimeoutRef.current = null;
-    }
-  };
-
-  const clearBlackScreenCursorTimeout = (): void => {
-    if (blackScreenCursorTimeoutRef.current !== null) {
-      clearTimeout(blackScreenCursorTimeoutRef.current);
-      blackScreenCursorTimeoutRef.current = null;
-    }
-  };
-
-  const clearBlackScreenKeepAwakeTimeout = (): void => {
-    if (blackScreenKeepAwakeTimeoutRef.current !== null) {
-      clearTimeout(blackScreenKeepAwakeTimeoutRef.current);
-      blackScreenKeepAwakeTimeoutRef.current = null;
-    }
-  };
-
-  const releaseBlackScreenWakeLock = (): void => {
-    const sentinel = blackScreenWakeLockRef.current;
-    blackScreenWakeLockRef.current = null;
-    if (sentinel !== null) {
-      void sentinel.release().catch(() => {
-        // Ignore release failures.
-      });
-    }
-  };
-
-  const requestBlackScreenWakeLock = async (): Promise<void> => {
-    if (!blackScreenWakeLockAllowedRef.current) return;
-    if (!('wakeLock' in navigator)) return;
-    try {
-      blackScreenWakeLockRef.current = await navigator.wakeLock.request('screen');
-    } catch {
-      // Wake lock may be denied (e.g. low battery, unsupported browser); the overlay still works.
-    }
-  };
-
-  const enterFullscreen = async (): Promise<void> => {
-    if (document.fullscreenElement !== null) return;
-    try {
-      await document.documentElement.requestFullscreen();
-    } catch {
-      // If fullscreen is blocked by the browser, still show the overlay.
-    }
-  };
-
-  const exitFullscreen = async (): Promise<void> => {
-    if (document.fullscreenElement === null) return;
-    try {
-      await document.exitFullscreen();
-    } catch {
-      // Ignore exit failures; the overlay state is still cleared.
-    }
-  };
-
-  const showBlackScreenExit = (): void => {
-    setIsBlackScreenExitVisible(true);
-    setIsBlackScreenCursorVisible(true);
-    clearBlackScreenExitTimeout();
-    blackScreenExitTimeoutRef.current = window.setTimeout(() => {
-      setIsBlackScreenExitVisible(false);
-      blackScreenExitTimeoutRef.current = null;
-    }, 1000);
-
-    clearBlackScreenCursorTimeout();
-    blackScreenCursorTimeoutRef.current = window.setTimeout(() => {
-      setIsBlackScreenCursorVisible(false);
-      blackScreenCursorTimeoutRef.current = null;
-    }, 2000);
-  };
-
-  const handleOpenBlackScreen = (): void => {
-    clearBlackScreenExitTimeout();
-    clearBlackScreenCursorTimeout();
-    clearBlackScreenKeepAwakeTimeout();
-    blackScreenWakeLockAllowedRef.current = true;
-    setIsBlackScreenExitVisible(false);
-    setIsBlackScreenCursorVisible(true);
-    setIsBlackScreenOpen(true);
-    void enterFullscreen();
-    void requestBlackScreenWakeLock();
-    blackScreenKeepAwakeTimeoutRef.current = window.setTimeout(() => {
-      blackScreenKeepAwakeTimeoutRef.current = null;
-      allowBlackScreenToTurnOff();
-    }, BLACK_SCREEN_KEEP_AWAKE_MS);
-  };
-
-  // After the configured duration, stop keeping the display awake and let it turn off
-  // normally — the overlay itself (and fullscreen) stays open until the user exits it.
-  const allowBlackScreenToTurnOff = (): void => {
-    blackScreenWakeLockAllowedRef.current = false;
-    releaseBlackScreenWakeLock();
-  };
-
-  const closeBlackScreen = (): void => {
-    clearBlackScreenExitTimeout();
-    clearBlackScreenCursorTimeout();
-    clearBlackScreenKeepAwakeTimeout();
-    releaseBlackScreenWakeLock();
-    setIsBlackScreenExitVisible(false);
-    setIsBlackScreenCursorVisible(true);
-    setIsBlackScreenOpen(false);
-    void exitFullscreen();
-  };
-
-  const handleCloseBlackScreen = (event: MouseEvent<HTMLButtonElement>): void => {
-    event.stopPropagation();
-    closeBlackScreen();
-  };
 
   // ── Widgets — order & visibility are user-configurable (Settings → Home tab); all
   // widgets are shown, in the order below, by default. ──────────────────────────
@@ -689,10 +501,11 @@ const HomePage = () => {
   return (
     <div className={styles.page} ref={visibilityRef}>
       <div className={styles.hero}>
+        <DataFreshnessDot lastUpdatedAt={freshness.lastUpdatedAt} isError={freshness.isError} />
         <button
           type="button"
           className={styles.heroEmojiButton}
-          onClick={handleOpenBlackScreen}
+          onClick={openBlackScreen}
           aria-label={t('HOME_BLACK_SCREEN_OPEN')}
         >
           <span className={styles.heroEmoji}>{isSleeping ? '😴' : '🌸'}</span>
@@ -707,58 +520,13 @@ const HomePage = () => {
         ))}
       </div>
 
-      {isBlackScreenOpen ? (
-        <div
-          className={`${styles.blackScreenOverlay} ${isBlackScreenCursorVisible ? styles.blackScreenCursorVisible : styles.blackScreenCursorHidden}`}
-          onClick={showBlackScreenExit}
-          onMouseMove={showBlackScreenExit}
-          onTouchStart={showBlackScreenExit}
-          aria-label={t('HOME_BLACK_SCREEN_OVERLAY')}
-        >
-          {isBlackScreenFieldShown('time') ? (
-            <div
-              className={`${styles.blackScreenTimeWrap} ${isBlackScreenExitVisible ? styles.blackScreenDataHidden : styles.blackScreenDataVisible}`}
-              aria-hidden="true"
-            >
-              <span className={styles.blackScreenReadoutText} style={{ opacity: blackScreenOpacity }}>
-                {formatClockTime(blackScreenNow.toISOString())}
-              </span>
-            </div>
-          ) : null}
-
-          {isBlackScreenFieldShown('sleep') || isBlackScreenFieldShown('pump') || isBlackScreenFieldShown('bottle') ? (
-            <div
-              className={`${styles.blackScreenOtherWrap} ${isBlackScreenExitVisible ? styles.blackScreenDataHidden : styles.blackScreenDataVisible}`}
-              aria-hidden="true"
-            >
-              {isBlackScreenFieldShown('sleep') ? (
-                <span className={styles.blackScreenReadoutText} style={{ opacity: blackScreenOpacity }}>
-                  {isSleeping ? t('HOME_BLACK_SCREEN_SLEEPING_FOR') : t('HOME_BLACK_SCREEN_AWAKE_FOR')} {formatTimeHM(timerRef ? elapsedSeconds(timerRef) : 0)}
-                </span>
-              ) : null}
-              {isBlackScreenFieldShown('pump') ? (
-                <span className={styles.blackScreenReadoutText} style={{ opacity: blackScreenOpacity }}>
-                  {t('HOME_BLACK_SCREEN_SINCE_PUMP')} {formatTimeHM(pumpingTimerRef ? elapsedSeconds(pumpingTimerRef) : 0)}
-                </span>
-              ) : null}
-              {isBlackScreenFieldShown('bottle') ? (
-                <span className={styles.blackScreenReadoutText} style={{ opacity: blackScreenOpacity }}>
-                  {latestDrank
-                    ? `${t('HOME_BLACK_SCREEN_LAST_BOTTLE')} ${latestDrank.amount} ml · ${formatAgo(latestDrank.createdAt)}`
-                    : t('HOME_BLACK_SCREEN_NO_BOTTLE')}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-          <Button
-            text={t('HOME_BLACK_SCREEN_EXIT')}
-            onClick={handleCloseBlackScreen}
-            aria-label={t('HOME_BLACK_SCREEN_EXIT')}
-            variant="secondary"
-            className={`${styles.blackScreenExitButton} ${isBlackScreenExitVisible ? styles.blackScreenExitButtonVisible : styles.blackScreenExitButtonHidden}`}
-          />
-        </div>
-      ) : null}
+      <BlackScreenOverlay
+        isOpen={isBlackScreenOpen}
+        isExitVisible={isBlackScreenExitVisible}
+        isCursorVisible={isBlackScreenCursorVisible}
+        onPointerActivity={onBlackScreenPointerActivity}
+        onClose={closeBlackScreen}
+      />
     </div>
   );
 };

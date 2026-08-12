@@ -10,8 +10,14 @@ const STALE_CHECK_INTERVAL_MS = 30_000;
  * 3. The tab is visible and the data hasn't been refetched in over `staleMs` (default 5 min)
  *
  * Skips the very first trigger on mount so the initial load isn't doubled.
+ * Pass `enabled = false` to pause all of the above (e.g. while a black-screen overlay is
+ * open) — no observer/visibility/stale-timer refetching happens until it becomes true again.
  */
-const useRefetchOnVisible = (refetch: () => void, staleMs: number = STALE_MS): React.RefObject<HTMLDivElement | null> => {
+const useRefetchOnVisible = (
+  refetch: () => void,
+  staleMs: number = STALE_MS,
+  enabled: boolean = true
+): React.RefObject<HTMLDivElement | null> => {
   const ref = useRef<HTMLDivElement | null>(null);
   const mountedAt = useRef<number | null>(null);
   if (mountedAt.current === null) mountedAt.current = Date.now();
@@ -32,6 +38,7 @@ const useRefetchOnVisible = (refetch: () => void, staleMs: number = STALE_MS): R
 
   // Intersection Observer — fires when element scrolls into view
   useEffect(() => {
+    if (!enabled) return;
     const el = ref.current;
     if (!el) return;
 
@@ -46,11 +53,12 @@ const useRefetchOnVisible = (refetch: () => void, staleMs: number = STALE_MS): R
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [stableRefetch]);
+  }, [stableRefetch, enabled]);
 
   // Page Visibility API — fires when user switches back to this tab, and drives
   // the stale-data timer below (no fetching/polling happens while hidden).
   useEffect(() => {
+    if (!enabled) return;
     if (document.visibilityState === 'visible' && Date.now() - (mountedAt.current ?? 0) > 1000) {
       stableRefetch();
     }
@@ -87,7 +95,7 @@ const useRefetchOnVisible = (refetch: () => void, staleMs: number = STALE_MS): R
       document.removeEventListener('visibilitychange', handleVisibility);
       stopStaleTimer();
     };
-  }, [stableRefetch]);
+  }, [stableRefetch, enabled]);
 
   return ref;
 };

@@ -1,0 +1,86 @@
+.blackScreenOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+}
+
+.blackScreenCursorVisible {
+  cursor: auto;
+}
+
+.blackScreenCursorHidden {
+  cursor: none;
+}
+
+.blackScreenExitButton {
+  transform: scale(3);
+  transition: opacity 0.2s ease;
+}
+
+.blackScreenExitButton:active:not(:disabled) {
+  transform: scale(2.95);
+}
+
+.blackScreenExitButtonVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.blackScreenExitButtonHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Black screen data readout ────────────────────────────────────────────── */
+/* White text at a low, user-configurable opacity — deliberately unobtrusive and motionless
+   so it does not attract the baby's attention. Swaps with the exit button (never shown together):
+   the wrapping *Wrap elements crossfade opacity 0/1 on exit-button visibility, while each
+   .blackScreenReadoutText carries the user's configured brightness as its own opacity, so the
+   two multiply together visually. */
+.blackScreenTimeWrap {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  font-size: 2.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-align: right;
+  transition: opacity 0.2s ease;
+}
+
+.blackScreenOtherWrap {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-align: left;
+  transition: opacity 0.2s ease;
+}
+
+.blackScreenReadoutText {
+  display: block;
+  color: #fff;
+}
+
+.blackScreenDataVisible {
+  opacity: 1;
+}
+
+.blackScreenDataHidden {
+  opacity: 0;
+}
+

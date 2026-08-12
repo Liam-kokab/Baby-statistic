@@ -10,6 +10,7 @@ import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/f
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
+import useDataFreshness from '../../utils/useDataFreshness';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -78,11 +79,17 @@ const SleepPage = () => {
   const [summary, setSummary] = useState<TSleepSummary | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
+  const freshness = useDataFreshness();
 
   const loadSummary = useCallback(async (): Promise<void> => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
     const result = await authFetch<TSleepSummary>(`/api/sleep/summary?${params}`);
-    if (result.ok) setSummary(result.data);
+    if (result.ok) {
+      setSummary(result.data);
+      freshness.reportSuccess();
+    } else {
+      freshness.reportError();
+    }
   }, [from, to]);
 
   useEffect(() => { loadSummary(); }, [loadSummary]);
@@ -275,7 +282,7 @@ const SleepPage = () => {
   };
 
   return (
-    <PageLayout title={t('SLEEP_PAGE_TITLE')} emoji="😴" gradient="indigo" ref={visibilityRef}>
+    <PageLayout title={t('SLEEP_PAGE_TITLE')} emoji="😴" gradient="indigo" ref={visibilityRef} dataFreshness={freshness}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('SLEEP_PAGE_TOTAL')} <strong>{summary ? formatMs(summary.totalMs) : t('COMMON_DASH')}</strong></div>
