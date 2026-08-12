@@ -19,12 +19,16 @@
 }
 
 .blackScreenExitButton {
-  transform: scale(3);
+  transform: scale(2.5);
   transition: opacity 0.2s ease;
 }
 
 .blackScreenExitButton:active:not(:disabled) {
-  transform: scale(2.95);
+  transform: scale(2.45);
+}
+
+.blackScreenExitButton:hover:not(:disabled) {
+  background: var(--color-secondary-light);
 }
 
 .blackScreenExitButtonVisible {
