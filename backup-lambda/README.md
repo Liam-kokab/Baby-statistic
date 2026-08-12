@@ -1,12 +1,12 @@
 # Backup Lambda — Manual AWS Console Setup Guide
 
 Standalone Lambda function that, on a schedule, logs into the baby-statistic
-API, downloads a backup (`GET /api/backup`), uploads it to S3, verifies the
-uploaded object's size is greater than 0, reports that success back to the API
-(`POST /api/app-events/backup` — shown in the app as a backup-status dot), then
-deletes any backup older than the retention period. This is **not** part of the
-main application repo/build — it's just the code + instructions, to be
-deployed by hand.
+API, downloads a backup (`GET /api/backup`), uploads it to S3, then — in
+parallel — verifies the uploaded object's size is greater than 0 and deletes
+any backup older than the retention period; if verification passed, reports
+that success back to the API (`POST /api/app-events/backup` — shown in the
+app as a backup-status dot). This is **not** part of the main application
+repo/build — it's just the code + instructions, to be deployed by hand.
 
 > **Simpler alternative:** you don't need any of this. You can just
 > download `GET /api/backup` yourself (e.g. via Swagger UI or curl) and

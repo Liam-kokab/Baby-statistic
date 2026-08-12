@@ -5,12 +5,14 @@
  *   1. Logs into the baby-statistic API as an admin user (POST /api/auth/login)
  *   2. Downloads the full data backup (GET /api/backup)
  *   3. Uploads it to S3 as backups/backup-<timestamp>.json
- *   4. Verifies the uploaded object's size is > 0 (HeadObjectCommand); if so,
- *      reports success to the API (POST /api/app-events/backup) so the app can
- *      show a "last successful backup" status. No report is sent on failure —
- *      absence of a recent report is itself the failure signal.
- *   5. Only if the upload succeeded: deletes any object under that S3 prefix
- *      older than RETENTION_DAYS (default 14)
+ *   4. Concurrently (once uploaded): verifies the uploaded object's size is > 0
+ *      (HeadObjectCommand), and deletes any object under the S3 prefix older
+ *      than RETENTION_DAYS (default 14) — these two steps are independent of
+ *      each other, so they run in parallel via Promise.all.
+ *   5. If verification passed, reports success to the API
+ *      (POST /api/app-events/backup) so the app can show a "last successful
+ *      backup" status. No report is sent on failure — absence of a recent
+ *      report is itself the failure signal.
  *
  * Deployment: paste this file's contents into the Lambda console's inline
  * code editor as index.mjs (Runtime: Node.js 20.x, Handler: index.handler).
@@ -159,9 +161,15 @@ export const handler = async () => {
   const uploadedKey = await uploadBackup(config, backup);
   console.log(`Backup uploaded: s3://${config.s3Bucket}/${uploadedKey}`);
 
-  // Only report success (and prune) once the upload is verified with a non-zero size.
+  // verifyUpload and pruneOldBackups are independent of each other (both only depend on
+  // the already-uploaded uploadedKey/config), so run them concurrently.
+  const [verified, deletedKeys] = await Promise.all([
+    verifyUpload(config, uploadedKey),
+    pruneOldBackups(config),
+  ]);
+  console.log(`Pruned ${deletedKeys.length} old backup(s): ${deletedKeys.join(', ') || '(none)'}`);
+
   // No report is sent on failure — per design, absence of a recent report IS the failure signal.
-  const verified = await verifyUpload(config, uploadedKey);
   if (verified) {
     await reportBackupSuccess(config.apiBaseUrl, accessToken);
     console.log('Backup verified (size > 0) and reported as successful.');
@@ -169,9 +177,6 @@ export const handler = async () => {
     console.error(`Backup verification failed: s3://${config.s3Bucket}/${uploadedKey} has size 0.`);
   }
 
-  // Only prune once the new backup is safely uploaded.
-  const deletedKeys = await pruneOldBackups(config);
-  console.log(`Pruned ${deletedKeys.length} old backup(s): ${deletedKeys.join(', ') || '(none)'}`);
 
   return { ok: true, uploadedKey, verified, deletedKeys };
 };
