@@ -61,7 +61,7 @@ server/
       authenticate.ts   # verify Bearer access token → set req.user
       requireAdmin.ts   # guard: role must be 'admin' (or 'user' + babyId)
     migrations/
-      index.ts        # migrations 001–017
+      index.ts        # migrations 001–018
     utils/
       bodyAs.ts       # casts req.body to Partial<T>
       time.ts         # Oslo timezone helpers
@@ -158,6 +158,7 @@ Each table has a service in `server/src/services/`. Services sit between routes 
 | `sleepService` | `findLatest()` | Delegates to `sleepRepository.findLatest()` |
 | `homeService` | `getSummary(ctx)` | Aggregates `sleepService.findLatest`, `drankMilkService.findLatest`/`suggestNextDrinkAmount`, `pumpingService.findLatest`, latest pee/poop, and `medicineService.findAllActive` into one `THomeSummary` payload — backs `GET /api/home/summary`, used by the Home page for its first load and every subsequent update. |
 | `homeService` | `getAlwaysOnDisplay(ctx)` | Lighter subset (`latestSleep`, `latestPumping`, `latestDrank`) backing `GET /api/home/always-on-display` — used by every page's black-screen readout, refreshed on open and every 5 minutes after. |
+| `appEventsService` | `reportBackupSuccess(timestamp?)` / `getBackupStatus()` | Upserts/reads the single `app_events` row with `id = 'BACKUP'`, backing `POST`/`GET /api/app-events/backup`. Not baby-scoped — a global, app-wide status. |
 
 ## Timezone
 All timestamps are stored and returned as **Oslo local time** (`Europe/Oslo`). See `doc/db.md` for full details.

@@ -21,6 +21,7 @@ common/
     milestone.ts    # milestone types (TMilestoneDb, TMilestone, TPostMilestone, TUpdateMilestone)
     summaries.ts    # summary types (TDrankMilkSummary, TSleepSummary, TNappySummary, TPumpingSummary)
     home.ts         # aggregated Home/always-on-display types (THomeSummary, TAlwaysOnDisplayData)
+    appEvents.ts    # app_events types (TAppEventId, TAppEventDb, TAppEvent, TBackupStatus, TPostBackupStatus)
     TUtils.ts       # shared utility types (TDataOrError)
   util/
     index.ts      # barrel re-export of all utilities
@@ -126,6 +127,16 @@ Each DB table has its own type file with three types:
 |---|---|
 | `THomeSummary` | `GET /api/home/summary` response — `latestSleep`, `latestDrank`, `suggestedAmount`, `latestPumping`, `latestNappy`, `medicines` (everything the Home page needs, combined into one call) |
 | `TAlwaysOnDisplayData` | `GET /api/home/always-on-display` response — `latestSleep`, `latestPumping`, `latestDrank` (lightweight subset shown on every page's black-screen readout) |
+
+### `appEvents.ts`
+| Type | Description |
+|---|---|
+| `TAppEventId` | `'BACKUP'` — the only `app_events.id` currently in use |
+| `TAppEventDb` | DB row — `id`, `value`, `updated_at` |
+| `TAppEvent` | App type — camelCase: `id`, `value`, `updatedAt` |
+| `TBackupStatus` | `GET /api/app-events/backup` response — `{ lastBackupAt: string \| null }` |
+| `TPostBackupStatus` | `POST /api/app-events/backup` body — `{ timestamp?: string }` (defaults to now) |
+
 
 ## Exported Utilities (`util/`)
 

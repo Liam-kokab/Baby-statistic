@@ -52,6 +52,7 @@ A custom SQLite function `now_oslo()` is registered on the connection at startup
 | `015_add_baby_and_user_cols` | Inserts default baby (id=1), adds `baby_id` + `created_by` to all data tables | all |
 | `016_add_user_display_name` | Adds `name` to `users` | all |
 | `017_milestones` | Creates `milestone` table (baby milestones/firsts: title, description, occurred_at) | all |
+| `018_app_events` | Creates `app_events` generic single-row-per-id status table (currently only `id='BACKUP'`) | all |
 
 `002_seed_test_data` and `004_clear_test_data` are conditionally included in the migrations array based on `process.env.NODE_ENV`, so they never cross-pollute environments.
 
@@ -149,6 +150,14 @@ A custom SQLite function `now_oslo()` is registered on the connection at startup
 
 Notes:
 - The `prediction_log` intentionally does NOT include its own `created_at`; when a prediction is linked to an actual drink the server uses the linked `drank_milk.created_at` as the canonical `createdAt` for reporting and filtering. `GET /api/predictions` returns only linked predictions and exposes the linked drink timestamp as the prediction `createdAt`.
+
+### `app_events` (migration `018_app_events`)
+Generic single-row-per-`id` app-level status table — not baby-scoped, no `created_by`. Currently the only `id` in use is `'BACKUP'`, whose `value` holds the Oslo local timestamp of the last successful backup, reported by the backup-lambda via `POST /api/app-events/backup`. Always 0 or 1 row per `id` (upserted via `INSERT ... ON CONFLICT DO UPDATE`).
+| Column | Type | Notes |
+|---|---|---|
+| `id` | TEXT PK | e.g. `'BACKUP'` |
+| `value` | TEXT | meaning depends on `id`; for `BACKUP` it's an Oslo local datetime |
+| `updated_at` | TEXT | Oslo local datetime of the last upsert |
 
 ## Triggers
 `updated_at` columns and their `AFTER UPDATE` triggers were removed in migration `007_drop_updated_at`. No triggers remain on data tables.

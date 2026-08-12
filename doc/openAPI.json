@@ -15,6 +15,7 @@
     { "name": "Baby" },
     { "name": "Build Time" },
     { "name": "Backup" },
+    { "name": "App Events" },
     { "name": "Served Milk" },
     { "name": "Drank Milk" },
     { "name": "Sleep" },
@@ -432,6 +433,52 @@
               }
             }
           }
+        }
+      }
+    },
+    "/api/app-events/backup": {
+      "get": {
+        "tags": ["App Events"],
+        "summary": "Get the last successful backup status",
+        "description": "Available to any authenticated user (admin or baby user). Used to drive the app's backup-status dot.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BackupStatus" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["App Events"],
+        "summary": "Report a successful backup (admin only)",
+        "description": "Called by the backup-lambda after verifying the uploaded S3 object's size is > 0. Upserts the single app_events row with id = 'BACKUP'.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "timestamp": { "type": "string", "format": "date-time" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BackupStatus" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -1525,6 +1572,13 @@
           "medicine_log": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
           "pumping":      { "type": "array", "items": { "type": "object", "additionalProperties": true } },
           "milestone":    { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
+      },
+      "BackupStatus": {
+        "type": "object",
+        "description": "Response for GET/POST /api/app-events/backup.",
+        "properties": {
+          "lastBackupAt": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-08-12T06:00:00+02:00" }
         }
       },
       "Medicine": {

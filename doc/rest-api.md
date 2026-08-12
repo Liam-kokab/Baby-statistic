@@ -503,6 +503,39 @@ Each field may be `null`/`[]` when no matching records exist yet.
 
 ---
 
+## App Events — `/api/app-events`
+
+Generic single-row-per-`id` app-level status store. Currently only used for backup-success reporting.
+
+### `GET /api/app-events/backup`
+
+Returns the last successful backup timestamp. Available to any authenticated user (admin or baby user) — used to drive the `BackupStatusDot` client component.
+
+**Handler**: `server/src/routes/appEvents.ts`
+
+**Response `200`**:
+```json
+{ "lastBackupAt": "2026-08-12T06:00:00+02:00" }
+```
+`lastBackupAt` is `null` if no successful backup has ever been reported.
+
+---
+
+### `POST /api/app-events/backup` *(admin only)*
+
+Reports that a backup completed successfully (called by `backup-lambda` after verifying the uploaded S3 object's size is > 0). Upserts the single `app_events` row with `id = 'BACKUP'`.
+
+**Handler**: `server/src/routes/appEvents.ts`
+
+**Body**: `{ "timestamp"?: "2026-08-12T06:00:00.000Z" }` *(optional — defaults to now)*
+
+**Response `201`**:
+```json
+{ "lastBackupAt": "2026-08-12T06:00:00+02:00" }
+```
+
+---
+
 ### `GET /api/home/always-on-display`
 
 Lightweight subset used to refresh the "always on display" black-screen readout, shown on **every** page (not just Home). The client fetches this once when the black screen opens, and again every 5 minutes while it stays open.

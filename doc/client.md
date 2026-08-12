@@ -44,6 +44,7 @@ client/
       PageLayout/                   # PageLayout.tsx + PageLayout.module.css
       BlackScreenOverlay/            # BlackScreenOverlay.tsx + .module.css — shared "always on display" overlay (time/sleep/pump/bottle readout), rendered by both HomePage and PageLayout via useBlackScreen
       DataFreshnessDot/              # DataFreshnessDot.tsx + .module.css — small colored dot (top-right of the banner) showing how old a page's data is; hover shows the exact age via native `title` tooltip
+      BackupStatusDot/               # BackupStatusDot.tsx + .module.css — small colored dot rendered beside DataFreshnessDot, showing how long ago the last successful backup was (app-wide, not per-page)
       ProtectedRoute/               # ProtectedRoute.tsx — redirects to /login if unauthenticated
     pages/
       LoginPage/                    # LoginPage.tsx + LoginPage.module.css — username/password form
@@ -73,6 +74,7 @@ client/
       useBlackScreen.ts  # shared hook: open/close state, fullscreen enter/exit, optional wake-lock "keep awake" (pass `keepAwakeMs`), auto-hiding exit button/cursor — used by both HomePage and PageLayout so every page's black screen behaves identically
       useAlwaysOnDisplayData.ts # hook: fetches GET /api/home/always-on-display while `active` (the black screen is open), immediately on activation and every 5 minutes after — powers BlackScreenOverlay's readout on every page
       useDataFreshness.ts # hook: `{ lastUpdatedAt, isError, reportSuccess, reportError }` — instantiated once per data page; the page calls `reportSuccess()`/`reportError()` from its own load function(s), then passes the result to `PageLayout`'s `dataFreshness` prop (or renders `DataFreshnessDot` directly, as `HomePage` does) to drive the freshness dot
+      useBackupStatus.ts # hook: `{ lastBackupAt, isError }` — fetches GET /api/app-events/backup via authFetch once on mount and every 5 minutes after; powers BackupStatusDot (app-wide, not per-page)
 
 > See [`doc/auth.md`](./auth.md) for full client auth architecture documentation.
       groupByDay.ts                 # groups items by calendar day (descending)
@@ -270,6 +272,15 @@ Small dot in the top-right corner of every data page's banner, showing how old t
 - Hovering shows the exact age (native `title`/`aria-label` tooltip, e.g. "Data freshness — last updated 3 min ago"); ticks every 15s internally so the color/tooltip keep advancing even without a new fetch.
 
 Each data page instantiates one `useDataFreshness()` (`utils/useDataFreshness.ts`) and calls `reportSuccess()`/`reportError()` from its own load function(s) alongside the existing `setState` calls, then passes the result as `dataFreshness` to `PageLayout` (which renders the dot itself when the prop is present). `HomePage` — which has its own custom hero instead of `PageLayout` — renders `DataFreshnessDot` directly. Wired up on `HomePage`, `PoopPeePage`, `SleepPage`, `PumpingPage`, `MedicinePage`, `MilkSavedPage`, `MilkDrankPage`, and `MilestonePage`; omitted on pages without genuinely "live" server data (Settings, Login, Admin, White Noise, Edit* single-record forms), where `PageLayout`'s `dataFreshness` prop is simply left unset and no dot renders.
+
+### `BackupStatusDot` (shared, `components/BackupStatusDot/`)
+Small dot rendered immediately beside `DataFreshnessDot` (same banner, offset further right), showing how long ago the last successful backup was reported:
+- 🟢 green — last successful backup < 6 hours ago
+- 🟡 yellow — < 12 hours ago
+- 🔴 red — ≥ 12 hours ago, **or** no successful backup has ever been reported, **or** the status fetch failed
+- Hovering shows the exact age (native `title`/`aria-label` tooltip); ticks every 60s internally so the color/tooltip keep advancing without a new poll.
+
+Unlike `DataFreshnessDot` (per-page data), this is app-wide, global data — it fetches `GET /api/app-events/backup` via `utils/useBackupStatus.ts` (`authFetch`) once on mount and every 5 minutes thereafter, independent of any page's own data loading. Rendered unconditionally wherever `DataFreshnessDot` renders (`PageLayout` and `HomePage`'s custom hero) — no `dataFreshness`-style prop needed since it doesn't depend on the page.
 
 ### `HomePage`
 Widgets — **Sleep**, **Milk**, **Nappy**, **Medicines**, **White Noise** — are rendered dynamically from `utils/homeWidgets.ts` (`DEFAULT_HOME_WIDGETS`, in that order). All are visible by default except `whiteNoise`, which is hidden by default (`DEFAULT_HIDDEN_HOME_WIDGETS`) — opt-in only. The user's custom order/visibility is read from `utils/homeWidgetPrefs.ts` (localStorage keys `homeWidgetOrder` and `homeWidgetHidden`) via `applyHomeWidgetOrder()`/`getHiddenHomeWidgets()`; hidden widgets are filtered out before rendering. Configured on the **Settings → Home** tab (`HomeWidgetsEditor` component). The `medicines` widget still only renders when `medicines.length > 0`, on top of the visibility toggle.

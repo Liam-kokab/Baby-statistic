@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import BlackScreenOverlay from '../BlackScreenOverlay/BlackScreenOverlay';
 import DataFreshnessDot from '../DataFreshnessDot/DataFreshnessDot';
+import BackupStatusDot from '../BackupStatusDot/BackupStatusDot';
 import useBlackScreen from '../../utils/useBlackScreen';
 import type { TDataFreshness } from '../../utils/useDataFreshness';
 import { useTranslation } from '../../i18n/i18n';
@@ -46,6 +47,7 @@ const PageLayout = forwardRef<HTMLDivElement, TProps>(({ title, emoji, children,
     <div className={styles.page} ref={ref}>
       <header className={`${styles.header} ${styles[gradient]}`} style={headerStyle}>
         {dataFreshness ? <DataFreshnessDot lastUpdatedAt={dataFreshness.lastUpdatedAt} isError={dataFreshness.isError} /> : null}
+        {dataFreshness ? <BackupStatusDot /> : null}
         <button
           type="button"
           className={styles.emojiButton}

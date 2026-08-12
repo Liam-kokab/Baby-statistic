@@ -1,8 +1,10 @@
 # Backup Lambda — Manual AWS Console Setup Guide
 
 Standalone Lambda function that, on a schedule, logs into the baby-statistic
-API, downloads a backup (`GET /api/backup`), uploads it to S3, then deletes
-any backup older than the retention period. This is **not** part of the
+API, downloads a backup (`GET /api/backup`), uploads it to S3, verifies the
+uploaded object's size is greater than 0, reports that success back to the API
+(`POST /api/app-events/backup` — shown in the app as a backup-status dot), then
+deletes any backup older than the retention period. This is **not** part of the
 main application repo/build — it's just the code + instructions, to be
 deployed by hand.
 
@@ -61,6 +63,7 @@ No VPC, no Secrets Manager, no API Gateway required.
       "Effect": "Allow",
       "Action": [
         "s3:PutObject",
+        "s3:GetObject",
         "s3:ListBucket",
         "s3:DeleteObject"
       ],
@@ -120,8 +123,9 @@ margin). Memory can stay at the default (128 MB) unless the backup is huge.
 
 **Test** tab → create a new test event (any empty `{}` payload works, the
 handler ignores its input) → **Test**. Check the **Execution results** and
-**CloudWatch Logs** for the `Backup uploaded: ...` / `Pruned ... ` log lines,
-and confirm a new object appeared in the S3 bucket.
+**CloudWatch Logs** for the `Backup uploaded: ...` / `Backup verified ...` /
+`Pruned ... ` log lines, and confirm a new object appeared in the S3 bucket
+and the app shows a fresh backup-status dot.
 
 ## 7. Schedule It — every 6 hours (00:00, 06:00, 12:00, 18:00)
 

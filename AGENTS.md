@@ -61,7 +61,7 @@ router.get('/', (req: Request, res: Response): void => {
 export default router;
 ```
 
-Existing routes: `servedMilk`, `drankMilk`, `sleep`, `pee`, `poop`, `medicine`, `pumping`, `milestone`, `predictions`, `auth`, `admin`, `baby`, `backup`, `buildTime`, `nappy`, `ping`.
+Existing routes: `servedMilk`, `drankMilk`, `sleep`, `pee`, `poop`, `medicine`, `pumping`, `milestone`, `predictions`, `auth`, `admin`, `baby`, `backup`, `buildTime`, `nappy`, `ping`, `appEvents`.
 
 ### Auth & multi-baby scoping
 - `server/src/middleware/authenticate.ts` — verifies the JWT access token (`Authorization: Bearer ...`) and populates `req.user` (`{ id, username, role, babyId, authTime }`).
@@ -90,6 +90,7 @@ Append an entry to the `migrations` array in `server/src/migrations/index.ts`. N
 | `prediction_log` | ML training data for milk-amount predictions (added `011_prediction_logs`, evolved `012_prediction_logs_v2`) |
 | `babies`, `users`, `baby_users`, `refresh_tokens` | multi-baby/multi-user auth tables (added `014_auth`) |
 | `milestone` | `title`, `description` (nullable), `occurred_at` (added `017_milestones`) |
+| `app_events` | generic single-row-per-`id` app status store; `id` (TEXT PK), `value`; currently only `id='BACKUP'` (added `018_app_events`) |
 
 Migration `015_add_baby_and_user_cols` added `baby_id` + `created_by` columns to every event table above (except the auth tables themselves) for per-baby data isolation; `016_add_user_display_name` added `name` to `users`. See `doc/db.md` for the full migration list.
 

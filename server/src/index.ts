@@ -27,6 +27,7 @@ import buildTimeRouter from './routes/buildTime';
 import predictionsRouter from './routes/predictions';
 import manifestRouter from './routes/manifest';
 import homeRouter from './routes/home';
+import appEventsRouter from './routes/appEvents';
 
 const app = express();
 // Internal-only port — production traffic reaches the app via nginx reverse-proxying
@@ -126,6 +127,7 @@ app.use('/api/nappy', nappyRouter);
 app.use('/api/build-time', buildTimeRouter);
 app.use('/api/predictions', predictionsRouter);
 app.use('/api/home', homeRouter);
+app.use('/api/app-events', appEventsRouter);
 
 const clientDist = path.join(__dirname, 'public');
 if (fs.existsSync(path.join(clientDist, 'index.html'))) {

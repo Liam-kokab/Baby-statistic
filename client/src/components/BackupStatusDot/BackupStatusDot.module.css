@@ -1,0 +1,28 @@
+.wrapper {
+  position: absolute;
+  top: 0.9rem;
+  right: 1.9rem;
+  display: inline-flex;
+  cursor: default;
+  z-index: 2;
+}
+
+.dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.green {
+  background: #2e7d32;
+}
+
+.yellow {
+  background: #f57f17;
+}
+
+.red {
+  background: #c62828;
+}
+

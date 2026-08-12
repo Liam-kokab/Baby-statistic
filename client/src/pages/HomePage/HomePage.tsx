@@ -5,6 +5,7 @@ import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
 import BlackScreenOverlay from '../../components/BlackScreenOverlay/BlackScreenOverlay';
 import DataFreshnessDot from '../../components/DataFreshnessDot/DataFreshnessDot';
+import BackupStatusDot from '../../components/BackupStatusDot/BackupStatusDot';
 import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TActionStatus } from '../../utils/useActionFeedback';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
@@ -502,6 +503,7 @@ const HomePage = () => {
     <div className={styles.page} ref={visibilityRef}>
       <div className={styles.hero}>
         <DataFreshnessDot lastUpdatedAt={freshness.lastUpdatedAt} isError={freshness.isError} />
+        <BackupStatusDot />
         <button
           type="button"
           className={styles.heroEmojiButton}

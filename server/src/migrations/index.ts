@@ -527,6 +527,20 @@ export const migrations: TMigration[] = [
       CREATE INDEX IF NOT EXISTS idx_milestone_baby_id ON milestone(baby_id);
     `,
   },
+
+  {
+    name: '018_app_events',
+    up: `
+      -- Generic single-row-per-id app-level status table. Currently only used
+      -- for id = 'BACKUP', whose value holds the ISO timestamp of the last
+      -- successful backup reported by the backup-lambda. Always 0 or 1 row per id.
+      CREATE TABLE IF NOT EXISTS app_events (
+        id         TEXT    PRIMARY KEY,
+        value      TEXT    NOT NULL,
+        updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+    `,
+  },
 ];
 
 

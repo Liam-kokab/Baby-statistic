@@ -18,6 +18,12 @@
   "DATA_FRESHNESS_TOOLTIP_OK": { "en": "Data freshness — last updated {age}", "nb": "Datafriskhet — sist oppdatert {age}" },
   "DATA_FRESHNESS_TOOLTIP_ERROR": { "en": "Data freshness — last update failed (last known data from {age})", "nb": "Datafriskhet — siste oppdatering feilet (siste kjente data fra {age})" },
 
+  "BACKUP_STATUS_JUST_NOW": { "en": "just now", "nb": "akkurat nå" },
+  "BACKUP_STATUS_NEVER": { "en": "never", "nb": "aldri" },
+  "BACKUP_STATUS_AGE_HOURS": { "en": "{h}h ago", "nb": "{h}t siden" },
+  "BACKUP_STATUS_TOOLTIP_OK": { "en": "Backup status — last successful backup {age}", "nb": "Backupstatus — siste vellykkede backup {age}" },
+  "BACKUP_STATUS_TOOLTIP_ERROR": { "en": "Backup status — could not check backup status (last known: {age})", "nb": "Backupstatus — kunne ikke sjekke backupstatus (sist kjente: {age})" },
+
   "NAV_PUMPING": { "en": "Pumping", "nb": "Pumping" },
   "NAV_HOME": { "en": "Home", "nb": "Hjem" },
   "NAV_MILK_DRANK": { "en": "Milk Drank", "nb": "Melk drukket" },
