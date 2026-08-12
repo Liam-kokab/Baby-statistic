@@ -90,3 +90,27 @@
   justify-content: flex-end;
 }
 
+.description {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.sliderControl {
+  gap: 0.75rem;
+}
+
+.rangeSlider {
+  flex: 1;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.sliderValue {
+  min-width: 3ch;
+  text-align: right;
+  font-family: monospace;
+  color: var(--color-text);
+  font-weight: 700;
+}
+

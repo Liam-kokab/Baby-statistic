@@ -143,7 +143,7 @@ const PageLayout = forwardRef<HTMLDivElement, TProps>(({ title, emoji, children,
             text={t('HOME_BLACK_SCREEN_EXIT')}
             onClick={handleCloseBlackScreen}
             aria-label={t('HOME_BLACK_SCREEN_EXIT')}
-            variant="primary"
+            variant="secondary"
             className={`${styles.blackScreenExitButton} ${isBlackScreenExitVisible ? styles.blackScreenExitButtonVisible : styles.blackScreenExitButtonHidden}`}
           />
         </div>

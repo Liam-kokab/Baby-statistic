@@ -16,6 +16,9 @@ import { whiteNoisePlayer } from '../../utils/whiteNoise';
 import { useWhiteNoisePlayerState } from '../../utils/useWhiteNoisePlayerState';
 import { WHITE_NOISE_DURATION_OPTIONS, formatWhiteNoiseRemaining } from '../../utils/whiteNoiseDurations';
 import { getSelectedWhiteNoiseTypes, WHITE_NOISE_SOUNDS } from '../../utils/homeWhiteNoiseWidgetPrefs';
+import { getHiddenBlackScreenFields, getBlackScreenOpacityPercent } from '../../utils/blackScreenPrefs';
+import type { TBlackScreenField } from '../../utils/blackScreenPrefs';
+import { formatTime as formatClockTime } from '../../utils/format';
 import styles from './HomePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
@@ -32,6 +35,14 @@ const formatTime = (seconds: number): string => {
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+/** Hours:minutes only (no seconds) — used on the black screen readout so the text changes
+ * at most once a minute instead of every second. */
+const formatTimeHM = (seconds: number): string => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
 const elapsedSeconds = (isoString: string): number =>
@@ -124,6 +135,19 @@ const HomePage = () => {
   const [isBlackScreenOpen, setIsBlackScreenOpen] = useState<boolean>(false);
   const [isBlackScreenExitVisible, setIsBlackScreenExitVisible] = useState<boolean>(false);
   const [isBlackScreenCursorVisible, setIsBlackScreenCursorVisible] = useState<boolean>(true);
+  const [blackScreenHiddenFields] = useState<TBlackScreenField[]>(() => getHiddenBlackScreenFields());
+  const [blackScreenOpacity] = useState<number>(() => getBlackScreenOpacityPercent() / 100);
+  const [blackScreenNow, setBlackScreenNow] = useState<Date>(() => new Date());
+  const isBlackScreenFieldShown = (field: TBlackScreenField): boolean => !blackScreenHiddenFields.includes(field);
+
+  // Tick once a minute while the black screen is open — the readout only ever shows
+  // hours:minutes, never seconds, so nothing on it should change more often than that.
+  useEffect(() => {
+    if (!isBlackScreenOpen) return;
+    setBlackScreenNow(new Date());
+    const id = setInterval(() => setBlackScreenNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, [isBlackScreenOpen]);
 
   // Wake locks are released automatically when the tab becomes hidden; re-request it
   // once the black screen is visible again so the display keeps staying on.
@@ -691,11 +715,46 @@ const HomePage = () => {
           onTouchStart={showBlackScreenExit}
           aria-label={t('HOME_BLACK_SCREEN_OVERLAY')}
         >
+          {isBlackScreenFieldShown('time') ? (
+            <div
+              className={`${styles.blackScreenTimeWrap} ${isBlackScreenExitVisible ? styles.blackScreenDataHidden : styles.blackScreenDataVisible}`}
+              aria-hidden="true"
+            >
+              <span className={styles.blackScreenReadoutText} style={{ opacity: blackScreenOpacity }}>
+                {formatClockTime(blackScreenNow.toISOString())}
+              </span>
+            </div>
+          ) : null}
+
+          {isBlackScreenFieldShown('sleep') || isBlackScreenFieldShown('pump') || isBlackScreenFieldShown('bottle') ? (
+            <div
+              className={`${styles.blackScreenOtherWrap} ${isBlackScreenExitVisible ? styles.blackScreenDataHidden : styles.blackScreenDataVisible}`}
+              aria-hidden="true"
+            >
+              {isBlackScreenFieldShown('sleep') ? (
+                <span className={styles.blackScreenReadoutText} style={{ opacity: blackScreenOpacity }}>
+                  {isSleeping ? t('HOME_BLACK_SCREEN_SLEEPING_FOR') : t('HOME_BLACK_SCREEN_AWAKE_FOR')} {formatTimeHM(timerRef ? elapsedSeconds(timerRef) : 0)}
+                </span>
+              ) : null}
+              {isBlackScreenFieldShown('pump') ? (
+                <span className={styles.blackScreenReadoutText} style={{ opacity: blackScreenOpacity }}>
+                  {t('HOME_BLACK_SCREEN_SINCE_PUMP')} {formatTimeHM(pumpingTimerRef ? elapsedSeconds(pumpingTimerRef) : 0)}
+                </span>
+              ) : null}
+              {isBlackScreenFieldShown('bottle') ? (
+                <span className={styles.blackScreenReadoutText} style={{ opacity: blackScreenOpacity }}>
+                  {latestDrank
+                    ? `${t('HOME_BLACK_SCREEN_LAST_BOTTLE')} ${latestDrank.amount} ml · ${formatAgo(latestDrank.createdAt)}`
+                    : t('HOME_BLACK_SCREEN_NO_BOTTLE')}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           <Button
             text={t('HOME_BLACK_SCREEN_EXIT')}
             onClick={handleCloseBlackScreen}
             aria-label={t('HOME_BLACK_SCREEN_EXIT')}
-            variant="primary"
+            variant="secondary"
             className={`${styles.blackScreenExitButton} ${isBlackScreenExitVisible ? styles.blackScreenExitButtonVisible : styles.blackScreenExitButtonHidden}`}
           />
         </div>

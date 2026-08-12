@@ -3,6 +3,7 @@ import { authFetch } from '../../utils/authFetch';
 import { authStore } from '../../utils/authStore';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import Toggle from '../../components/Toggle/Toggle';
+import Checkmark from '../../components/Checkmark/Checkmark';
 import Input from '../../components/Input/Input';
 import Button from '../../components/Button/Button';
 import Tabs from '../../components/Tabs/Tabs';
@@ -14,12 +15,27 @@ import type { TUser, TUpdateMeRequest } from 'baby-statistic-common';
 import styles from './SettingsPage.module.css';
 import { getSavedTheme, setTheme, themeToIndex, indexToTheme, getSavedMode, setMode, modeToIndex, indexToMode } from '../../utils/theme';
 import { useTranslation, languageToIndex, indexToLanguage } from '../../i18n/i18n';
+import {
+  BLACK_SCREEN_FIELDS,
+  getHiddenBlackScreenFields,
+  saveHiddenBlackScreenFields,
+  getBlackScreenOpacityPercent,
+  saveBlackScreenOpacityPercent,
+} from '../../utils/blackScreenPrefs';
+import type { TBlackScreenField } from '../../utils/blackScreenPrefs';
 
 type TBuildTimeResponse = {
   buildTime: string;
 };
 
 type TSettingsTab = 'account' | 'appearance' | 'navigation' | 'home' | 'about';
+
+const BLACK_SCREEN_FIELD_LABEL_KEYS: Record<TBlackScreenField, string> = {
+  time:   'SETTINGS_BLACK_SCREEN_FIELD_TIME',
+  sleep:  'SETTINGS_BLACK_SCREEN_FIELD_SLEEP',
+  pump:   'SETTINGS_BLACK_SCREEN_FIELD_PUMP',
+  bottle: 'SETTINGS_BLACK_SCREEN_FIELD_BOTTLE',
+};
 
 const SettingsPage = () => {
   const { t, language, setLanguage } = useTranslation();
@@ -29,6 +45,12 @@ const SettingsPage = () => {
   const [themeIndex, setThemeIndex] = useState<number>(() => themeToIndex(getSavedTheme() ?? 'neutral'));
   const [modeIndex, setModeIndex] = useState<number>(() => modeToIndex(getSavedMode() ?? 'auto'));
   const [languageIndex, setLanguageIndex] = useState<number>(() => languageToIndex(language));
+  const [blackScreenHidden, setBlackScreenHidden] = useState<Set<TBlackScreenField>>(
+    () => new Set(getHiddenBlackScreenFields())
+  );
+  const [blackScreenOpacityPercent, setBlackScreenOpacityPercent] = useState<number>(() =>
+    getBlackScreenOpacityPercent()
+  );
 
   const formatBuildTime = (iso: string): string => {
     if (iso === 'unknown') return t('SETTINGS_UNKNOWN');
@@ -86,6 +108,19 @@ const SettingsPage = () => {
   const onLanguageChange = (i: number): void => {
     setLanguage(indexToLanguage(i));
     setLanguageIndex(i);
+  };
+
+  const onBlackScreenFieldToggle = (field: TBlackScreenField): void => {
+    const next = new Set(blackScreenHidden);
+    if (next.has(field)) next.delete(field);
+    else next.add(field);
+    setBlackScreenHidden(next);
+    saveHiddenBlackScreenFields(Array.from(next));
+  };
+
+  const onBlackScreenOpacityChange = (percent: number): void => {
+    saveBlackScreenOpacityPercent(percent);
+    setBlackScreenOpacityPercent(percent);
   };
 
   const handleSaveProfile = (): void => {
@@ -229,6 +264,39 @@ const SettingsPage = () => {
           <section className={styles.card}>
             <h2 className={styles.sectionTitle}>{t('SETTINGS_WHITE_NOISE_SOUNDS_TITLE')}</h2>
             <WhiteNoiseSoundsEditor />
+          </section>
+
+          <section className={styles.card}>
+            <h2 className={styles.sectionTitle}>{t('SETTINGS_BLACK_SCREEN_TITLE')}</h2>
+            <p className={styles.description}>{t('SETTINGS_BLACK_SCREEN_FIELDS_DESCRIPTION')}</p>
+            <div className={styles.formGrid}>
+              {BLACK_SCREEN_FIELDS.map((field) => (
+                <Checkmark
+                  key={field}
+                  checked={!blackScreenHidden.has(field)}
+                  onChange={() => onBlackScreenFieldToggle(field)}
+                  label={t(BLACK_SCREEN_FIELD_LABEL_KEYS[field])}
+                />
+              ))}
+            </div>
+
+            <div className={`${styles.row} ${styles.rowStack}`}>
+              <span className={styles.label}>{t('SETTINGS_BLACK_SCREEN_OPACITY')}</span>
+              <p className={styles.description}>{t('SETTINGS_BLACK_SCREEN_OPACITY_DESCRIPTION')}</p>
+              <div className={`${styles.value} ${styles.control} ${styles.sliderControl}`}>
+                <input
+                  type="range"
+                  className={styles.rangeSlider}
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={blackScreenOpacityPercent}
+                  onChange={(e) => onBlackScreenOpacityChange(Number(e.target.value))}
+                  aria-label={t('SETTINGS_BLACK_SCREEN_OPACITY')}
+                />
+                <span className={styles.sliderValue}>{blackScreenOpacityPercent}%</span>
+              </div>
+            </div>
           </section>
         </>
       ) : null}
