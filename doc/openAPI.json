@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Baby Statistic API",
-    "description": "REST API for tracking baby milk, sleep, pee, and poop events.",
+    "description": "REST API for tracking baby milk, sleep, pee, and poop events. Note: this spec covers REST endpoints only — the server also exposes a WebSocket upgrade at `/ws` (auth via a `{ type: 'auth', token }` first message, not a query param, scoped per baby) for real-time 'data changed' notifications; see doc/rest-api.md and doc/server.md for details.",
     "version": "1.0.0"
   },
   "servers": [

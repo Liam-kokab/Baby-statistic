@@ -11,6 +11,7 @@ import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useDataFreshness from '../../utils/useDataFreshness';
+import useBabyUpdatesSocket from '../../utils/useBabyUpdatesSocket';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -76,7 +77,13 @@ const MilkSavedPage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const visibilityRef = useRefetchOnVisible(() => { loadTotals(); refresh(); });
+  // Paused while the black-screen overlay is open — see PageLayout's `onBlackScreenOpenChange`
+  // doc comment for why (avoids a redundant second WS connection/refetch alongside the overlay's).
+  const [isBlackScreenOpen, setIsBlackScreenOpen] = useState(false);
+  const { connected: wsConnected } = useBabyUpdatesSocket(() => { loadTotals(); refresh(); }, !isBlackScreenOpen, () => freshness.lastUpdatedAt);
+  // The stale-timer/tab-visibility fallback is only needed while the WebSocket is disconnected —
+  // once it's connected, live "update" notifications make the 5-minute poll redundant.
+  const visibilityRef = useRefetchOnVisible(() => { loadTotals(); refresh(); }, undefined, !isBlackScreenOpen && !wsConnected);
 
   const toggleStatus = (status: TServedMilkStatus): void =>
     setActiveStatuses((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]);
@@ -202,7 +209,7 @@ const MilkSavedPage = () => {
   };
 
   return (
-    <PageLayout title={t('MILK_SAVED_TITLE')} emoji="🧊" gradient="blue" ref={visibilityRef} dataFreshness={freshness}>
+    <PageLayout title={t('MILK_SAVED_TITLE')} emoji="🧊" gradient="blue" ref={visibilityRef} dataFreshness={{ ...freshness, wsConnected }} onBlackScreenOpenChange={setIsBlackScreenOpen}>
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('MILK_SAVED_FRIDGE')} <strong>{totals.fridge} ml</strong></div>
         <div className={styles.statChip}>{t('MILK_SAVED_FREEZER')} <strong>{totals.freezer} ml</strong></div>

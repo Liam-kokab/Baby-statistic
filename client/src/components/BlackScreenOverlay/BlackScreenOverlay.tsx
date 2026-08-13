@@ -28,7 +28,8 @@ const elapsedSeconds = (isoString: string): number =>
 /**
  * Fullscreen dimmed overlay ("always on display") shown on every page. Shows the current time
  * plus sleep/pump/last-bottle readouts fetched from GET /api/home/always-on-display, refreshed
- * when it opens and every 5 minutes after that. Rendered by both HomePage and PageLayout via
+ * when it opens, live via WebSocket whenever another device logs an update, and every 5 minutes
+ * as a fallback (see `useAlwaysOnDisplayData`). Rendered by both HomePage and PageLayout via
  * the shared `useBlackScreen` hook, which controls `isOpen`/exit-button/cursor visibility.
  */
 const BlackScreenOverlay = ({ isOpen, isExitVisible, isCursorVisible, onPointerActivity, onClose }: TProps) => {

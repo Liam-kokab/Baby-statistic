@@ -11,6 +11,7 @@ import type { TActionStatus } from '../../utils/useActionFeedback';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useBlackScreen from '../../utils/useBlackScreen';
 import useDataFreshness from '../../utils/useDataFreshness';
+import useBabyUpdatesSocket from '../../utils/useBabyUpdatesSocket';
 import { ACTION_MIN_MS, ACTION_DONE_MS, BLACK_SCREEN_KEEP_AWAKE_MS } from '../../config';
 import { useTranslation } from '../../i18n/i18n';
 import { DEFAULT_HOME_WIDGETS } from '../../utils/homeWidgets';
@@ -136,10 +137,17 @@ const HomePage = () => {
     void loadSummary();
   };
 
-  // Home's own data refresh (stale-timer/tab-visibility) pauses while the black screen is
-  // open, and resumes (with an immediate refetch) as soon as it closes — see useBlackScreen's
-  // onClose above.
-  const visibilityRef = useRefetchOnVisible(refetchAll, undefined, !isBlackScreenOpen);
+  // Home's own data refresh (stale-timer/tab-visibility, and the WebSocket "update" listener)
+  // both pause while the black screen is open, and resume (with an immediate refetch) as soon
+  // as it closes — see useBlackScreen's onClose above. While the black screen is open, only
+  // BlackScreenOverlay's own useAlwaysOnDisplayData needs to react to updates (it fetches a
+  // different, narrower endpoint) — without this gate, a single WS update would otherwise
+  // trigger both GET /api/home/summary (this page, hidden behind the overlay) and
+  // GET /api/home/always-on-display (the overlay) at once.
+  const { connected: wsConnected } = useBabyUpdatesSocket(refetchAll, !isBlackScreenOpen, () => freshness.lastUpdatedAt);
+  // The stale-timer/tab-visibility fallback is only needed while the WebSocket is disconnected —
+  // once it's connected, live "update" notifications make the 5-minute poll redundant.
+  const visibilityRef = useRefetchOnVisible(refetchAll, undefined, !isBlackScreenOpen && !wsConnected);
 
   useEffect(() => {
     refetchAll();
@@ -502,7 +510,7 @@ const HomePage = () => {
   return (
     <div className={styles.page} ref={visibilityRef}>
       <div className={styles.hero}>
-        <DataFreshnessDot lastUpdatedAt={freshness.lastUpdatedAt} isError={freshness.isError} />
+        <DataFreshnessDot lastUpdatedAt={freshness.lastUpdatedAt} isError={freshness.isError} wsConnected={wsConnected} />
         <BackupStatusDot />
         <button
           type="button"

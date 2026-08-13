@@ -60,6 +60,9 @@ server/
     middleware/
       authenticate.ts   # verify Bearer access token → set req.user
       requireAdmin.ts   # guard: role must be 'admin' (or 'user' + babyId)
+    ws/
+      eventBus.ts       # process-local EventEmitter pub/sub: publishBabyUpdate(babyId) / subscribeBabyUpdates(babyId, listener)
+      wsServer.ts       # attaches a `ws` WebSocketServer to the HTTP server on path `/ws`; authenticates via a `{ type: 'auth', token }` first message (not a query param), scopes each connection to one babyId
     migrations/
       index.ts        # migrations 001–018
     utils/
@@ -82,9 +85,22 @@ server/
 - Mounts Swagger UI at `/api-docs` (reads `doc/openAPI.json` at startup). The `servers` entry is rebuilt per-request from `req.protocol`/`req.get('host')` (via `app.set('trust proxy', 1)` + nginx's `X-Forwarded-Proto`/`Host` headers) instead of using the static `localhost:3000` URL from the JSON file, so "Try it out" works against whatever origin the docs were actually loaded from (dev or prod)
 - Mounts all API routers under `/api/<name>`
 - `authenticate` middleware is mounted on the `/api` prefix only (`app.use('/api', authenticate)`) — it never gates static assets or the SPA shell, since the browser can't send a Bearer token on page navigation and the login page itself must load before any token exists
+- A second `/api` middleware (mounted right after `authenticate`) broadcasts a "this baby's data changed" WebSocket notification (via `ws/eventBus.ts`'s `publishBabyUpdate`) after any mutating request (`POST`/`PUT`/`PATCH`/`DELETE`) that completes with a 2xx status and has a `req.user.babyId` — see "Live Updates (WebSocket)" below
 - In `NODE_ENV=production`: serves `server/public/` as static files and falls back to `index.html` for all non-API routes
+- Creates a raw `http.Server` (`http.createServer(app)`) instead of calling `app.listen` directly, so `ws/wsServer.ts` can attach its own `upgrade` handler for the `/ws` path alongside the Express app
+
+## Live Updates (WebSocket)
+The server runs as a single PM2 fork process (see `ecosystem.config.js` — no cluster mode), so `ws/eventBus.ts` is a plain in-process `EventEmitter`; no Redis or other external broker is needed. If the server is ever scaled to multiple instances, `eventBus.ts` is the single place to swap in a real pub/sub backend.
+
+- **`ws/eventBus.ts`** — `publishBabyUpdate(babyId, originClientId?)` / `subscribeBabyUpdates(babyId, listener)`, where `listener` receives the `originClientId` so callers can decide whether to skip notifying their own connection.
+- **`ws/wsServer.ts`** — `attachWebSocketServer(httpServer)` upgrades connections on path `/ws`. Connections are accepted unauthenticated and must send `{ "type": "auth", "token": "<accessToken>", "clientId"?: "<uuid>" }` as their first message within 5s (`AUTH_TIMEOUT_MS`) — deliberately not a `?token=` query param, since query strings end up in nginx/proxy access logs and browser devtools/history. The token is verified with the same `verifyAccessToken` used by `authenticate`; on success the connection is scoped to that token's `babyId` and the server replies `{ "type": "auth-ok" }`. Connections that time out, send an invalid token, or lack a `babyId`, are closed. A 30s ping/pong heartbeat terminates dead connections.
+- **Echo suppression** — the optional `clientId` in the auth message is a random per-tab ID the client generates once (`client/src/utils/wsClientId.ts`) and also sends as the `X-Ws-Client-Id` header on every mutating HTTP request (`authFetch.ts`). When a connection's own `clientId` matches the `originClientId` of an incoming update (i.e. this exact tab caused the change), `wsServer.ts` skips sending that notification to it — the tab already has fresh data from its own request's response, so re-notifying it would just be a redundant refetch. Every other connection (other tabs, other devices, even other devices logged in as the same username) is still notified normally, so multi-device setups stay in sync.
+- **Connection dedup** — the same `clientId` is also used to keep at most one live connection per tab (`connectionsByClientId` map, keyed by `clientId`). If a tab's socket reconnects (e.g. coming back from being backgrounded, per `useBabyUpdatesSocket`'s Page Visibility handling) before its previous connection's close frame ever reached the server — common on mobile browsers, which can suspend a hidden tab's outgoing network activity before it gets a chance to send one — the new connection immediately `terminate()`s the stale one on successful auth, instead of waiting for the next heartbeat cycle (up to `HEARTBEAT_MS * 2` = 60s) to notice it's dead.
+- Messages sent to clients carry **no data**, only `{ "type": "update" }` — the client is expected to re-run its own existing fetch/refetch logic on receipt (see `client/src/utils/useBabyUpdatesSocket.ts` and `doc/client.md`). This keeps the server-side change minimal and avoids duplicating each resource's serialization logic over the socket.
+- The `index.ts` mutating-request middleware (see above) is the single hook point for all current and future routes — no per-route or per-service wiring is needed; it also forwards the `X-Ws-Client-Id` request header through to `publishBabyUpdate` as `originClientId`.
 
 ## Scripts
+
 | Command | Description |
 |---|---|
 | `npm run build` | Local build: cleans `dist/`, builds client + server + mcp-server |

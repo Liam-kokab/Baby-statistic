@@ -6,9 +6,26 @@ All responses are **JSON**. Errors return `{ "error": "..." }`.
 
 **Authentication**: All endpoints except `POST /api/auth/login`, `POST /api/auth/refresh`, and `GET /api/ping` require `Authorization: Bearer <accessToken>` header. Unauthenticated requests return `401`.
 
+**`X-Ws-Client-Id` header** (optional): the client sends a random per-tab UUID on every request (see "Live Updates (WebSocket)" below). On mutating requests (`POST`/`PUT`/`PATCH`/`DELETE`) it's used to suppress the resulting WebSocket "update" notification for the exact tab that made the request, since it already has fresh data from the response. Non-browser API clients (Swagger UI, `curl`, the MCP server) can omit it — every connected client still gets notified normally.
+
 **Rate limiting**: `POST /api/auth/login` (10 requests / 15 min per IP) and `POST /api/auth/refresh` (60 requests / 15 min per IP) are throttled via `express-rate-limit`. Exceeding the limit returns `429` with `{ "error": "Too many ... attempts. Please try again later." }`.
 
 See [`doc/auth.md`](./auth.md) for the full permission table, token architecture, and security details.
+
+---
+
+## Live Updates (WebSocket)
+
+### `GET /ws` (upgrade)
+Not a REST endpoint — a WebSocket upgrade at `/ws` (outside `/api`), used to push "this baby's data changed" notifications so clients can refetch instead of polling. See `doc/client.md` → "Live Updates (WebSocket)" and `doc/server.md` → "Live Updates (WebSocket)" for full details.
+
+**Auth**: the connection is accepted unauthenticated, then the client must send `{ "type": "auth", "token": "<accessToken>", "clientId"?: "<uuid>" }` as its first WebSocket message within 5 seconds — deliberately not a `?token=` query param, since query strings end up in nginx/proxy access logs and browser devtools/history. The server verifies the token and scopes the connection to that token's `babyId`, replying `{ "type": "auth-ok" }` on success. A connection that doesn't authenticate in time, sends an invalid token, or has no `babyId`, is closed.
+
+The optional `clientId` is a random per-tab ID the client generates once and also sends as the `X-Ws-Client-Id` header on mutating REST requests. If a request that triggers an update carries the same `clientId` as this connection (i.e. this exact tab caused the change), the server skips sending that particular `update` notification to it — the tab already has fresh data from its own request's response. Every other connection (other tabs, other devices, even other devices logged in as the same username) is still notified. The server also keeps at most one live connection per `clientId` — if a tab reconnects (e.g. after being backgrounded) before its old socket ever sent a close frame, the new connection immediately replaces the stale one rather than leaving it to linger until the next heartbeat.
+
+**Messages sent by the client**: `{ "type": "auth", "token": "<accessToken>", "clientId"?: "<uuid>" }` as the first message only (see Auth above).
+
+**Messages sent to the client**: `{ "type": "auth-ok" }` once authenticated, then `{ "type": "update" }` whenever a mutating request (`POST`/`PUT`/`PATCH`/`DELETE`) succeeds for that baby — no other payload is ever sent.
 
 ---
 

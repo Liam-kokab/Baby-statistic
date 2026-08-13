@@ -5,6 +5,13 @@ export type TDataFreshness = {
   lastUpdatedAt: number | null;
   /** `true` if the most recent fetch attempt failed (data may be stale/wrong). */
   isError: boolean;
+  /**
+   * `true` if a live `useBabyUpdatesSocket` WebSocket connection is currently open for this
+   * page's baby — takes priority over the age-based coloring in `DataFreshnessDot` (green).
+   * Omitted/`false` on pages that don't wire up the socket, or while it's disconnected (falls
+   * back to the existing polling/age-based coloring).
+   */
+  wsConnected?: boolean;
 };
 
 export type TUseDataFreshnessResult = TDataFreshness & {

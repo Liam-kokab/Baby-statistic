@@ -5,21 +5,22 @@ import styles from './DataFreshnessDot.module.css';
 
 type TProps = TDataFreshness;
 
-/** Below this age the dot is green ("fresh"). */
-const GREEN_MAX_MS = 5 * 60_000;
-/** Below this age (and above GREEN_MAX_MS) the dot is yellow ("getting stale"). */
-const YELLOW_MAX_MS = 20 * 60_000;
+/** Below this age (when the WebSocket is disconnected) the dot is yellow ("fresh but not live"). */
+const STALE_MAX_MS = 5 * 60_000;
 /** How often the dot re-evaluates its color/tooltip against the current time, even without new data. */
 const TICK_MS = 15_000;
 
 type TFreshnessStatus = 'green' | 'yellow' | 'red';
 
 /**
- * Small colored dot shown in the top-right of every page's banner, indicating how old the
- * page's data is: green (< 5 min), yellow (< 20 min), red (≥ 20 min or the last fetch failed).
- * Hovering (native `title` tooltip) shows the exact age and what the dot represents.
+ * Small colored dot shown in the top-right of every page's banner, indicating whether data is
+ * live and how old it is:
+ * - green — the WebSocket (`useBabyUpdatesSocket`) is connected, so data updates in real time
+ * - yellow — WebSocket disconnected, but the last successful fetch was < 5 min ago
+ * - red — WebSocket disconnected and data is ≥ 5 min old, or the last fetch attempt failed
+ * Hovering (native `title` tooltip) shows the exact age and connection state.
  */
-const DataFreshnessDot = ({ lastUpdatedAt, isError }: TProps) => {
+const DataFreshnessDot = ({ lastUpdatedAt, isError, wsConnected }: TProps) => {
   const { t } = useTranslation();
   // Forces a re-render every TICK_MS so the color/tooltip age keeps advancing even when
   // lastUpdatedAt/isError haven't changed (i.e. no new fetch has happened).
@@ -32,12 +33,13 @@ const DataFreshnessDot = ({ lastUpdatedAt, isError }: TProps) => {
 
   const ageMs = lastUpdatedAt !== null ? Date.now() - lastUpdatedAt : null;
 
-  const status: TFreshnessStatus =
-    isError || ageMs === null || ageMs > YELLOW_MAX_MS
-      ? 'red'
-      : ageMs > GREEN_MAX_MS
-        ? 'yellow'
-        : 'green';
+  const status: TFreshnessStatus = isError
+    ? 'red'
+    : wsConnected
+      ? 'green'
+      : ageMs === null || ageMs > STALE_MAX_MS
+        ? 'red'
+        : 'yellow';
 
   const ageLabel = (): string => {
     if (ageMs === null) return t('DATA_FRESHNESS_UNKNOWN');
@@ -48,7 +50,9 @@ const DataFreshnessDot = ({ lastUpdatedAt, isError }: TProps) => {
 
   const tooltip = isError
     ? t('DATA_FRESHNESS_TOOLTIP_ERROR', { age: ageLabel() })
-    : t('DATA_FRESHNESS_TOOLTIP_OK', { age: ageLabel() });
+    : wsConnected
+      ? t('DATA_FRESHNESS_TOOLTIP_LIVE', { age: ageLabel() })
+      : t('DATA_FRESHNESS_TOOLTIP_OK', { age: ageLabel() });
 
   return (
     <span className={styles.wrapper} title={tooltip} aria-label={tooltip}>
@@ -58,4 +62,5 @@ const DataFreshnessDot = ({ lastUpdatedAt, isError }: TProps) => {
 };
 
 export default DataFreshnessDot;
+
 

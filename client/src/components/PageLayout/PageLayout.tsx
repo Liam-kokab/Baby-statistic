@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import BlackScreenOverlay from '../BlackScreenOverlay/BlackScreenOverlay';
 import DataFreshnessDot from '../DataFreshnessDot/DataFreshnessDot';
@@ -6,6 +6,7 @@ import BackupStatusDot from '../BackupStatusDot/BackupStatusDot';
 import useBlackScreen from '../../utils/useBlackScreen';
 import type { TDataFreshness } from '../../utils/useDataFreshness';
 import { useTranslation } from '../../i18n/i18n';
+import { BLACK_SCREEN_KEEP_AWAKE_MS } from '../../config';
 import styles from './PageLayout.module.css';
 
 type TGradient = 'pink' | 'blue' | 'green' | 'indigo' | 'amber';
@@ -21,11 +22,31 @@ type TProps = {
   bannerSlug?: string;
   /** When provided, shows the data-freshness dot (top-right of the banner) — see `useDataFreshness`. */
   dataFreshness?: TDataFreshness;
+  /**
+   * Called whenever the black-screen overlay opens/closes. Lets the page pause its own
+   * `useRefetchOnVisible`/`useBabyUpdatesSocket` (via `enabled: !isBlackScreenOpen`) while the
+   * overlay is up — otherwise a WS update would trigger both the page's own (hidden) refetch and
+   * `BlackScreenOverlay`'s own `useAlwaysOnDisplayData` fetch/socket at once, and opening the
+   * overlay would visibly add a second, redundant WebSocket connection alongside the page's own.
+   */
+  onBlackScreenOpenChange?: (isOpen: boolean) => void;
 };
 
-const PageLayout = forwardRef<HTMLDivElement, TProps>(({ title, emoji, children, gradient = 'pink', bannerSlug, dataFreshness }, ref) => {
+const PageLayout = forwardRef<HTMLDivElement, TProps>(({ title, emoji, children, gradient = 'pink', bannerSlug, dataFreshness, onBlackScreenOpenChange }, ref) => {
   const { t } = useTranslation();
-  const { isOpen: isBlackScreenOpen, isExitVisible: isBlackScreenExitVisible, isCursorVisible: isBlackScreenCursorVisible, open: openBlackScreen, close: closeBlackScreen, onPointerActivity: onBlackScreenPointerActivity } = useBlackScreen();
+  // `keepAwakeMs` matches HomePage's own `useBlackScreen` call so the black screen ("always on
+  // display") behaves identically everywhere — same wake lock/keep-awake duration — no matter
+  // which page it was opened from.
+  const { isOpen: isBlackScreenOpen, isExitVisible: isBlackScreenExitVisible, isCursorVisible: isBlackScreenCursorVisible, open: openBlackScreen, close: closeBlackScreen, onPointerActivity: onBlackScreenPointerActivity } = useBlackScreen({ keepAwakeMs: BLACK_SCREEN_KEEP_AWAKE_MS });
+
+  const onBlackScreenOpenChangeRef = useRef(onBlackScreenOpenChange);
+  useEffect(() => {
+    onBlackScreenOpenChangeRef.current = onBlackScreenOpenChange;
+  });
+  useEffect(() => {
+    onBlackScreenOpenChangeRef.current?.(isBlackScreenOpen);
+  }, [isBlackScreenOpen]);
+
 
   // create a safe slug from title to reference per-page CSS variables
   const slugSource = bannerSlug ?? title;
@@ -46,7 +67,7 @@ const PageLayout = forwardRef<HTMLDivElement, TProps>(({ title, emoji, children,
   return (
     <div className={styles.page} ref={ref}>
       <header className={`${styles.header} ${styles[gradient]}`} style={headerStyle}>
-        {dataFreshness ? <DataFreshnessDot lastUpdatedAt={dataFreshness.lastUpdatedAt} isError={dataFreshness.isError} /> : null}
+        {dataFreshness ? <DataFreshnessDot {...dataFreshness} /> : null}
         {dataFreshness ? <BackupStatusDot /> : null}
         <button
           type="button"

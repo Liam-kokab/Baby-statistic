@@ -1,5 +1,6 @@
 import type { TDataOrError, TRefreshResponse } from 'baby-statistic-common';
 import { authStore } from './authStore';
+import { getWsClientId } from './wsClientId';
 
 let isRefreshing = false;
 let refreshQueue: Array<(ok: boolean) => void> = [];
@@ -52,6 +53,10 @@ export const authFetch = async <T>(url: string, options: RequestInit = {}): Prom
   const headers = new Headers(options.headers ?? {});
   if (token) headers.set('Authorization', `Bearer ${token}`);
   headers.set('Content-Type', headers.get('Content-Type') ?? 'application/json');
+  // Lets the server skip echoing a WebSocket "update" notification back to the tab that
+  // caused it (see wsClientId.ts) — safe to send on every request, the server only reads it
+  // for mutating methods.
+  headers.set('X-Ws-Client-Id', getWsClientId());
 
   try {
     const res = await fetch(url, { ...options, headers });

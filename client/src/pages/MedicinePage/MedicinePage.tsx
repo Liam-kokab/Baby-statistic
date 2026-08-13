@@ -14,6 +14,7 @@ import { fillDayRange } from '../../utils/fillDayRange';
 import { formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useDataFreshness from '../../utils/useDataFreshness';
+import useBabyUpdatesSocket from '../../utils/useBabyUpdatesSocket';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -88,7 +89,13 @@ const MedicinePage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const visibilityRef = useRefetchOnVisible(() => { loadMedicines(); refresh(); });
+  // Paused while the black-screen overlay is open — see PageLayout's `onBlackScreenOpenChange`
+  // doc comment for why (avoids a redundant second WS connection/refetch alongside the overlay's).
+  const [isBlackScreenOpen, setIsBlackScreenOpen] = useState(false);
+  const { connected: wsConnected } = useBabyUpdatesSocket(() => { loadMedicines(); refresh(); }, !isBlackScreenOpen, () => freshness.lastUpdatedAt);
+  // The stale-timer/tab-visibility fallback is only needed while the WebSocket is disconnected —
+  // once it's connected, live "update" notifications make the 5-minute poll redundant.
+  const visibilityRef = useRefetchOnVisible(() => { loadMedicines(); refresh(); }, undefined, !isBlackScreenOpen && !wsConnected);
 
   // Merge log data with medicine names
   const nameMap = useMemo(
@@ -329,7 +336,7 @@ const MedicinePage = () => {
   };
 
   return (
-    <PageLayout title={t('MEDICINE_PAGE_TITLE')} emoji="💊" gradient="green" ref={visibilityRef} dataFreshness={freshness}>
+    <PageLayout title={t('MEDICINE_PAGE_TITLE')} emoji="💊" gradient="green" ref={visibilityRef} dataFreshness={{ ...freshness, wsConnected }} onBlackScreenOpenChange={setIsBlackScreenOpen}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
 
       {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}

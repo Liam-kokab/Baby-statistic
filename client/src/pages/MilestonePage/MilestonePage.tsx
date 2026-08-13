@@ -10,6 +10,7 @@ import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import { formatDate } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useDataFreshness from '../../utils/useDataFreshness';
+import useBabyUpdatesSocket from '../../utils/useBabyUpdatesSocket';
 import { useTranslation, type TLanguage } from '../../i18n/i18n';
 import styles from './MilestonePage.module.css';
 
@@ -80,7 +81,13 @@ const MilestonePage = () => {
 
   useEffect(() => { loadMilestones(); }, [loadMilestones]);
 
-  const visibilityRef = useRefetchOnVisible(() => { loadMilestones(); });
+  // Paused while the black-screen overlay is open — see PageLayout's `onBlackScreenOpenChange`
+  // doc comment for why (avoids a redundant second WS connection/refetch alongside the overlay's).
+  const [isBlackScreenOpen, setIsBlackScreenOpen] = useState(false);
+  const { connected: wsConnected } = useBabyUpdatesSocket(() => { loadMilestones(); }, !isBlackScreenOpen, () => freshness.lastUpdatedAt);
+  // The stale-timer/tab-visibility fallback is only needed while the WebSocket is disconnected —
+  // once it's connected, live "update" notifications make the 5-minute poll redundant.
+  const visibilityRef = useRefetchOnVisible(() => { loadMilestones(); }, undefined, !isBlackScreenOpen && !wsConnected);
 
   const groupedMilestones = useMemo<TMilestoneMonthGroup[]>(() => {
     const sortedMilestones = [...milestones].sort((a, b) => parseMilestoneDate(b.occurredAt) - parseMilestoneDate(a.occurredAt));
@@ -128,7 +135,7 @@ const MilestonePage = () => {
   };
 
   return (
-    <PageLayout title={t('MILESTONE_PAGE_TITLE')} emoji="🏆" gradient="amber" bannerSlug="my-first" ref={visibilityRef} dataFreshness={freshness}>
+    <PageLayout title={t('MILESTONE_PAGE_TITLE')} emoji="🏆" gradient="amber" bannerSlug="my-first" ref={visibilityRef} dataFreshness={{ ...freshness, wsConnected }} onBlackScreenOpenChange={setIsBlackScreenOpen}>
       {addOpen ? (
         <div className={styles.addForm}>
           <Input label={t('MILESTONE_PAGE_TITLE_LABEL')} value={newTitle} onChange={setNewTitle} placeholder={t('MILESTONE_PAGE_TITLE_PLACEHOLDER')} name="milestoneTitle" />

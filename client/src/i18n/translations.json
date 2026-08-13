@@ -17,6 +17,7 @@
   "DATA_FRESHNESS_UNKNOWN": { "en": "unknown", "nb": "ukjent" },
   "DATA_FRESHNESS_TOOLTIP_OK": { "en": "Data freshness — last updated {age}", "nb": "Datafriskhet — sist oppdatert {age}" },
   "DATA_FRESHNESS_TOOLTIP_ERROR": { "en": "Data freshness — last update failed (last known data from {age})", "nb": "Datafriskhet — siste oppdatering feilet (siste kjente data fra {age})" },
+  "DATA_FRESHNESS_TOOLTIP_LIVE": { "en": "Data freshness — live (connected), last updated {age}", "nb": "Datafriskhet — direkte (tilkoblet), sist oppdatert {age}" },
 
   "BACKUP_STATUS_JUST_NOW": { "en": "just now", "nb": "akkurat nå" },
   "BACKUP_STATUS_NEVER": { "en": "never", "nb": "aldri" },

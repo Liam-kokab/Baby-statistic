@@ -8,6 +8,14 @@ Production traffic is fronted by **nginx**, which owns ports `80`/`443` and term
 - **certbot manages certs and renewal** — nginx config is auto-rewritten by `certbot --nginx` to replace the placeholder `ssl_certificate` lines with the real Let's Encrypt cert; the ACME HTTP-01 challenge location is already present in the template (`/.well-known/acme-challenge/` → `/var/www/certbot`), so certbot reuses it instead of inserting a new one.
 - **Placeholder cert avoids the chicken-and-egg startup problem** — nginx must already be running and pass `nginx -t` for `certbot --nginx` to obtain a certificate through it, but a real Let's Encrypt cert doesn't exist yet on a fresh machine. The template's `443` block points at the distro's self-signed "snakeoil" cert (`ssl-cert` package) as a bootstrap placeholder so the initial `nginx -t`/reload succeed; certbot overwrites those two lines with the real cert path once issued.
 
+## WebSocket support (`/ws`)
+The live-updates WebSocket (`/ws`, see `doc/server.md`/`doc/client.md` → "Live Updates") is proxied by the same `location /` block as the REST API and SPA — there's no separate `location /ws` block. This works because that block:
+- Sets `proxy_http_version 1.1` (required for the HTTP upgrade handshake).
+- Forwards the `Upgrade`/`Connection: upgrade` headers unconditionally.
+- Terminates TLS the same as everything else, so the client connects via `wss://` in production — see `useBabyUpdatesSocket.ts` on the client, which picks `wss:`/`ws:` based on `window.location.protocol`.
+
+The default `proxy_read_timeout` (60s) sits above the server's 30s WebSocket ping interval (`server/src/ws/wsServer.ts`), keeping idle connections alive without any timeout tuning.
+
 ## Files
 | File | Purpose |
 |---|---|

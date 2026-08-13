@@ -11,6 +11,7 @@ import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useDataFreshness from '../../utils/useDataFreshness';
+import useBabyUpdatesSocket from '../../utils/useBabyUpdatesSocket';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -77,7 +78,13 @@ const PoopPeePage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const visibilityRef = useRefetchOnVisible(() => { loadSummary(); refresh(); });
+  // Paused while the black-screen overlay is open — see PageLayout's `onBlackScreenOpenChange`
+  // doc comment for why (avoids a redundant second WS connection/refetch alongside the overlay's).
+  const [isBlackScreenOpen, setIsBlackScreenOpen] = useState(false);
+  const { connected: wsConnected } = useBabyUpdatesSocket(() => { loadSummary(); refresh(); }, !isBlackScreenOpen, () => freshness.lastUpdatedAt);
+  // The stale-timer/tab-visibility fallback is only needed while the WebSocket is disconnected —
+  // once it's connected, live "update" notifications make the 5-minute poll redundant.
+  const visibilityRef = useRefetchOnVisible(() => { loadSummary(); refresh(); }, undefined, !isBlackScreenOpen && !wsConnected);
 
   const toggleDay = (date: string): void =>
     setOpenDays((prev) => { const n = new Set(prev); if (n.has(date)) n.delete(date); else n.add(date); return n; });
@@ -202,7 +209,7 @@ const PoopPeePage = () => {
   };
 
   return (
-    <PageLayout title={t('POOP_PEE_PAGE_TITLE')} emoji="💩" gradient="amber" bannerSlug="poop-pee" ref={visibilityRef} dataFreshness={freshness}>
+    <PageLayout title={t('POOP_PEE_PAGE_TITLE')} emoji="💩" gradient="amber" bannerSlug="poop-pee" ref={visibilityRef} dataFreshness={{ ...freshness, wsConnected }} onBlackScreenOpenChange={setIsBlackScreenOpen}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('POOP_PEE_PAGE_POOP_STAT')} <strong>{summary ? summary.poopCount : t('COMMON_DASH')}</strong></div>

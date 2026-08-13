@@ -1,14 +1,16 @@
 import './loadEnv';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import helmet from 'helmet';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
-// ...existing code...
 import './db';
 import { authenticate } from './middleware/authenticate';
+import { attachWebSocketServer } from './ws/wsServer';
+import { publishBabyUpdate } from './ws/eventBus';
 import pingRouter from './routes/ping';
 import authRouter from './routes/auth';
 import adminRouter from './routes/admin';
@@ -109,6 +111,26 @@ app.use('/api/auth', authRouter);
 // page navigation, and the login page itself needs to load before any token exists.
 app.use('/api', authenticate);
 
+// Broadcasts a "this baby's data changed" WebSocket notification (see ws/) after any
+// successful mutating request on a baby-scoped route, so connected clients know to
+// refetch — see doc/client.md ("Live updates (WebSocket)") for the full design. Placed
+// after `authenticate` so `req.user` is populated; fires once per request via
+// `res.on('finish')` so it only runs after the response (and thus the DB write) completes.
+// The `X-Ws-Client-Id` header (set by the client on every request, see
+// client/src/utils/wsClientId.ts) is forwarded as `originClientId` so wsServer.ts can skip
+// echoing the notification back to the exact tab that caused the change.
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+app.use('/api', (req: Request, res: Response, next: NextFunction): void => {
+  if (MUTATING_METHODS.has(req.method) && req.user?.babyId) {
+    const babyId = req.user.babyId;
+    const originClientId = req.header('X-Ws-Client-Id') ?? undefined;
+    res.on('finish', () => {
+      if (res.statusCode >= 200 && res.statusCode < 300) publishBabyUpdate(babyId, originClientId);
+    });
+  }
+  next();
+});
+
 // Admin routes
 app.use('/api/admin', adminRouter);
 
@@ -148,8 +170,12 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction): void 
   res.status(500).json({ error: message });
 });
 
-app.listen(PORT, () => {
+const httpServer = http.createServer(app);
+attachWebSocketServer(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
   console.log(`📡 API base:   http://localhost:${PORT}/api`);
   console.log(`📖 Swagger UI: http://localhost:${PORT}/api-docs\n`);
+  console.log(`🔌 WebSocket:  ws://localhost:${PORT}/ws\n`);
 });
