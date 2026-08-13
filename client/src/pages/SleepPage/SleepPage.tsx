@@ -9,9 +9,8 @@ import Button from '../../components/Button/Button';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
-import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useDataFreshness from '../../utils/useDataFreshness';
-import useBabyUpdatesSocket from '../../utils/useBabyUpdatesSocket';
+import useLiveDataSync from '../../utils/useLiveDataSync';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
@@ -109,13 +108,7 @@ const SleepPage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  // Paused while the black-screen overlay is open — see PageLayout's `onBlackScreenOpenChange`
-  // doc comment for why (avoids a redundant second WS connection/refetch alongside the overlay's).
-  const [isBlackScreenOpen, setIsBlackScreenOpen] = useState(false);
-  const { connected: wsConnected } = useBabyUpdatesSocket(() => { loadSummary(); refresh(); }, !isBlackScreenOpen, () => freshness.lastUpdatedAt);
-  // The stale-timer/tab-visibility fallback is only needed while the WebSocket is disconnected —
-  // once it's connected, live "update" notifications make the 5-minute poll redundant.
-  const visibilityRef = useRefetchOnVisible(() => { loadSummary(); refresh(); }, undefined, !isBlackScreenOpen && !wsConnected);
+  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(() => { loadSummary(); refresh(); }, freshness);
 
   const toggleDay = (date: string): void =>
     setOpenDays((prev) => { const n = new Set(prev); if (n.has(date)) n.delete(date); else n.add(date); return n; });
@@ -289,7 +282,7 @@ const SleepPage = () => {
   };
 
   return (
-    <PageLayout title={t('SLEEP_PAGE_TITLE')} emoji="😴" gradient="indigo" ref={visibilityRef} dataFreshness={{ ...freshness, wsConnected }} onBlackScreenOpenChange={setIsBlackScreenOpen}>
+    <PageLayout title={t('SLEEP_PAGE_TITLE')} emoji="😴" gradient="indigo" ref={visibilityRef} dataFreshness={dataFreshness} onBlackScreenOpenChange={onBlackScreenOpenChange}>
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('SLEEP_PAGE_TOTAL')} <strong>{summary ? formatMs(summary.totalMs) : t('COMMON_DASH')}</strong></div>
