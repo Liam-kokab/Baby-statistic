@@ -48,21 +48,22 @@ The application uses **JWT-based stateless authentication** with short-lived acc
 
 ```
 1. Client → POST /api/auth/login { username, password }
-2. Server verifies password (bcrypt.compare)
-3. Server returns { accessToken (15 min), refreshToken (7 days), user }
-4. Client stores both in localStorage
+2. Server looks up the user case-insensitively (username lookup is case-insensitive; password is not)
+3. Server verifies password (bcrypt.compare)
+4. Server returns { accessToken (15 min), refreshToken (7 days), user }
+5. Client stores both in localStorage
 
-5. Client → GET /api/... with Authorization: Bearer <accessToken>
-6. Server middleware verifies token, sets req.user
+6. Client → GET /api/... with Authorization: Bearer <accessToken>
+7. Server middleware verifies token, sets req.user
 
-7. [Token expires]
-8. Client → POST /api/auth/refresh { refreshToken }
-9. Server verifies token hash in DB, issues new access + refresh pair (rotation)
-10. Client updates localStorage with new tokens
+8. [Token expires]
+9. Client → POST /api/auth/refresh { refreshToken }
+10. Server verifies token hash in DB, issues new access + refresh pair (rotation)
+11. Client updates localStorage with new tokens
 
-11. Client → POST /api/auth/logout { refreshToken }
-12. Server deletes refresh token hash from DB
-13. Client clears localStorage
+12. Client → POST /api/auth/logout { refreshToken }
+13. Server deletes refresh token hash from DB
+14. Client clears localStorage
 ```
 
 ---

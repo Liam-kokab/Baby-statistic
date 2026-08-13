@@ -45,7 +45,7 @@ router.post('/login', loginLimiter, async (req: Request, res: Response): Promise
     res.status(400).json({ error: 'username and password are required' });
     return;
   }
-  const userRow = userRepository.findByUsername(username);
+  const userRow = userRepository.findByUsernameCaseInsensitive(username);
   if (!userRow) {
     res.status(401).json({ error: 'Invalid credentials' });
     return;

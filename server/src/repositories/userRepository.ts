@@ -19,6 +19,11 @@ export const userRepository = {
   findByUsername: (username: string): TUserDb | null =>
     db.prepare<[string], TUserDb>('SELECT * FROM users WHERE username = ?').get(username) ?? null,
 
+  // Case-insensitive lookup — used for login so users can type their username
+  // in any case combination.
+  findByUsernameCaseInsensitive: (username: string): TUserDb | null =>
+    db.prepare<[string], TUserDb>('SELECT * FROM users WHERE LOWER(username) = LOWER(?)').get(username) ?? null,
+
   findAll: (): TUser[] =>
     db.prepare<[], TUserDb>('SELECT * FROM users ORDER BY username').all().map(fromDb),
 
