@@ -33,6 +33,9 @@ const useBlackScreen = ({ keepAwakeMs, onClose }: TUseBlackScreenOptions = {}): 
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const wakeLockAllowedRef = useRef<boolean>(true);
   const onCloseRef = useRef(onClose);
+  // Mirrors `isOpen` synchronously (state updates are async) so the `fullscreenchange` handler
+  // below can tell whether it's reacting to our own `close()` call or the user hitting Escape.
+  const isOpenRef = useRef(false);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isExitVisible, setIsExitVisible] = useState(false);
@@ -124,6 +127,7 @@ const useBlackScreen = ({ keepAwakeMs, onClose }: TUseBlackScreenOptions = {}): 
     clearCursorTimeout();
     clearKeepAwakeTimeout();
     wakeLockAllowedRef.current = true;
+    isOpenRef.current = true;
     setIsExitVisible(false);
     setIsCursorVisible(true);
     setIsOpen(true);
@@ -140,6 +144,8 @@ const useBlackScreen = ({ keepAwakeMs, onClose }: TUseBlackScreenOptions = {}): 
   }, [keepAwakeMs]);
 
   const close = useCallback((): void => {
+    if (!isOpenRef.current) return;
+    isOpenRef.current = false;
     clearExitTimeout();
     clearCursorTimeout();
     clearKeepAwakeTimeout();
@@ -170,6 +176,29 @@ const useBlackScreen = ({ keepAwakeMs, onClose }: TUseBlackScreenOptions = {}): 
     clearKeepAwakeTimeout();
     releaseWakeLock();
   }, []);
+
+  // Pressing Escape to leave fullscreen is handled natively by the browser — it exits
+  // fullscreen itself without dispatching a (catchable) keydown to the page, so the overlay
+  // would otherwise stay open with the page no longer fullscreen. Watch `fullscreenchange`
+  // instead: if fullscreen ends while we still think we're open, close the overlay too.
+  useEffect(() => {
+    const onFullscreenChange = (): void => {
+      if (document.fullscreenElement === null && isOpenRef.current) close();
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, [close]);
+
+  // Fallback for cases where fullscreen was never entered (e.g. blocked by the browser): a
+  // regular Escape keydown still reaches the page, so close the overlay on it too.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, close]);
 
   return { isOpen, isExitVisible, isCursorVisible, open, close, onPointerActivity };
 };
