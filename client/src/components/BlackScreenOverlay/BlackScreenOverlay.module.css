@@ -78,6 +78,9 @@
 .blackScreenReadoutText {
   display: block;
   color: #fff;
+  /* Emoji (💊, ✅, ❌, …) are rendered as full-color glyphs by default — grayscale keeps them
+     unobtrusive and consistent with the plain white readout text instead of standing out. */
+  filter: grayscale(1);
 }
 
 .blackScreenDataVisible {

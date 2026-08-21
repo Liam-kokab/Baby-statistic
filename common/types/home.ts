@@ -2,6 +2,7 @@ import type { TSleep } from './sleep';
 import type { TDrankMilk } from './drankMilk';
 import type { TPumping } from './pumping';
 import type { TMedicineWithLatestLog } from './medicine';
+import type { TDrankMilkTodayStats } from './summaries';
 
 /**
  * Aggregated payload for the Home page's first load and background refresh —
@@ -24,5 +25,7 @@ export type TAlwaysOnDisplayData = {
   latestSleep: TSleep | null;
   latestPumping: TPumping | null;
   latestDrank: TDrankMilk | null;
+  drankToday: TDrankMilkTodayStats;
+  medicines: TMedicineWithLatestLog[];
 };
 

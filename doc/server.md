@@ -171,9 +171,10 @@ Each table has a service in `server/src/services/`. Services sit between routes 
 | `servedMilkService` | `update` | Calls `expireOverdue()` after updating |
  | `drankMilkService` | `insert` | For `FRIDGE`/`FREEZER`: logs the current prediction (into `prediction_log`), calls `deductStock` before inserting, and after the `drank_milk` row is created links the prediction to the actual drink. If `isNewBottle` is `false`, adds the amount to the latest existing record instead of creating a new one. `BOOB` skips stock deduction and is not logged/linked. |
 | `drankMilkService` | `deductWaste(waste)` | Delegates to `drankMilkRepository.deductWaste`; only targets `FRIDGE`/`FREEZER` records; skips `deductStock` |
+| `drankMilkService` | `findTodayStats(ctx)` | Delegates to `drankMilkRepository.findTodayAndRecentAvg` — today's ml so far (Oslo local date) vs the avg ml/day over the 10 days before today (divided by active days); backs `GET /api/drank-milk/today-stats` and is folded into `homeService.getAlwaysOnDisplay`. |
 | `sleepService` | `findLatest()` | Delegates to `sleepRepository.findLatest()` |
 | `homeService` | `getSummary(ctx)` | Aggregates `sleepService.findLatest`, `drankMilkService.findLatest`/`suggestNextDrinkAmount`, `pumpingService.findLatest`, latest pee/poop, and `medicineService.findAllActive` into one `THomeSummary` payload — backs `GET /api/home/summary`, used by the Home page for its first load and every subsequent update. |
-| `homeService` | `getAlwaysOnDisplay(ctx)` | Lighter subset (`latestSleep`, `latestPumping`, `latestDrank`) backing `GET /api/home/always-on-display` — used by every page's black-screen readout, refreshed on open and every 5 minutes after. |
+| `homeService` | `getAlwaysOnDisplay(ctx)` | Lighter subset (`latestSleep`, `latestPumping`, `latestDrank`, `drankToday`, `medicines`) backing `GET /api/home/always-on-display` — used by every page's black-screen readout, refreshed on open and every 5 minutes after. |
 | `appEventsService` | `reportBackupSuccess(timestamp?)` / `getBackupStatus()` | Upserts/reads the single `app_events` row with `id = 'BACKUP'`, backing `POST`/`GET /api/app-events/backup`. Not baby-scoped — a global, app-wide status. |
 
 ## Timezone

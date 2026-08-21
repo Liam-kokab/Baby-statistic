@@ -1,4 +1,4 @@
-import type { TDrankMilk, TPostDrankMilk, TDrankMilkSummary } from 'baby-statistic-common';
+import type { TDrankMilk, TPostDrankMilk, TDrankMilkSummary, TDrankMilkTodayStats } from 'baby-statistic-common';
 import { drankMilkRepository } from '../repositories/drankMilkRepository';
 import { servedMilkRepository } from '../repositories/servedMilkRepository';
 import type { TTimeFilter, TBabyContext } from '../types';
@@ -12,6 +12,9 @@ export const drankMilkService = {
 
   findSummary: (filter: TTimeFilter = {}, ctx: TBabyContext): TDrankMilkSummary =>
     drankMilkRepository.findSummary(filter, ctx.babyId),
+
+  findTodayStats: (ctx: TBabyContext): TDrankMilkTodayStats =>
+    drankMilkRepository.findTodayAndRecentAvg(ctx.babyId),
 
   findLatest: (ctx: TBabyContext): TDrankMilk | null =>
     drankMilkRepository.findLatest(ctx.babyId),

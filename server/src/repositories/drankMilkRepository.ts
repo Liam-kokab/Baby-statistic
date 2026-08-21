@@ -1,4 +1,4 @@
-import type { TDrankMilk, TDrankMilkDb, TPostDrankMilk, TDrankMilkSummary } from 'baby-statistic-common';
+import type { TDrankMilk, TDrankMilkDb, TPostDrankMilk, TDrankMilkSummary, TDrankMilkTodayStats } from 'baby-statistic-common';
 import { db } from '../db';
 import type { TTimeFilter } from '../types';
 import { nowOslo, toOsloIso, toOsloLocal } from '../utils/time';
@@ -46,6 +46,29 @@ export const drankMilkRepository = {
       count: row.count,
       totalMl: row.totalMl,
       avgPerDay: row.activeDays > 0 ? Math.round(row.totalMl / row.activeDays) : 0,
+      hasBoob: row.hasBoob === 1,
+    };
+  },
+
+  /**
+   * "Today so far" (Oslo local date) vs the average ml/day over the 10 calendar days before
+   * today — divided only by the days that actually have a record (`recentActiveDays`), matching
+   * the `avgPerDay` convention in {@link findSummary}.
+   */
+  findTodayAndRecentAvg: (babyId: number): TDrankMilkTodayStats => {
+    const today = nowOslo().slice(0, 10);
+    const row = db.prepare<unknown[], { todayMl: number; recentMl: number; recentActiveDays: number; hasBoob: number }>(
+      `SELECT
+         COALESCE(SUM(CASE WHEN date(created_at) = ? THEN amount ELSE 0 END), 0) AS todayMl,
+         COALESCE(SUM(CASE WHEN date(created_at) < ? AND date(created_at) >= date(?, '-10 days') THEN amount ELSE 0 END), 0) AS recentMl,
+         COUNT(DISTINCT CASE WHEN date(created_at) < ? AND date(created_at) >= date(?, '-10 days') THEN date(created_at) END) AS recentActiveDays,
+         MAX(CASE WHEN source = 'BOOB' THEN 1 ELSE 0 END) AS hasBoob
+       FROM drank_milk
+       WHERE baby_id = ? AND date(created_at) >= date(?, '-10 days')`
+    ).get(today, today, today, today, today, babyId, today)!;
+    return {
+      todayMl: row.todayMl,
+      avgPerDayLast10: row.recentActiveDays > 0 ? Math.round(row.recentMl / row.recentActiveDays) : 0,
       hasBoob: row.hasBoob === 1,
     };
   },

@@ -7,7 +7,7 @@ export type { TPoopDb, TPoop, TPostPoop } from './poop';
 export type { TDataOrError, TPaginatedResponse, TWishedResult } from './TUtils';
 export type { TMedicineDb, TMedicine, TPostMedicine, TMedicineLogDb, TMedicineLog, TPostMedicineLog, TMedicineWithLatestLog } from './medicine';
 export type { TPumpingDb, TPumping, TPostPumping } from './pumping';
-export type { TDrankMilkSummary, TSleepSummary, TNappySummary, TPumpingSummary } from './summaries';
+export type { TDrankMilkSummary, TDrankMilkTodayStats, TSleepSummary, TNappySummary, TPumpingSummary } from './summaries';
 export type { TMilestoneDb, TMilestone, TPostMilestone, TUpdateMilestone } from './milestone';
 export type { THomeSummary, TAlwaysOnDisplayData } from './home';
 export type { TAppEventId, TAppEventDb, TAppEvent, TBackupStatus, TPostBackupStatus } from './appEvents';

@@ -17,6 +17,7 @@ import { useTranslation } from '../../i18n/i18n';
 import { DEFAULT_HOME_WIDGETS } from '../../utils/homeWidgets';
 import type { THomeWidgetKey } from '../../utils/homeWidgets';
 import { getSavedHomeWidgetOrder, getHiddenHomeWidgets, applyHomeWidgetOrder } from '../../utils/homeWidgetPrefs';
+import { isMedicineTakenToday } from '../../utils/medicineStatus';
 import type { TNoiseType } from '../../utils/whiteNoise';
 import { whiteNoisePlayer } from '../../utils/whiteNoise';
 import { useWhiteNoisePlayerState } from '../../utils/useWhiteNoisePlayerState';
@@ -272,11 +273,7 @@ const HomePage = () => {
     });
   };
 
-  const isTakenToday = (m: TMedicineWithLatestLog): boolean => {
-    if (!m.latestTakenAt) return false;
-    const today = new Date().toLocaleDateString('sv'); // YYYY-MM-DD in local time
-    return m.latestTakenAt.slice(0, 10) === today;
-  };
+  const isTakenToday = (m: TMedicineWithLatestLog): boolean => isMedicineTakenToday(m);
 
   const isSleeping = activeSleep !== null;
 

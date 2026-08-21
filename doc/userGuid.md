@@ -102,9 +102,10 @@ View the history of all feeding sessions.
 Defaults to the last 3 months. Change the **From** and **To** dates to narrow the period.
 
 ### Stats Bar
-Shown **below** the filter — reflects the selected date range:
-- 🍼 Total — total ml consumed in the period
-- 📊 Avg/day — average ml per day (`total ÷ number of days that have records`)
+Shown **below** the filter:
+- 🍼 Total — total ml consumed in the selected date range
+- In **Item** view, the second chip shows 📊 Today/avg — how much the baby has drunk **so far today**, and the average ml/day over the **10 days before today** (`total ÷ number of those days that have records`), in the form `{today}/{avg}`
+- In **Day**/**Week** view, the second chip instead shows 📊 Avg/day — average ml per day over the selected date range (`total ÷ number of days that have records`)
 
 ### View Modes
 Same Item / Day / Week views as Milk Saved. Each entry shows amount (ml) and time.

@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n/i18n';
 import useAlwaysOnDisplayData from '../../utils/useAlwaysOnDisplayData';
 import { getHiddenBlackScreenFields, getBlackScreenOpacityPercent } from '../../utils/blackScreenPrefs';
 import type { TBlackScreenField } from '../../utils/blackScreenPrefs';
+import { isMedicineTakenToday } from '../../utils/medicineStatus';
 import { formatTime as formatClockTime } from '../../utils/format';
 import styles from './BlackScreenOverlay.module.css';
 
@@ -54,6 +55,8 @@ const BlackScreenOverlay = ({ isOpen, isExitVisible, isCursorVisible, onPointerA
   const sleepRef = isSleeping ? data?.latestSleep?.start ?? null : data?.latestSleep?.end ?? null;
   const pumpRef = data?.latestPumping?.createdAt ?? null;
   const latestDrank = data?.latestDrank ?? null;
+  const drankToday = data?.drankToday ?? null;
+  const medicines = data?.medicines ?? [];
 
   const formatAgo = (isoString: string): string => {
     const totalMin = Math.floor((Date.now() - new Date(isoString).getTime()) / 60_000);
@@ -86,7 +89,7 @@ const BlackScreenOverlay = ({ isOpen, isExitVisible, isCursorVisible, onPointerA
         </div>
       ) : null}
 
-      {isFieldShown('sleep') || isFieldShown('pump') || isFieldShown('bottle') ? (
+      {isFieldShown('sleep') || isFieldShown('pump') || isFieldShown('bottle') || isFieldShown('todayMilk') || isFieldShown('medicines') ? (
         <div
           className={`${styles.blackScreenOtherWrap} ${isExitVisible ? styles.blackScreenDataHidden : styles.blackScreenDataVisible}`}
           aria-hidden="true"
@@ -108,6 +111,18 @@ const BlackScreenOverlay = ({ isOpen, isExitVisible, isCursorVisible, onPointerA
                 : t('HOME_BLACK_SCREEN_NO_BOTTLE')}
             </span>
           ) : null}
+          {isFieldShown('todayMilk') ? (
+            <span className={styles.blackScreenReadoutText} style={{ opacity }}>
+              {t('HOME_BLACK_SCREEN_TODAY_MILK')} {drankToday ? `${drankToday.todayMl}/${drankToday.avgPerDayLast10}${drankToday.hasBoob ? '*' : ''} ml` : t('COMMON_DASH')}
+            </span>
+          ) : null}
+          {isFieldShown('medicines')
+            ? medicines.map((m) => (
+                <span key={m.id} className={styles.blackScreenReadoutText} style={{ opacity }}>
+                  {m.name} {isMedicineTakenToday(m) ? '✅' : '❌'}
+                </span>
+              ))
+            : null}
         </div>
       ) : null}
 

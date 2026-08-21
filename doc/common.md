@@ -19,7 +19,7 @@ common/
     poop.ts         # poop types (TPoopDb, TPoop, TPostPoop)
     pumping.ts      # pumping types (TPumpingDb, TPumping, TPostPumping)
     milestone.ts    # milestone types (TMilestoneDb, TMilestone, TPostMilestone, TUpdateMilestone)
-    summaries.ts    # summary types (TDrankMilkSummary, TSleepSummary, TNappySummary, TPumpingSummary)
+    summaries.ts    # summary types (TDrankMilkSummary, TDrankMilkTodayStats, TSleepSummary, TNappySummary, TPumpingSummary)
     home.ts         # aggregated Home/always-on-display types (THomeSummary, TAlwaysOnDisplayData)
     appEvents.ts    # app_events types (TAppEventId, TAppEventDb, TAppEvent, TBackupStatus, TPostBackupStatus)
     TUtils.ts       # shared utility types (TDataOrError)
@@ -122,11 +122,20 @@ Each DB table has its own type file with three types:
 |---|---|
 | `TDataOrError<T>` | Tagged union: `{ ok: true; data: T }` \| `{ ok: false; error: string; responseCode?: number }` |
 
+### `summaries.ts`
+| Type | Description |
+|---|---|
+| `TDrankMilkSummary` | `GET /api/drank-milk/summary` response — `count`, `totalMl`, `avgPerDay` (over the queried date range, divided by active days), `hasBoob` |
+| `TDrankMilkTodayStats` | `GET /api/drank-milk/today-stats` response — `todayMl` (drunk so far today), `avgPerDayLast10` (avg ml/day over the 10 days before today, divided by active days), `hasBoob` |
+| `TSleepSummary` | `count`, `totalMs`, `avgMs`, `totalAwakeMs`, `avgAwakeMs` |
+| `TNappySummary` | `poopCount`, `peeCount` |
+| `TPumpingSummary` | `count`, `avgPerDay` |
+
 ### `home.ts`
 | Type | Description |
 |---|---|
 | `THomeSummary` | `GET /api/home/summary` response — `latestSleep`, `latestDrank`, `suggestedAmount`, `latestPumping`, `latestNappy`, `medicines` (everything the Home page needs, combined into one call) |
-| `TAlwaysOnDisplayData` | `GET /api/home/always-on-display` response — `latestSleep`, `latestPumping`, `latestDrank` (lightweight subset shown on every page's black-screen readout) |
+| `TAlwaysOnDisplayData` | `GET /api/home/always-on-display` response — `latestSleep`, `latestPumping`, `latestDrank`, `drankToday` (`TDrankMilkTodayStats`), `medicines` (`TMedicineWithLatestLog[]`) — lightweight subset shown on every page's black-screen readout |
 
 ### `appEvents.ts`
 | Type | Description |

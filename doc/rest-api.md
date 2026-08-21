@@ -266,6 +266,8 @@ After every insert or update, all overdue `FRIDGE`/`FREEZER` records are automat
 |---|---|---|
 | GET | `/api/drank-milk` | List all |
 | GET | `/api/drank-milk/:id` | Get one |
+| GET | `/api/drank-milk/summary` | Total/avg-per-day ml over a date range |
+| GET | `/api/drank-milk/today-stats` | Today's ml so far vs the last-10-days average |
 | | GET | `/api/drank-milk/suggested` | Suggest next bottle amount |
 | POST | `/api/drank-milk` | Create (also deducts from stored milk) |
 | POST | `/api/drank-milk/waste` | Subtract waste from the latest record (does **not** touch storage) |
@@ -281,6 +283,8 @@ After every insert or update, all overdue `FRIDGE`/`FREEZER` records are automat
 **PUT body**: `{ "amount": 60, "source": "FRIDGE" | "FREEZER" | "BOOB", "createdAt": "..." }` (partial)
 
 **GET `/suggested` response**: `{ "nextDrinkAmount": 60 }` — suggested millilitres for the next bottle. Uses server-side settings (no query params).
+
+**GET `/today-stats` response** (`TDrankMilkTodayStats`): `{ "todayMl": 320, "avgPerDayLast10": 280, "hasBoob": false }` — `todayMl` is the total drunk so far today (Oslo local date); `avgPerDayLast10` is the average ml/day over the 10 calendar days before today, divided only by the days in that window that actually have a record. Powers the Milk Drank page's item-view stat chip (`{today}/{avg}`) and the always-on-display `todayMilk` field.
 
 ---
 
@@ -564,7 +568,9 @@ Lightweight subset used to refresh the "always on display" black-screen readout,
 {
   "latestSleep": { "id": 1, "start": "...", "end": null, "createdAt": "..." },
   "latestPumping": { "id": 1, "createdAt": "..." },
-  "latestDrank": { "id": 1, "amount": 60, "source": "FRIDGE", "createdAt": "..." }
+  "latestDrank": { "id": 1, "amount": 60, "source": "FRIDGE", "createdAt": "..." },
+  "drankToday": { "todayMl": 320, "avgPerDayLast10": 280, "hasBoob": false },
+  "medicines": [ { "id": 1, "name": "Vitamin D", "isActive": true, "createdAt": "...", "latestTakenAt": "..." } ]
 }
 ```
 

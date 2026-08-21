@@ -134,6 +134,7 @@ The Express `authenticate` middleware is mounted on the `/api` prefix only (`app
 | `GET /api/drank-milk/latest`     |   —    |   ✅ (baby-scoped)    |      ❌       |
 | `GET /api/drank-milk/suggested`  |   —    |   ✅ (baby-scoped)    |      ❌       |
 | `GET /api/drank-milk/summary`    |   —    |   ✅ (baby-scoped)    |      ❌       |
+| `GET /api/drank-milk/today-stats` |   —    |   ✅ (baby-scoped)    |      ❌       |
 | `GET /api/drank-milk/:id`        |   —    |   ✅ (baby-scoped)    |      ❌       |
 | `POST /api/drank-milk`           |   —    |   ✅ (baby-scoped)    |      ❌       |
 | `POST /api/drank-milk/waste`     |   —    |   ✅ (baby-scoped)    |      ❌       |

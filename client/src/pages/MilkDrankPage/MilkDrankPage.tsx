@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { authFetch } from '../../utils/authFetch';
-import type { TDrankMilk, TDrankMilkSource, TDrankMilkSummary, TWishedResult } from 'baby-statistic-common';
+import type { TDrankMilk, TDrankMilkSource, TDrankMilkSummary, TDrankMilkTodayStats, TWishedResult } from 'baby-statistic-common';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import type { TView } from '../../components/DateRangeFilter/DateRangeFilter';
@@ -57,6 +57,7 @@ const MilkDrankPage = () => {
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
   const [summary, setSummary] = useState<TDrankMilkSummary | null>(null);
+  const [todayStats, setTodayStats] = useState<TDrankMilkTodayStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
@@ -73,7 +74,13 @@ const MilkDrankPage = () => {
     }
   }, [from, to]);
 
+  const loadTodayStats = useCallback(async (): Promise<void> => {
+    const result = await authFetch<TDrankMilkTodayStats>('/api/drank-milk/today-stats');
+    if (result.ok) setTodayStats(result.data);
+  }, []);
+
   useEffect(() => { loadSummary(); }, [loadSummary]);
+  useEffect(() => { loadTodayStats(); }, [loadTodayStats]);
 
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TDrankMilk>> => {
     setError(null);
@@ -91,7 +98,7 @@ const MilkDrankPage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(() => { loadSummary(); refresh(); }, freshness);
+  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(() => { loadSummary(); loadTodayStats(); refresh(); }, freshness);
 
   const toggleDay = (date: string): void =>
     setOpenDays((prev) => { const n = new Set(prev); if (n.has(date)) n.delete(date); else n.add(date); return n; });
@@ -227,7 +234,11 @@ const MilkDrankPage = () => {
       <DateRangeFilter from={from} to={to} view={view} onFromChange={setFrom} onToChange={setTo} onViewChange={setView} />
       <div className={styles.statsBar}>
         <div className={styles.statChip}>{t('MILK_DRANK_TOTAL')} <strong>{summary ? `${summary.totalMl}${summary.hasBoob ? '*' : ''} ml` : t('COMMON_DASH')}</strong></div>
-        <div className={styles.statChip}>{t('MILK_DRANK_AVG_PER_DAY')} <strong>{summary ? `~${summary.avgPerDay}${summary.hasBoob ? '*' : ''} ml` : t('COMMON_DASH')}</strong></div>
+        {view === 'item' ? (
+          <div className={styles.statChip}>{t('MILK_DRANK_TODAY_VS_AVG')} <strong>{todayStats ? `${todayStats.todayMl}/${todayStats.avgPerDayLast10}${todayStats.hasBoob ? '*' : ''} ml` : t('COMMON_DASH')}</strong></div>
+        ) : (
+          <div className={styles.statChip}>{t('MILK_DRANK_AVG_PER_DAY')} <strong>{summary ? `~${summary.avgPerDay}${summary.hasBoob ? '*' : ''} ml` : t('COMMON_DASH')}</strong></div>
+        )}
       </div>
       {error ? (
         <p className={styles.errorMsg}>⚠️ {error}</p>

@@ -17,6 +17,10 @@ router.get('/summary', (req: Request, res: Response): void => {
   res.json(drankMilkService.findSummary({ from, to }, ctx(req)));
 });
 
+router.get('/today-stats', (req: Request, res: Response): void => {
+  res.json(drankMilkService.findTodayStats(ctx(req)));
+});
+
 router.get('/', (req: Request, res: Response): void => {
   const { from, to, wished } = req.query as { from?: string; to?: string; wished?: string };
   const wishedNum = wished ? Number(wished) : undefined;

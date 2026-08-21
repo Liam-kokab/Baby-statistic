@@ -35,6 +35,8 @@ export const homeService = {
     latestSleep: sleepService.findLatest(ctx),
     latestPumping: pumpingService.findLatest(ctx),
     latestDrank: drankMilkService.findLatest(ctx),
+    drankToday: drankMilkService.findTodayStats(ctx),
+    medicines: medicineService.findAllActive(ctx),
   }),
 };
 

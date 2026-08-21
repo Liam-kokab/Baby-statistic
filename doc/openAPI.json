@@ -686,6 +686,23 @@
         }
       }
     },
+    "/api/drank-milk/today-stats": {
+      "get": {
+        "tags": ["Drank Milk"],
+        "summary": "Get today's ml so far vs the last-10-days average",
+        "description": "todayMl is the total drunk so far today (Oslo local date); avgPerDayLast10 is the average ml/day over the 10 calendar days before today, divided only by the days in that window that actually have a record.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DrankMilkTodayStats" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/predictions": {
       "get": {
         "tags": ["Drank Milk"],
@@ -1670,8 +1687,20 @@
         "properties": {
           "latestSleep":   { "oneOf": [{ "$ref": "#/components/schemas/Sleep" }, { "type": "null" }] },
           "latestPumping": { "oneOf": [{ "$ref": "#/components/schemas/Pumping" }, { "type": "null" }] },
-          "latestDrank":   { "oneOf": [{ "$ref": "#/components/schemas/DrankMilk" }, { "type": "null" }] }
+          "latestDrank":   { "oneOf": [{ "$ref": "#/components/schemas/DrankMilk" }, { "type": "null" }] },
+          "drankToday":    { "$ref": "#/components/schemas/DrankMilkTodayStats" },
+          "medicines":     { "type": "array", "items": { "$ref": "#/components/schemas/Medicine" } }
         }
+      },
+      "DrankMilkTodayStats": {
+        "type": "object",
+        "description": "Today so far vs the last-10-days average — powers the Milk Drank page's item-view stat chip and the always-on-display todayMilk field.",
+        "properties": {
+          "todayMl":          { "type": "integer", "example": 320 },
+          "avgPerDayLast10":  { "type": "integer", "example": 280 },
+          "hasBoob":          { "type": "boolean" }
+        },
+        "required": ["todayMl", "avgPerDayLast10", "hasBoob"]
       }
     }
   }

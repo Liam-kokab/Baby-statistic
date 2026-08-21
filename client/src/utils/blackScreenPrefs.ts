@@ -1,7 +1,7 @@
-export type TBlackScreenField = 'time' | 'sleep' | 'pump' | 'bottle';
+export type TBlackScreenField = 'time' | 'sleep' | 'pump' | 'bottle' | 'todayMilk' | 'medicines';
 
 /** All data fields shown on the black screen readout, in display order. */
-export const BLACK_SCREEN_FIELDS: TBlackScreenField[] = ['time', 'sleep', 'pump', 'bottle'];
+export const BLACK_SCREEN_FIELDS: TBlackScreenField[] = ['time', 'sleep', 'pump', 'bottle', 'todayMilk', 'medicines'];
 
 const HIDDEN_FIELDS_STORAGE_KEY = 'blackScreenHiddenFields';
 const OPACITY_STORAGE_KEY = 'blackScreenOpacity';

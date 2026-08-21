@@ -31,10 +31,12 @@ type TBuildTimeResponse = {
 type TSettingsTab = 'account' | 'appearance' | 'navigation' | 'home' | 'about';
 
 const BLACK_SCREEN_FIELD_LABEL_KEYS: Record<TBlackScreenField, string> = {
-  time:   'SETTINGS_BLACK_SCREEN_FIELD_TIME',
-  sleep:  'SETTINGS_BLACK_SCREEN_FIELD_SLEEP',
-  pump:   'SETTINGS_BLACK_SCREEN_FIELD_PUMP',
-  bottle: 'SETTINGS_BLACK_SCREEN_FIELD_BOTTLE',
+  time:       'SETTINGS_BLACK_SCREEN_FIELD_TIME',
+  sleep:      'SETTINGS_BLACK_SCREEN_FIELD_SLEEP',
+  pump:       'SETTINGS_BLACK_SCREEN_FIELD_PUMP',
+  bottle:     'SETTINGS_BLACK_SCREEN_FIELD_BOTTLE',
+  todayMilk:  'SETTINGS_BLACK_SCREEN_FIELD_TODAY_MILK',
+  medicines:  'SETTINGS_BLACK_SCREEN_FIELD_MEDICINES',
 };
 
 const SettingsPage = () => {
