@@ -232,6 +232,7 @@
   "MILESTONE_PAGE_DATE_LABEL": { "en": "Date", "nb": "Dato" },
   "MILESTONE_PAGE_NONE_LOGGED": { "en": "No milestones logged yet 🏆", "nb": "Ingen milepæler registrert enda 🏆" },
   "MILESTONE_PAGE_CONFIRM_DELETE": { "en": "Delete this milestone? This cannot be undone.", "nb": "Slette denne milepælen? Dette kan ikke angres." },
+  "MILESTONE_PAGE_LOAD_ERROR": { "en": "Couldn't load milestones — showing the latest data available.", "nb": "Kunne ikke laste milepæler — viser siste tilgjengelige data." },
 
   "EDIT_SLEEP_TITLE": { "en": "Edit Sleep", "nb": "Rediger søvn" },
   "EDIT_PUMPING_TITLE": { "en": "Edit Pumping", "nb": "Rediger pumping" },

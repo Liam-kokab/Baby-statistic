@@ -15,7 +15,7 @@ type TFreshnessStatus = 'green' | 'yellow' | 'red';
 /**
  * Small colored dot shown in the top-right of every page's banner, indicating whether data is
  * live and how old it is:
- * - green — the WebSocket (`useBabyUpdatesSocket`) is connected, so data updates in real time
+ * - green — the app-wide WebSocket (`contexts/WsProvider.tsx`) is connected, so data updates in real time
  * - yellow — WebSocket disconnected, but the last successful fetch was < 5 min ago
  * - red — WebSocket disconnected and data is ≥ 5 min old, or the last fetch attempt failed
  * Hovering (native `title` tooltip) shows the exact age and connection state.

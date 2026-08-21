@@ -11,8 +11,8 @@ const STALE_CHECK_INTERVAL_MS = 30_000;
  *
  * Skips the very first trigger on mount so the initial load isn't doubled.
  * Pass `enabled = false` to pause all of the above (e.g. while a black-screen overlay is
- * open, or — composed with `useBabyUpdatesSocket`'s `connected` — while the WebSocket is live,
- * since live "update" notifications make this polling fallback redundant) — no
+ * open, or — composed with `useWsConnected()`'s value — while the WebSocket is live, since
+ * live "update" notifications make this polling fallback redundant) — no
  * observer/visibility/stale-timer refetching happens until it becomes true again.
  */
 const useRefetchOnVisible = (

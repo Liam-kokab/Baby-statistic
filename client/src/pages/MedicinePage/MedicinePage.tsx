@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { authFetch } from '../../utils/authFetch';
 import type { TMedicine, TMedicineLog, TWishedResult } from 'baby-statistic-common';
@@ -12,12 +12,20 @@ import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { fillDayRange } from '../../utils/fillDayRange';
 import { formatDateTime, formatDateWithWeekday } from '../../utils/format';
-import useDataFreshness from '../../utils/useDataFreshness';
+import useResource from '../../utils/useResource';
 import useLiveDataSync from '../../utils/useLiveDataSync';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
+import type { TResource } from '../../utils/resourceKeys';
 import styles from './MedicinePage.module.css';
+
+const RESOURCES: TResource[] = ['medicine'];
+const ALL_MEDICINES_KEY = '/api/medicine/all';
+const fetchAllMedicines = () => authFetch<TMedicine[]>(ALL_MEDICINES_KEY);
+// Stable reference so `useMemo`s keyed on `allMedicines` don't recompute on every render while
+// the resource is still loading (a fresh `[]` literal each render would defeat memoization).
+const EMPTY_MEDICINES: TMedicine[] = [];
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
 
@@ -48,7 +56,6 @@ const MedicinePage = () => {
   const setTo   = (v: string) => setSearchParams((p) => { p.set('to',   v); return p; });
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
-  const [allMedicines, setAllMedicines] = useState<TMedicine[]>([]);
   const [error, setError]               = useState<string | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
@@ -58,19 +65,9 @@ const MedicinePage = () => {
   const [newName, setNewName]           = useState('');
   const [addLoading, setAddLoading]     = useState(false);
   const [addError, setAddError]         = useState<string | null>(null);
-  const freshness = useDataFreshness();
 
-  const loadMedicines = useCallback(async (): Promise<void> => {
-    const allRes = await authFetch<TMedicine[]>('/api/medicine/all');
-    if (allRes.ok) {
-      setAllMedicines(allRes.data);
-      freshness.reportSuccess();
-    } else {
-      freshness.reportError();
-    }
-  }, []);
-
-  useEffect(() => { loadMedicines(); }, [loadMedicines]);
+  const { data: allMedicinesData, isError: medicinesIsError, lastUpdatedAt, refresh: refreshMedicines } = useResource(ALL_MEDICINES_KEY, fetchAllMedicines, RESOURCES);
+  const allMedicines = allMedicinesData ?? EMPTY_MEDICINES;
 
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TMedicineLog>> => {
     setError(null);
@@ -88,7 +85,11 @@ const MedicinePage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(() => { loadMedicines(); refresh(); }, freshness);
+  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(
+    RESOURCES,
+    () => { void refreshMedicines(); refresh(); },
+    { lastUpdatedAt, isError: medicinesIsError }
+  );
 
   // Merge log data with medicine names
   const nameMap = useMemo(
@@ -168,14 +169,14 @@ const MedicinePage = () => {
     setAddLoading(true);
     setAddError(null);
     const res = await authFetch('/api/medicine', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ name: newName.trim() }) });
-    if (res.ok) { setNewName(''); await loadMedicines(); }
+    if (res.ok) { setNewName(''); await refreshMedicines(); }
     else setAddError(res.error);
     setAddLoading(false);
   };
 
   const handleToggleActive = async (id: number, isActive: boolean): Promise<void> => {
     const res = await authFetch<TMedicine>(`/api/medicine/${id}/active`, { method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify({ isActive }) });
-    if (res.ok) setAllMedicines((prev) => prev.map((m) => (m.id === id ? { ...m, isActive } : m)));
+    if (res.ok) await refreshMedicines();
   };
 
   const renderItemView = () => {

@@ -1,8 +1,10 @@
 import type { MouseEvent } from 'react';
 import { useEffect, useState } from 'react';
 import Button from '../Button/Button';
+import DataFreshnessDot from '../DataFreshnessDot/DataFreshnessDot';
 import { useTranslation } from '../../i18n/i18n';
 import useAlwaysOnDisplayData from '../../utils/useAlwaysOnDisplayData';
+import { useWsConnected } from '../../contexts/WsProvider';
 import { getHiddenBlackScreenFields, getBlackScreenOpacityPercent } from '../../utils/blackScreenPrefs';
 import type { TBlackScreenField } from '../../utils/blackScreenPrefs';
 import { isMedicineTakenToday } from '../../utils/medicineStatus';
@@ -35,7 +37,8 @@ const elapsedSeconds = (isoString: string): number =>
  */
 const BlackScreenOverlay = ({ isOpen, isExitVisible, isCursorVisible, onPointerActivity, onClose }: TProps) => {
   const { t } = useTranslation();
-  const data = useAlwaysOnDisplayData(isOpen);
+  const { data, lastUpdatedAt, isError } = useAlwaysOnDisplayData(isOpen);
+  const wsConnected = useWsConnected();
   const [hiddenFields] = useState<TBlackScreenField[]>(() => getHiddenBlackScreenFields());
   const [opacity] = useState<number>(() => getBlackScreenOpacityPercent() / 100);
   const [now, setNow] = useState<Date>(() => new Date());
@@ -78,6 +81,10 @@ const BlackScreenOverlay = ({ isOpen, isExitVisible, isCursorVisible, onPointerA
       onTouchStart={onPointerActivity}
       aria-label={t('HOME_BLACK_SCREEN_OVERLAY')}
     >
+      <div className={styles.blackScreenFreshnessDot} style={{ opacity }} aria-hidden="true">
+        <DataFreshnessDot lastUpdatedAt={lastUpdatedAt} isError={isError} wsConnected={wsConnected} />
+      </div>
+
       {isFieldShown('time') ? (
         <div
           className={`${styles.blackScreenTimeWrap} ${isExitVisible ? styles.blackScreenDataHidden : styles.blackScreenDataVisible}`}

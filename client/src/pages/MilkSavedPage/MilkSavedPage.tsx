@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { authFetch } from '../../utils/authFetch';
 import type { TServedMilk, TServedMilkTotal, TServedMilkStatus, TWishedResult } from 'baby-statistic-common';
@@ -9,12 +9,17 @@ import Button from '../../components/Button/Button';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
-import useDataFreshness from '../../utils/useDataFreshness';
+import useResource from '../../utils/useResource';
 import useLiveDataSync from '../../utils/useLiveDataSync';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
+import type { TResource } from '../../utils/resourceKeys';
 import styles from './MilkSavedPage.module.css';
+
+const RESOURCES: TResource[] = ['servedMilk'];
+const TOTALS_KEY = '/api/served-milk/total';
+const fetchTotals = () => authFetch<TServedMilkTotal>(TOTALS_KEY);
 
 const STATUS_EMOJI: Record<TServedMilkStatus, string> = { FRIDGE: '🥛', FREEZER: '❄️', USED: '✅', EXPIRED: '⚠️' };
 const ALL_STATUSES: TServedMilkStatus[] = ['FRIDGE', 'FREEZER', 'USED', 'EXPIRED'];
@@ -44,23 +49,12 @@ const MilkSavedPage = () => {
   const setTo   = (v: string) => setSearchParams((p) => { p.set('to',   v); return p; });
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
-  const [totals, setTotals] = useState<TServedMilkTotal>({ fridge: 0, freezer: 0, total: 0 });
   const [activeStatuses, setActiveStatuses] = useState<TServedMilkStatus[]>(['FRIDGE', 'FREEZER']);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
-  const freshness = useDataFreshness();
 
-  const loadTotals = useCallback(async (): Promise<void> => {
-    const result = await authFetch<TServedMilkTotal>('/api/served-milk/total');
-    if (result.ok) {
-      setTotals(result.data);
-      freshness.reportSuccess();
-    } else {
-      freshness.reportError();
-    }
-  }, []);
-
-  useEffect(() => { loadTotals(); }, [loadTotals]);
+  const { data: totalsData, isError: totalsIsError, lastUpdatedAt } = useResource(TOTALS_KEY, fetchTotals, RESOURCES);
+  const totals: TServedMilkTotal = totalsData ?? { fridge: 0, freezer: 0, total: 0 };
 
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TServedMilk>> => {
     const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
@@ -76,7 +70,7 @@ const MilkSavedPage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(() => { loadTotals(); refresh(); }, freshness);
+  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(RESOURCES, refresh, { lastUpdatedAt, isError: totalsIsError });
 
   const toggleStatus = (status: TServedMilkStatus): void =>
     setActiveStatuses((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]);

@@ -1,47 +1,56 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { authFetch } from './authFetch';
-import useBabyUpdatesSocket from './useBabyUpdatesSocket';
+import useResource from './useResource';
 import type { TAlwaysOnDisplayData } from 'baby-statistic-common';
 
-const POLL_MS = 5 * 60_000;
+const CACHE_KEY = '/api/home/always-on-display';
+const RESOURCES = ['sleep', 'drankMilk', 'pumping', 'nappy', 'medicine'] as const;
+
+const fetchAlwaysOnDisplayData = () => authFetch<TAlwaysOnDisplayData>(CACHE_KEY);
+
+export type TUseAlwaysOnDisplayDataResult = {
+  data: TAlwaysOnDisplayData | null;
+  /** `Date.now()` of the last successful fetch, or `null` before the first one completes — feeds `DataFreshnessDot`. */
+  lastUpdatedAt: number | null;
+  isError: boolean;
+};
 
 /**
- * Fetches the always-on-display (black screen) data as soon as `active` becomes true, and
- * immediately whenever the server reports this baby's data changed via `useBabyUpdatesSocket`
- * (e.g. another device logs a feed/pump/sleep event while this display is up) — only while
- * `active`, so idle pages don't hold an extra WebSocket connection open just for this. Falls back
- * to polling every 5 minutes only while the WebSocket is disconnected — once it's connected, live
- * updates make the poll redundant, so it's skipped entirely. Used to keep the black-screen
- * readout fresh on every page: once when it turns on, then live (or polling, as a fallback) after
- * that.
+ * Reads the always-on-display (black screen) data from the shared resource cache (see
+ * `useResource`/`resourceCache.ts`), shared across every page (`BlackScreenOverlay` is mounted
+ * everywhere). Two things trigger a fetch, both needed:
+ * - `enabled: active` — `useResource`'s own dirty-triggered auto-fetch stays live *while the
+ *   overlay is open*, so a WebSocket update (or a connection drop) that arrives while it's
+ *   already on screen still refreshes the readout in real time, not just on open/close.
+ * - An explicit effect that also refetches every time `active` transitions `false → true` (i.e.
+ *   every time the overlay opens), regardless of whether the cache considered itself dirty —
+ *   this readout is meant to be trustworthy at a glance (e.g. a tablet mounted on the wall), so
+ *   opening it shouldn't depend on having correctly received every prior live update.
+ * Both can fire on the same open transition without double-fetching — `resourceCache.ts`'s
+ * `fetchResource` dedupes concurrent calls for the same key.
  */
-const useAlwaysOnDisplayData = (active: boolean): TAlwaysOnDisplayData | null => {
-  const [data, setData] = useState<TAlwaysOnDisplayData | null>(null);
+const useAlwaysOnDisplayData = (active: boolean): TUseAlwaysOnDisplayDataResult => {
+  const { data, lastUpdatedAt, isError, refresh } = useResource(CACHE_KEY, fetchAlwaysOnDisplayData, [...RESOURCES], active);
 
-  const load = useCallback(async (): Promise<void> => {
-    const res = await authFetch<TAlwaysOnDisplayData>('/api/home/always-on-display');
-    if (res.ok) setData(res.data);
-  }, []);
-
-  const { connected } = useBabyUpdatesSocket(load, active);
-
-  // Always fetch once as soon as the overlay turns on, regardless of the (still-connecting) WS state.
   useEffect(() => {
-    if (!active) return;
-    void load();
-  }, [active, load]);
+    if (active) void refresh();
+    // Only re-runs when `active` actually changes value (e.g. false → true on open) — while it
+    // stays `true` across unrelated re-renders, `refresh`'s reference doesn't change either, so
+    // this doesn't refetch on every render, just once per "the overlay just opened".
+  }, [active, refresh]);
 
-  // Recurring poll fallback — only needed while the WebSocket is disconnected.
-  useEffect(() => {
-    if (!active || connected) return;
-    const id = setInterval(load, POLL_MS);
-    return () => clearInterval(id);
-  }, [active, connected, load]);
-
-  return data;
+  return { data, lastUpdatedAt, isError };
 };
 
 export default useAlwaysOnDisplayData;
+
+
+
+
+
+
+
+
 
 
 

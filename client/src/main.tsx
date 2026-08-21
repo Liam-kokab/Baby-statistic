@@ -5,6 +5,7 @@ import './styles/global.css';
 import App from './App';
 import { ensureInitialTheme } from './utils/theme';
 import { LanguageProvider } from './i18n/i18n';
+import { WsProvider } from './contexts/WsProvider';
 
 // Apply saved theme early to avoid a flash of the default theme
 ensureInitialTheme();
@@ -16,7 +17,9 @@ if (rootEl) {
     <StrictMode>
       <LanguageProvider>
         <BrowserRouter>
-          <App />
+          <WsProvider>
+            <App />
+          </WsProvider>
         </BrowserRouter>
       </LanguageProvider>
     </StrictMode>

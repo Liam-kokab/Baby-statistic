@@ -18,6 +18,13 @@
   cursor: none;
 }
 
+/* Wraps the shared DataFreshnessDot — same top-right spot as every other page's banner (its own
+   CSS positions it absolutely against this overlay, the nearest positioned ancestor), just dimmed
+   to the same user-configured brightness as the rest of the readout so it stays unobtrusive. */
+.blackScreenFreshnessDot {
+  transition: opacity 0.2s ease;
+}
+
 .blackScreenExitButton {
   transform: scale(2.5);
   transition: opacity 0.2s ease;

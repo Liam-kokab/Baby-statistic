@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { authFetch } from '../../utils/authFetch';
 import type { TDrankMilk, TDrankMilkSource, TDrankMilkSummary, TDrankMilkTodayStats, TWishedResult } from 'baby-statistic-common';
@@ -9,12 +9,17 @@ import Button from '../../components/Button/Button';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
-import useDataFreshness from '../../utils/useDataFreshness';
+import useResource from '../../utils/useResource';
 import useLiveDataSync from '../../utils/useLiveDataSync';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
+import type { TResource } from '../../utils/resourceKeys';
 import styles from './MilkDrankPage.module.css';
+
+const RESOURCES: TResource[] = ['drankMilk'];
+const TODAY_STATS_KEY = '/api/drank-milk/today-stats';
+const fetchTodayStats = () => authFetch<TDrankMilkTodayStats>(TODAY_STATS_KEY);
 
 const getTopCardAgeClass = (createdAt: string): string => {
   const ageMin = (Date.now() - new Date(createdAt).getTime()) / 60_000;
@@ -56,31 +61,17 @@ const MilkDrankPage = () => {
   const setTo   = (v: string) => setSearchParams((p) => { p.set('to',   v); return p; });
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
-  const [summary, setSummary] = useState<TDrankMilkSummary | null>(null);
-  const [todayStats, setTodayStats] = useState<TDrankMilkTodayStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
-  const freshness = useDataFreshness();
 
-  const loadSummary = useCallback(async (): Promise<void> => {
+  const summaryKey = `/api/drank-milk/summary?from=${from}&to=${to}`;
+  const fetchSummary = useCallback(async () => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-    const result = await authFetch<TDrankMilkSummary>(`/api/drank-milk/summary?${params}`);
-    if (result.ok) {
-      setSummary(result.data);
-      freshness.reportSuccess();
-    } else {
-      freshness.reportError();
-    }
+    return authFetch<TDrankMilkSummary>(`/api/drank-milk/summary?${params}`);
   }, [from, to]);
-
-  const loadTodayStats = useCallback(async (): Promise<void> => {
-    const result = await authFetch<TDrankMilkTodayStats>('/api/drank-milk/today-stats');
-    if (result.ok) setTodayStats(result.data);
-  }, []);
-
-  useEffect(() => { loadSummary(); }, [loadSummary]);
-  useEffect(() => { loadTodayStats(); }, [loadTodayStats]);
+  const { data: summary, isError: summaryIsError, lastUpdatedAt, refresh: refreshSummary } = useResource(summaryKey, fetchSummary, RESOURCES);
+  const { data: todayStats, refresh: refreshTodayStats } = useResource(TODAY_STATS_KEY, fetchTodayStats, RESOURCES);
 
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TDrankMilk>> => {
     setError(null);
@@ -98,7 +89,11 @@ const MilkDrankPage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(() => { loadSummary(); loadTodayStats(); refresh(); }, freshness);
+  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(
+    RESOURCES,
+    () => { void refreshSummary(); void refreshTodayStats(); refresh(); },
+    { lastUpdatedAt, isError: summaryIsError }
+  );
 
   const toggleDay = (date: string): void =>
     setOpenDays((prev) => { const n = new Set(prev); if (n.has(date)) n.delete(date); else n.add(date); return n; });

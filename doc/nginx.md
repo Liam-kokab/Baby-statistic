@@ -12,7 +12,7 @@ Production traffic is fronted by **nginx**, which owns ports `80`/`443` and term
 The live-updates WebSocket (`/ws`, see `doc/server.md`/`doc/client.md` → "Live Updates") is proxied by the same `location /` block as the REST API and SPA — there's no separate `location /ws` block. This works because that block:
 - Sets `proxy_http_version 1.1` (required for the HTTP upgrade handshake).
 - Forwards the `Upgrade`/`Connection: upgrade` headers unconditionally.
-- Terminates TLS the same as everything else, so the client connects via `wss://` in production — see `useBabyUpdatesSocket.ts` on the client, which picks `wss:`/`ws:` based on `window.location.protocol`.
+- Terminates TLS the same as everything else, so the client connects via `wss://` in production — see `contexts/WsProvider.tsx` on the client, which picks `wss:`/`ws:` based on `window.location.protocol`.
 
 The default `proxy_read_timeout` (60s) sits above the server's 30s WebSocket ping interval (`server/src/ws/wsServer.ts`), keeping idle connections alive without any timeout tuning.
 

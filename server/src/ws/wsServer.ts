@@ -97,9 +97,9 @@ export const attachWebSocketServer = (server: HttpServer): void => {
           connectionsByClientId.set(myClientId, ws);
         }
 
-        unsubscribe = subscribeBabyUpdates(payload.babyId, (originClientId) => {
+        unsubscribe = subscribeBabyUpdates(payload.babyId, (resource, originClientId) => {
           if (myClientId && originClientId === myClientId) return; // skip echo to the tab that caused it
-          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'update' }));
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'update', resource }));
         });
         ws.send(JSON.stringify({ type: 'auth-ok' }));
       } catch {

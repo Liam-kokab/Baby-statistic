@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../../utils/authFetch';
 import type { TMilestone } from 'baby-statistic-common';
@@ -8,10 +8,18 @@ import Input from '../../components/Input/Input';
 import Textarea from '../../components/Textarea/Textarea';
 import DateTimeInput from '../../components/DateTimeInput/DateTimeInput';
 import { formatDate } from '../../utils/format';
-import useDataFreshness from '../../utils/useDataFreshness';
+import useResource from '../../utils/useResource';
 import useLiveDataSync from '../../utils/useLiveDataSync';
 import { useTranslation, type TLanguage } from '../../i18n/i18n';
+import type { TResource } from '../../utils/resourceKeys';
 import styles from './MilestonePage.module.css';
+
+const RESOURCES: TResource[] = ['milestone'];
+const MILESTONES_KEY = '/api/milestones';
+const fetchMilestones = () => authFetch<TMilestone[]>(MILESTONES_KEY);
+// Stable reference so the `useMemo` keyed on `milestones` doesn't recompute on every render while
+// the resource is still loading (a fresh `[]` literal each render would defeat memoization).
+const EMPTY_MILESTONES: TMilestone[] = [];
 
 type TMilestoneMonthGroup = {
   monthKey: string;
@@ -51,9 +59,6 @@ const MilestonePage = () => {
   const navigate = useNavigate();
   const { t, language } = useTranslation();
 
-  const [milestones, setMilestones] = useState<TMilestone[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   const [addOpen, setAddOpen] = useState(false);
@@ -62,25 +67,11 @@ const MilestonePage = () => {
   const [newOccurredAt, setNewOccurredAt] = useState(nowInputValue());
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
-  const freshness = useDataFreshness();
 
-  const loadMilestones = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    const res = await authFetch<TMilestone[]>('/api/milestones');
-    if (res.ok) {
-      setMilestones(res.data);
-      freshness.reportSuccess();
-    } else {
-      setError(res.error);
-      freshness.reportError();
-    }
-    setLoading(false);
-  }, []);
+  const { data: milestonesData, isError, loading, lastUpdatedAt, refresh } = useResource(MILESTONES_KEY, fetchMilestones, RESOURCES);
+  const milestones = milestonesData ?? EMPTY_MILESTONES;
 
-  useEffect(() => { loadMilestones(); }, [loadMilestones]);
-
-  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(() => { loadMilestones(); }, freshness);
+  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(RESOURCES, refresh, { lastUpdatedAt, isError });
 
   const groupedMilestones = useMemo<TMilestoneMonthGroup[]>(() => {
     const sortedMilestones = [...milestones].sort((a, b) => parseMilestoneDate(b.occurredAt) - parseMilestoneDate(a.occurredAt));
@@ -120,7 +111,7 @@ const MilestonePage = () => {
     });
     if (res.ok) {
       setAddOpen(false);
-      await loadMilestones();
+      await refresh();
     } else {
       setAddError(res.error);
     }
@@ -144,7 +135,7 @@ const MilestonePage = () => {
         <Button className={styles.newBtn} text={t('MILESTONE_PAGE_ADD_MILESTONE')} emoji="➕" onClick={openAddForm} />
       )}
 
-      {error ? <p className={styles.errorMsg}>⚠️ {error}</p> : null}
+      {isError ? <p className={styles.errorMsg}>⚠️ {t('MILESTONE_PAGE_LOAD_ERROR')}</p> : null}
 
       {loading ? (
         <p className={styles.loadingMsg}>{t('COMMON_LOADING')}</p>

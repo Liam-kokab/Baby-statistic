@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authStore } from '../../utils/authStore';
 import { authFetch } from '../../utils/authFetch';
+import { clearResourceCache } from '../../utils/resourceCache';
 import { useTranslation } from '../../i18n/i18n';
 import { HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, VISIBLE_FEATURE_COUNT } from '../../utils/navItems';
 import { getSavedNavOrder, applyNavOrder, getHiddenNavItems } from '../../utils/navOrder';
@@ -52,6 +53,7 @@ const NavBar = () => {
       body: JSON.stringify({ refreshToken }),
     });
     authStore.clear();
+    clearResourceCache(); // security: don't let cached data leak into the next login
     navigate('/login', { replace: true });
   }, [navigate]);
 

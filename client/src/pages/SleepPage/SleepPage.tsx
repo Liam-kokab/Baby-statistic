@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { authFetch } from '../../utils/authFetch';
 import type { TSleep, TSleepSummary, TWishedResult } from 'baby-statistic-common';
@@ -9,12 +9,15 @@ import Button from '../../components/Button/Button';
 import { formatTime, formatDateTime, formatDateWithWeekday } from '../../utils/format';
 import { groupByDay } from '../../utils/groupByDay';
 import { groupByWeek } from '../../utils/groupByWeek';
-import useDataFreshness from '../../utils/useDataFreshness';
+import useResource from '../../utils/useResource';
 import useLiveDataSync from '../../utils/useLiveDataSync';
 import useTimeWindowScroll from '../../utils/useInfiniteScroll';
 import { hasEnoughForView } from '../../utils/hasEnoughForView';
 import { useTranslation } from '../../i18n/i18n';
+import type { TResource } from '../../utils/resourceKeys';
 import styles from './SleepPage.module.css';
+
+const RESOURCES: TResource[] = ['sleep'];
 
 const getDefaultFrom = (): string => {
   const d = new Date();
@@ -76,23 +79,15 @@ const SleepPage = () => {
   const setTo   = (v: string) => setSearchParams((p) => { p.set('to',   v); return p; });
   const setView = (v: TView)  => setSearchParams((p) => { p.set('view', v); return p; });
 
-  const [summary, setSummary] = useState<TSleepSummary | null>(null);
   const [openDays,  setOpenDays]  = useState<Set<string>>(new Set());
   const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
-  const freshness = useDataFreshness();
 
-  const loadSummary = useCallback(async (): Promise<void> => {
+  const summaryKey = `/api/sleep/summary?from=${from}&to=${to}`;
+  const fetchSummary = useCallback(async () => {
     const params = new URLSearchParams({ from: `${from}T00:00:00`, to: `${to}T23:59:59` });
-    const result = await authFetch<TSleepSummary>(`/api/sleep/summary?${params}`);
-    if (result.ok) {
-      setSummary(result.data);
-      freshness.reportSuccess();
-    } else {
-      freshness.reportError();
-    }
+    return authFetch<TSleepSummary>(`/api/sleep/summary?${params}`);
   }, [from, to]);
-
-  useEffect(() => { loadSummary(); }, [loadSummary]);
+  const { data: summary, isError: summaryIsError, lastUpdatedAt } = useResource(summaryKey, fetchSummary, RESOURCES);
 
   const fetchWindow = useCallback(async (winFrom: string, winTo: string): Promise<TWishedResult<TSleep>> => {
     const params = new URLSearchParams({ from: winFrom, to: winTo, wished: '50' });
@@ -108,7 +103,7 @@ const SleepPage = () => {
 
   const { data, loading, hasMore, sentinelRef, refresh } = useTimeWindowScroll(from, to, fetchWindow, hasEnough);
 
-  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(() => { loadSummary(); refresh(); }, freshness);
+  const { visibilityRef, dataFreshness, onBlackScreenOpenChange } = useLiveDataSync(RESOURCES, refresh, { lastUpdatedAt, isError: summaryIsError });
 
   const toggleDay = (date: string): void =>
     setOpenDays((prev) => { const n = new Set(prev); if (n.has(date)) n.delete(date); else n.add(date); return n; });

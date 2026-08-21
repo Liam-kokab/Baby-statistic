@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment, type ReactNode } from 'react';
 import { authFetch } from '../../utils/authFetch';
-import type { TSleep, TMedicineWithLatestLog, TDrankMilk, TPumping, THomeSummary } from 'baby-statistic-common';
+import type { TSleep, TPumping, TMedicineWithLatestLog, THomeSummary } from 'baby-statistic-common';
 import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
 import BlackScreenOverlay from '../../components/BlackScreenOverlay/BlackScreenOverlay';
@@ -10,8 +10,8 @@ import { useActionFeedback } from '../../utils/useActionFeedback';
 import type { TActionStatus } from '../../utils/useActionFeedback';
 import useRefetchOnVisible from '../../utils/useRefetchOnVisible';
 import useBlackScreen from '../../utils/useBlackScreen';
-import useDataFreshness from '../../utils/useDataFreshness';
-import useBabyUpdatesSocket from '../../utils/useBabyUpdatesSocket';
+import useResource from '../../utils/useResource';
+import { useWsConnected } from '../../contexts/WsProvider';
 import { ACTION_MIN_MS, ACTION_DONE_MS, BLACK_SCREEN_KEEP_AWAKE_MS } from '../../config';
 import { useTranslation } from '../../i18n/i18n';
 import { DEFAULT_HOME_WIDGETS } from '../../utils/homeWidgets';
@@ -23,9 +23,14 @@ import { whiteNoisePlayer } from '../../utils/whiteNoise';
 import { useWhiteNoisePlayerState } from '../../utils/useWhiteNoisePlayerState';
 import { WHITE_NOISE_DURATION_OPTIONS, formatWhiteNoiseRemaining } from '../../utils/whiteNoiseDurations';
 import { getSelectedWhiteNoiseTypes, WHITE_NOISE_SOUNDS } from '../../utils/homeWhiteNoiseWidgetPrefs';
+import type { TResource } from '../../utils/resourceKeys';
 import styles from './HomePage.module.css';
 
 const JSON_HEADERS: HeadersInit = { 'Content-Type': 'application/json' };
+
+const RESOURCES: TResource[] = ['sleep', 'drankMilk', 'pumping', 'nappy', 'medicine'];
+const SUMMARY_KEY = '/api/home/summary';
+const fetchSummary = () => authFetch<THomeSummary>(SUMMARY_KEY);
 
 const getMilkAgeClass = (createdAt: string): string => {
   const ageMin = (Date.now() - new Date(createdAt).getTime()) / 60_000;
@@ -56,15 +61,11 @@ const HomePage = () => {
   };
 
   // ── Sleep ─────────────────────────────────────────────────────────────────
-  const [activeSleep, setActiveSleep]   = useState<TSleep | null>(null);
-  const [timerRef,    setTimerRef]      = useState<string | null>(null);
   const [timerDisplay, setTimerDisplay] = useState('00:00:00');
   const sleep = useActionFeedback();
 
   // ── Drank milk ────────────────────────────────────────────────────────────
   const [drankAmount, setDrankAmount] = useState('');
-  const [latestDrank, setLatestDrank] = useState<TDrankMilk | null>(null);
-  const [suggestedAmount, setSuggestedAmount] = useState<number | null>(null);
   const bottle = useActionFeedback();
   const boob   = useActionFeedback();
 
@@ -75,16 +76,12 @@ const HomePage = () => {
   // ── Poop / Pee ────────────────────────────────────────────────────────────
   const poop = useActionFeedback();
   const pee  = useActionFeedback();
-  const [latestNappy, setLatestNappy] = useState<string | null>(null);
 
   // ── Pumping ───────────────────────────────────────────────────────────────
-  const [lastPumping, setLastPumping] = useState<TPumping | null>(null);
-  const [pumpingTimerRef, setPumpingTimerRef] = useState<string | null>(null);
   const [pumpingDisplay, setPumpingDisplay] = useState('00:00:00');
   const pump = useActionFeedback();
 
   // ── Medicines ─────────────────────────────────────────────────────────────
-  const [medicines, setMedicines]   = useState<TMedicineWithLatestLog[]>([]);
   const [medStatuses, setMedStatuses] = useState<Record<number, TActionStatus>>({});
 
   // ── White noise widget — which sounds appear here is configured on Settings → Home; the
@@ -92,66 +89,44 @@ const HomePage = () => {
   const [whiteNoiseSelectedTypes] = useState<TNoiseType[]>(() => getSelectedWhiteNoiseTypes());
   const { playingType: whiteNoisePlayingType, endAt: whiteNoiseEndAt, activeDuration: whiteNoiseActiveDuration } = useWhiteNoisePlayerState();
 
-  // ── Everything the Home page needs, in one call — used for the first load and every
-  // subsequent update (after an action, on tab-visible/stale refetch, etc). ─────────────
-  const freshness = useDataFreshness();
+  // ── Everything the Home page needs, in one call — cached globally (see `useResource`) and
+  // shared across every mount, so revisiting Home shows the last-known data instantly and only
+  // refetches when sleep/drank-milk/pumping/nappy/medicine data actually changed (a WebSocket
+  // "update", or the connection dropping for even a moment) rather than on every page visit. ──
+  const { data: summary, isError, lastUpdatedAt, refresh } = useResource(SUMMARY_KEY, fetchSummary, RESOURCES);
 
-  const applySummary = (summary: THomeSummary): void => {
-    const latest = summary.latestSleep;
-    if (latest?.end === null) {
-      setActiveSleep(latest);
-      setTimerRef(latest.start);
-    } else {
-      setActiveSleep(null);
-      setTimerRef(latest?.end ?? null);
-    }
-    setLatestDrank(summary.latestDrank);
-    setSuggestedAmount(summary.suggestedAmount);
-    setLastPumping(summary.latestPumping);
-    setPumpingTimerRef(summary.latestPumping?.createdAt ?? null);
-    setLatestNappy(summary.latestNappy?.createdAt ?? null);
-    setMedicines(summary.medicines);
-  };
+  const activeSleep = summary?.latestSleep?.end === null ? summary.latestSleep : null;
+  const timerRef = summary?.latestSleep?.end === null ? summary.latestSleep.start : (summary?.latestSleep?.end ?? null);
+  const latestDrank = summary?.latestDrank ?? null;
+  const suggestedAmount = summary?.suggestedAmount ?? null;
+  const lastPumping = summary?.latestPumping ?? null;
+  const pumpingTimerRef = summary?.latestPumping?.createdAt ?? null;
+  const latestNappy = summary?.latestNappy?.createdAt ?? null;
+  const medicines: TMedicineWithLatestLog[] = summary?.medicines ?? [];
 
-  const loadSummary = async (): Promise<void> => {
-    const res = await authFetch<THomeSummary>('/api/home/summary');
-    if (res.ok) {
-      applySummary(res.data);
-      freshness.reportSuccess();
-    } else {
-      freshness.reportError();
-    }
+  const refetchAll = (): void => {
+    void refresh();
   };
 
   // ── Black screen mode ("always on display") — shared with every other page via
   // useBlackScreen/BlackScreenOverlay; refetches Home's own data on exit. ────────────────
   const { isOpen: isBlackScreenOpen, isExitVisible: isBlackScreenExitVisible, isCursorVisible: isBlackScreenCursorVisible, open: openBlackScreen, close: closeBlackScreen, onPointerActivity: onBlackScreenPointerActivity } = useBlackScreen({
     keepAwakeMs: BLACK_SCREEN_KEEP_AWAKE_MS,
-    onClose: () => { void loadSummary(); },
+    onClose: refetchAll,
   });
 
   useEffect(() => {
     isBlackScreenOpenRef.current = isBlackScreenOpen;
   }, [isBlackScreenOpen]);
 
-  const refetchAll = (): void => {
-    void loadSummary();
-  };
-
-  // Home's own data refresh (stale-timer/tab-visibility, and the WebSocket "update" listener)
-  // both pause while the black screen is open, and resume (with an immediate refetch) as soon
-  // as it closes — see useBlackScreen's onClose above. While the black screen is open, only
-  // BlackScreenOverlay's own useAlwaysOnDisplayData needs to react to updates (it fetches a
-  // different, narrower endpoint) — without this gate, a single WS update would otherwise
-  // trigger both GET /api/home/summary (this page, hidden behind the overlay) and
-  // GET /api/home/always-on-display (the overlay) at once.
-  const { connected: wsConnected } = useBabyUpdatesSocket(refetchAll, !isBlackScreenOpen, () => freshness.lastUpdatedAt);
-  // The stale-timer/tab-visibility fallback is only needed while the WebSocket is disconnected —
-  // once it's connected, live "update" notifications make the 5-minute poll redundant.
+  // `connected` now comes from the single app-wide `WsProvider` (see contexts/WsProvider.tsx) —
+  // Home no longer owns its own socket, so opening the black screen never tears one down/reopens
+  // it. The cached `summary` resource above already reacts to WebSocket updates on its own; the
+  // stale-timer/tab-visibility fallback below is only needed while the WebSocket is disconnected.
+  const wsConnected = useWsConnected();
   const visibilityRef = useRefetchOnVisible(refetchAll, undefined, !isBlackScreenOpen && !wsConnected);
 
   useEffect(() => {
-    refetchAll();
     const medRefresh = setInterval(() => {
       if (!isBlackScreenOpenRef.current) refetchAll();
     }, 60_000);
@@ -178,6 +153,7 @@ const HomePage = () => {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleSleepToggle = (): void => {
+
     sleep.run(async () => {
       const now = new Date().toISOString();
       const res = activeSleep
@@ -191,7 +167,7 @@ const HomePage = () => {
             headers: JSON_HEADERS,
             body: JSON.stringify({ start: now }),
           });
-      if (res.ok) await loadSummary();
+      if (res.ok) await refresh();
       return res.ok;
     });
   };
@@ -208,7 +184,7 @@ const HomePage = () => {
       });
       if (res.ok) {
         setDrankAmount('');
-        await loadSummary();
+        await refresh();
       }
       return res.ok;
     });
@@ -229,7 +205,7 @@ const HomePage = () => {
         body: JSON.stringify({ amount }),
       });
       if (res.ok) setWasteAmount('');
-      await loadSummary();
+      await refresh();
       return res.ok;
     });
   };
@@ -237,7 +213,7 @@ const HomePage = () => {
   const handlePoop = (): void => {
     poop.run(async () => {
       const res = await authFetch('/api/poop', { method: 'POST' });
-      if (res.ok) await loadSummary();
+      if (res.ok) await refresh();
       return res.ok;
     });
   };
@@ -245,7 +221,7 @@ const HomePage = () => {
   const handlePee = (): void => {
     pee.run(async () => {
       const res = await authFetch('/api/pee', { method: 'POST' });
-      if (res.ok) await loadSummary();
+      if (res.ok) await refresh();
       return res.ok;
     });
   };
@@ -253,7 +229,7 @@ const HomePage = () => {
   const handlePump = (): void => {
     pump.run(async () => {
       const res = await authFetch<TPumping>('/api/pumping', { method: 'POST' });
-      if (res.ok) await loadSummary();
+      if (res.ok) await refresh();
       return res.ok;
     });
   };
@@ -267,7 +243,7 @@ const HomePage = () => {
     authFetch(`/api/medicine/${id}/log`, { method: 'POST' }).then(async (res) => {
       const wait = ACTION_MIN_MS - (Date.now() - t0);
       if (wait > 0) await new Promise<void>((r) => setTimeout(r, wait));
-      if (res.ok) await loadSummary();
+      if (res.ok) await refresh();
       setStatus(res.ok ? 'success' : 'error');
       setTimeout(() => setStatus('idle'), ACTION_DONE_MS);
     });
@@ -507,7 +483,7 @@ const HomePage = () => {
   return (
     <div className={styles.page} ref={visibilityRef}>
       <div className={styles.hero}>
-        <DataFreshnessDot lastUpdatedAt={freshness.lastUpdatedAt} isError={freshness.isError} wsConnected={wsConnected} />
+        <DataFreshnessDot lastUpdatedAt={lastUpdatedAt} isError={isError} wsConnected={wsConnected} />
         <BackupStatusDot />
         <button
           type="button"

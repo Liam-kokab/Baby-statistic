@@ -11,6 +11,7 @@ import './db';
 import { authenticate } from './middleware/authenticate';
 import { attachWebSocketServer } from './ws/wsServer';
 import { publishBabyUpdate } from './ws/eventBus';
+import type { TResource } from './ws/eventBus';
 import pingRouter from './routes/ping';
 import authRouter from './routes/auth';
 import adminRouter from './routes/admin';
@@ -111,6 +112,23 @@ app.use('/api/auth', authRouter);
 // page navigation, and the login page itself needs to load before any token exists.
 app.use('/api', authenticate);
 
+// Maps a route's first path segment to the coarse-grained `TResource` key sent to clients (see
+// ws/eventBus.ts) so they can invalidate only the matching cached data instead of everything.
+// `pee`/`poop` collapse into `nappy`, matching the combined `/api/nappy` read route. Routes not
+// listed here (auth, admin, baby, backup, build-time, ping, predictions, app-events) aren't
+// baby-scoped "live" event data, so no notification resource applies to them.
+const ROUTE_TO_RESOURCE: Record<string, TResource> = {
+  'served-milk': 'servedMilk',
+  'drank-milk': 'drankMilk',
+  sleep: 'sleep',
+  pee: 'nappy',
+  poop: 'nappy',
+  nappy: 'nappy',
+  medicine: 'medicine',
+  pumping: 'pumping',
+  milestones: 'milestone',
+};
+
 // Broadcasts a "this baby's data changed" WebSocket notification (see ws/) after any
 // successful mutating request on a baby-scoped route, so connected clients know to
 // refetch — see doc/client.md ("Live updates (WebSocket)") for the full design. Placed
@@ -124,8 +142,10 @@ app.use('/api', (req: Request, res: Response, next: NextFunction): void => {
   if (MUTATING_METHODS.has(req.method) && req.user?.babyId) {
     const babyId = req.user.babyId;
     const originClientId = req.header('X-Ws-Client-Id') ?? undefined;
+    const firstSegment = req.path.split('/').filter(Boolean)[0] ?? '';
+    const resource = ROUTE_TO_RESOURCE[firstSegment];
     res.on('finish', () => {
-      if (res.statusCode >= 200 && res.statusCode < 300) publishBabyUpdate(babyId, originClientId);
+      if (res.statusCode >= 200 && res.statusCode < 300) publishBabyUpdate(babyId, resource, originClientId);
     });
   }
   next();

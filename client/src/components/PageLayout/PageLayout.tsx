@@ -24,10 +24,10 @@ type TProps = {
   dataFreshness?: TDataFreshness;
   /**
    * Called whenever the black-screen overlay opens/closes. Lets the page pause its own
-   * `useRefetchOnVisible`/`useBabyUpdatesSocket` (via `enabled: !isBlackScreenOpen`) while the
+   * `useRefetchOnVisible`/imperative list refetch (via `enabled: !isBlackScreenOpen`) while the
    * overlay is up — otherwise a WS update would trigger both the page's own (hidden) refetch and
-   * `BlackScreenOverlay`'s own `useAlwaysOnDisplayData` fetch/socket at once, and opening the
-   * overlay would visibly add a second, redundant WebSocket connection alongside the page's own.
+   * `BlackScreenOverlay`'s own `useAlwaysOnDisplayData` fetch at once. The WebSocket connection
+   * itself is always shared/global (see `contexts/WsProvider.tsx`) regardless of this flag.
    */
   onBlackScreenOpenChange?: (isOpen: boolean) => void;
 };

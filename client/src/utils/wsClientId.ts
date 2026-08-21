@@ -4,7 +4,7 @@
  * skip sending a "data changed" WebSocket notification back to the exact tab that caused the
  * change (that tab already has fresh data from its own request's response), while still
  * notifying every other tab/device (even ones logged in as the same user). See
- * `useBabyUpdatesSocket.ts` (sends this as part of the WS auth message) and `authFetch.ts`
+ * `contexts/WsProvider.tsx` (sends this as part of the WS auth message) and `authFetch.ts`
  * (sends this as the `X-Ws-Client-Id` header on every request).
  *
  * Deliberately module-scoped (not persisted to storage) — a fresh page load means a fresh ID,
