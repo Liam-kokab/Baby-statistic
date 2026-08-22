@@ -53,6 +53,8 @@ A custom SQLite function `now_oslo()` is registered on the connection at startup
 | `016_add_user_display_name` | Adds `name` to `users` | all |
 | `017_milestones` | Creates `milestone` table (baby milestones/firsts: title, description, occurred_at) | all |
 | `018_app_events` | Creates `app_events` generic single-row-per-id status table (currently only `id='BACKUP'`) | all |
+| `019_api_keys` | Creates `api_keys` table (admin-issued Bearer-token credentials, hashed with SHA-256) | all |
+
 
 `002_seed_test_data` and `004_clear_test_data` are conditionally included in the migrations array based on `process.env.NODE_ENV`, so they never cross-pollute environments.
 
@@ -158,6 +160,16 @@ Generic single-row-per-`id` app-level status table — not baby-scoped, no `crea
 | `id` | TEXT PK | e.g. `'BACKUP'` |
 | `value` | TEXT | meaning depends on `id`; for `BACKUP` it's an Oslo local datetime |
 | `updated_at` | TEXT | Oslo local datetime of the last upsert |
+
+### `api_keys` (migration `019_api_keys`)
+Admin-issued Bearer-token credentials, usable as a JWT alternative for any admin endpoint (see `doc/auth.md` → "API Keys"). Not baby-scoped. Only the SHA-256 hash of the raw key is stored — the raw key is shown to the admin once, at creation, and never persisted.
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | autoincrement |
+| `name` | TEXT | admin-chosen label (e.g. `backup-lambda`) |
+| `key_hash` | TEXT UNIQUE, indexed | SHA-256 hex digest of the raw key |
+| `created_by` | INTEGER | FK → `users.id` ON DELETE CASCADE — which admin created it |
+| `created_at` | TEXT | Oslo local datetime |
 
 ## Triggers
 `updated_at` columns and their `AFTER UPDATE` triggers were removed in migration `007_drop_updated_at`. No triggers remain on data tables.

@@ -22,6 +22,7 @@ import MilestonePage from './pages/MilestonePage/MilestonePage';
 import EditMilestonePage from './pages/EditMilestonePage/EditMilestonePage';
 import AdminBabiesPage from './pages/AdminBabiesPage/AdminBabiesPage';
 import AdminUsersPage from './pages/AdminUsersPage/AdminUsersPage';
+import AdminApiKeysPage from './pages/AdminApiKeysPage/AdminApiKeysPage';
 import WhiteNoisePage from './pages/WhiteNoisePage/WhiteNoisePage';
 import styles from './App.module.css';
 
@@ -38,6 +39,7 @@ const App = () => {
           <Route path="/admin" element={<ProtectedRoute><AdminUsersPage /></ProtectedRoute>} />
           <Route path="/admin/babies" element={<ProtectedRoute><AdminBabiesPage /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute><AdminUsersPage /></ProtectedRoute>} />
+          <Route path="/admin/api-keys" element={<ProtectedRoute><AdminApiKeysPage /></ProtectedRoute>} />
           {/* User routes */}
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/milk-drank" element={<ProtectedRoute><MilkDrankPage /></ProtectedRoute>} />

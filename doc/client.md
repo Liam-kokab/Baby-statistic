@@ -64,10 +64,13 @@ client/
       MilestonePage/
       EditMilestonePage/
       WhiteNoisePage/                # WhiteNoisePage.tsx + .module.css — client-generated white/pink/brown noise player
+      AdminBabiesPage/               # admin-only: manage babies (create/rename/delete)
+      AdminUsersPage/                # admin-only: manage users (create/edit name+username/set password/delete)
+      AdminApiKeysPage/              # admin-only: create/list/delete API keys (name + one-time-reveal raw key) — see doc/auth.md → "API Keys"
     utils/
       authStore.ts   # localStorage helpers: getAccessToken/getRefreshToken/setTokens/clear/isAuthenticated
       authFetch.ts   # typed fetch wrapper: attaches Bearer token, auto-refreshes on 401, redirects to /login on failure; marks the mutated resource dirty in `resourceCache.ts` after any successful POST/PUT/PATCH/DELETE (see "Live Updates" below)
-      navItems.ts    # shared NavBar item constants (HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, VISIBLE_FEATURE_COUNT)
+      navItems.ts    # shared NavBar item constants (HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, ADMIN_API_KEYS_ITEM, VISIBLE_FEATURE_COUNT)
       navOrder.ts    # localStorage-backed custom nav order + hidden set (keys `navOrder`, `navHidden`): getSavedNavOrder/saveNavOrder/clearNavOrder/applyNavOrder + getHiddenNavItems/saveHiddenNavItems/clearHiddenNavItems
       homeWidgets.ts     # shared HomePage widget constants (DEFAULT_HOME_WIDGETS: sleep/milk/nappy/medicines/whiteNoise; DEFAULT_HIDDEN_HOME_WIDGETS: whiteNoise)
       homeWidgetPrefs.ts # localStorage-backed HomePage widget order/visibility (keys `homeWidgetOrder`, `homeWidgetHidden`): get/save/clear + applyHomeWidgetOrder
@@ -117,6 +120,10 @@ client/
 | `/sleep/:id` | `EditSleepPage` |
 | `/pee/:id` | `EditPoopPeePage` (type="pee") |
 | `/poop/:id` | `EditPoopPeePage` (type="poop") |
+| `/admin` | `AdminUsersPage` |
+| `/admin/babies` | `AdminBabiesPage` |
+| `/admin/users` | `AdminUsersPage` |
+| `/admin/api-keys` | `AdminApiKeysPage` |
 | `/pumping/:id` | `EditPumpingPage` |
 | `/white-noise` | `WhiteNoisePage` |
 | `*` | Redirects to `/` |

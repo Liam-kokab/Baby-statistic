@@ -119,6 +119,23 @@ Delete a user. Guarded by `requireRecentAuth(300)` — same 403/`REAUTH_REQUIRED
 
 ---
 
+### `GET /api/admin/api-keys`
+List all API keys (name, id, createdBy, createdAt — never the key itself or its hash).
+
+### `POST /api/admin/api-keys`
+Create a new API key. **Body**: `{ "name": "..." }`
+
+**Response `201`**: `{ id, name, createdBy, createdAt, "key": "bsk_..." }` — `key` is the raw, unhashed value and is **only ever returned in this response**; it cannot be retrieved again afterwards.
+
+### `DELETE /api/admin/api-keys/:id`
+Delete (revoke) an API key immediately.
+
+**Response `204`**: No content. **Response `404`**: Key not found.
+
+> API keys authenticate as `Authorization: Bearer <key>` — same header as a JWT access token. `authenticate` middleware tries JWT verification first, then falls back to an API-key hash lookup. A valid key grants **admin-role access to any admin endpoint** (same as a real admin JWT), with no expiry. See `doc/auth.md` → "API Keys".
+
+---
+
 
 ## Baby *(requires `role: "user"` with a babyId)*
 

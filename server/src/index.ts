@@ -31,6 +31,7 @@ import predictionsRouter from './routes/predictions';
 import manifestRouter from './routes/manifest';
 import homeRouter from './routes/home';
 import appEventsRouter from './routes/appEvents';
+import apiKeysRouter from './routes/apiKeys';
 
 const app = express();
 // Internal-only port — production traffic reaches the app via nginx reverse-proxying
@@ -153,6 +154,7 @@ app.use('/api', (req: Request, res: Response, next: NextFunction): void => {
 
 // Admin routes
 app.use('/api/admin', adminRouter);
+app.use('/api/admin/api-keys', apiKeysRouter);
 
 // Baby-scoped routes (require user role with a baby)
 app.use('/api/baby', babyRouter);

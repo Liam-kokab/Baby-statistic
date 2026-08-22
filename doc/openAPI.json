@@ -241,6 +241,46 @@
         }
       }
     },
+    "/api/admin/api-keys": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List all API keys (admin only)",
+        "description": "Never includes the raw key or its hash — only id, name, createdBy, createdAt.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ApiKey" } } } }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Create an API key (admin only)",
+        "description": "The raw key is returned only in this response and cannot be retrieved again afterwards.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateApiKeyRequest" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateApiKeyResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/api/admin/api-keys/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/Id" }],
+      "delete": {
+        "tags": ["Admin"],
+        "summary": "Delete (revoke) an API key (admin only)",
+        "responses": {
+          "204": { "description": "No content" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
     "/api/baby": {
       "get": {
         "tags": ["Baby"],
@@ -1309,7 +1349,8 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "bearerFormat": "JWT",
+        "description": "Either a JWT access token from /api/auth/login, or an admin-issued API key (format bsk_...) from /api/admin/api-keys — API keys grant admin-role access to any admin endpoint. See doc/auth.md → \"API Keys\"."
       }
     },
     "parameters": {
@@ -1462,6 +1503,35 @@
           "name": { "type": "string" }
         },
         "required": ["name"]
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "createdBy": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "name", "createdBy", "createdAt"]
+      },
+      "CreateApiKeyRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        },
+        "required": ["name"]
+      },
+      "CreateApiKeyResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ApiKey" },
+          {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string", "description": "Raw API key — only ever returned here, cannot be retrieved again." }
+            },
+            "required": ["key"]
+          }
+        ]
       },
       "Timestamps": {
         "type": "object",

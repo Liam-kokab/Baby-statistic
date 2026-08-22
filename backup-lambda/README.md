@@ -1,12 +1,21 @@
 # Backup Lambda — Manual AWS Console Setup Guide
 
-Standalone Lambda function that, on a schedule, logs into the baby-statistic
-API, downloads a backup (`GET /api/backup`), uploads it to S3, then — in
-parallel — verifies the uploaded object's size is greater than 0 and deletes
-any backup older than the retention period; if verification passed, reports
-that success back to the API (`POST /api/app-events/backup` — shown in the
-app as a backup-status dot). This is **not** part of the main application
-repo/build — it's just the code + instructions, to be deployed by hand.
+Standalone Lambda function that, on a schedule, downloads a backup from the
+baby-statistic API (`GET /api/backup`, authenticated with an admin-issued API
+key), uploads it to S3, then — in parallel — verifies the uploaded object's
+size is greater than 0 and deletes any backup older than the retention
+period; if verification passed, reports that success back to the API
+(`POST /api/app-events/backup` — shown in the app as a backup-status dot).
+This is **not** part of the main application repo/build — it's just the
+code + instructions, to be deployed by hand.
+
+> **Performance note:** listing the existing S3 objects (to find stale ones to
+> prune) is kicked off at module load time — i.e. during the Lambda cold-start
+> init phase, before the handler even runs — since it only needs env vars, not
+> the freshly-downloaded backup. By the time the handler reaches the prune
+> step, that listing has usually already finished. Every log line is prefixed
+> with `Step start:`/`Step end: ... (Xms)` so you can see the timing breakdown
+> per step in CloudWatch Logs if an invocation is unexpectedly slow.
 
 > **Simpler alternative:** you don't need any of this. You can just
 > download `GET /api/backup` yourself (e.g. via Swagger UI or curl) and
@@ -96,22 +105,26 @@ No VPC, no Secrets Manager, no API Gateway required.
    the file, and matches the `index.mjs` filename Lambda creates by default).
 
 
-## 4. Set Environment Variables
+## 4. Create an API Key and Set Environment Variables
 
-In the function → **Configuration → Environment variables** → add:
+1. Log into the app as an admin and go to the **API Keys** page (arc menu,
+   next to Settings) — or `POST /api/admin/api-keys` with `{ "name": "backup-lambda" }`.
+2. Give it a descriptive name (e.g. `backup-lambda`) and copy the raw key
+   shown — **it is only ever shown once**, immediately after creation.
+3. In the function → **Configuration → Environment variables** → add:
 
 | Key | Value |
 |---|---|
 | `API_BASE_URL` | `https://your-domain.example` (your public server URL, no trailing slash) |
-| `ADMIN_USERNAME` | an existing admin user's username |
-| `ADMIN_PASSWORD` | that admin user's password |
+| `LAMBDA_API_KEY` | the raw API key copied in step 2 |
 | `S3_BUCKET` | the bucket name from step 1 |
 | `S3_PREFIX` *(optional)* | default `backups/` |
 | `RETENTION_DAYS` *(optional)* | default `14` |
 
-Lambda encrypts environment variables at rest by default — no extra setup
-needed for the admin password to be reasonably safe, but consider using a
-dedicated admin account with no other purpose.
+Lambda encrypts environment variables at rest by default. Unlike a
+username/password, an API key can be revoked independently (delete it from
+the admin API Keys page) without affecting any real user account, and never
+expires unless deleted.
 
 ## 5. Increase Timeout (default 3s is too short)
 

@@ -4,7 +4,7 @@ import { authStore } from '../../utils/authStore';
 import { authFetch } from '../../utils/authFetch';
 import { clearResourceCache } from '../../utils/resourceCache';
 import { useTranslation } from '../../i18n/i18n';
-import { HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, VISIBLE_FEATURE_COUNT } from '../../utils/navItems';
+import { HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, ADMIN_API_KEYS_ITEM, VISIBLE_FEATURE_COUNT } from '../../utils/navItems';
 import { getSavedNavOrder, applyNavOrder, getHiddenNavItems } from '../../utils/navOrder';
 import styles from './NavBar.module.css';
 
@@ -30,7 +30,7 @@ const NavBar = () => {
     : [...visibleFeatureItems.slice(0, 1), HOME_ITEM, ...visibleFeatureItems.slice(1)];
 
   const menuItems = isAdmin
-    ? [SETTINGS_ITEM]
+    ? [ADMIN_API_KEYS_ITEM, SETTINGS_ITEM]
     : [...orderedFeatureItems.slice(VISIBLE_FEATURE_COUNT), SETTINGS_ITEM];
 
   const toggleMenu = useCallback(() => setMenuOpen((prev) => !prev), []);

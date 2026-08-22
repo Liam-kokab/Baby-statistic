@@ -40,6 +40,7 @@
   "NAV_ADMIN": { "en": "Admin", "nb": "Admin" },
   "NAV_USERS": { "en": "Users", "nb": "Brukere" },
   "NAV_WHITE_NOISE": { "en": "White Noise", "nb": "Hvit støy" },
+  "NAV_API_KEYS": { "en": "API Keys", "nb": "API-nøkler" },
 
   "LOGIN_TITLE": { "en": "Baby Statistics", "nb": "Babystatistikk" },
   "LOGIN_USERNAME": { "en": "Username", "nb": "Brukernavn" },
@@ -276,5 +277,10 @@
   "ADMIN_CONFIRM_DELETE_USER": { "en": "Delete this user?", "nb": "Slette denne brukeren?" },
   "ADMIN_PASSWORD_MIN_LENGTH": { "en": "Password must be at least 8 characters", "nb": "Passord må være minst 8 tegn" },
   "ADMIN_ROLE_USER": { "en": "user", "nb": "bruker" },
-  "ADMIN_ROLE_ADMIN": { "en": "admin", "nb": "admin" }
+  "ADMIN_ROLE_ADMIN": { "en": "admin", "nb": "admin" },
+  "ADMIN_API_KEYS_TITLE": { "en": "🗝️ API Keys", "nb": "🗝️ API-nøkler" },
+  "ADMIN_API_KEY_NAME_PLACEHOLDER": { "en": "Key name (e.g. backup-lambda)…", "nb": "Nøkkelnavn (f.eks. backup-lambda)…" },
+  "ADMIN_NO_API_KEYS_YET": { "en": "No API keys yet.", "nb": "Ingen API-nøkler enda." },
+  "ADMIN_CONFIRM_DELETE_API_KEY": { "en": "Delete this API key? Anything using it will stop working immediately.", "nb": "Slette denne API-nøkkelen? Alt som bruker den vil slutte å fungere umiddelbart." },
+  "ADMIN_API_KEY_SHOWN_ONCE": { "en": "⚠️ Copy this key now — it won't be shown again:", "nb": "⚠️ Kopier denne nøkkelen nå — den vises ikke igjen:" }
 }

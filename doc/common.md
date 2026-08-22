@@ -22,6 +22,8 @@ common/
     summaries.ts    # summary types (TDrankMilkSummary, TDrankMilkTodayStats, TSleepSummary, TNappySummary, TPumpingSummary)
     home.ts         # aggregated Home/always-on-display types (THomeSummary, TAlwaysOnDisplayData)
     appEvents.ts    # app_events types (TAppEventId, TAppEventDb, TAppEvent, TBackupStatus, TPostBackupStatus)
+    apiKey.ts       # api_keys types (TApiKeyDb, TApiKey, TCreateApiKeyRequest, TCreateApiKeyResponse)
+
     TUtils.ts       # shared utility types (TDataOrError)
   util/
     index.ts      # barrel re-export of all utilities
@@ -145,6 +147,15 @@ Each DB table has its own type file with three types:
 | `TAppEvent` | App type — camelCase: `id`, `value`, `updatedAt` |
 | `TBackupStatus` | `GET /api/app-events/backup` response — `{ lastBackupAt: string \| null }` |
 | `TPostBackupStatus` | `POST /api/app-events/backup` body — `{ timestamp?: string }` (defaults to now) |
+
+
+### `apiKey.ts`
+| Type | Description |
+|---|---|
+| `TApiKeyDb` | DB row — `id`, `name`, `key_hash`, `created_by`, `created_at` |
+| `TApiKey` | App type — camelCase, never includes the key or its hash: `id`, `name`, `createdBy`, `createdAt` |
+| `TCreateApiKeyRequest` | `POST /api/admin/api-keys` body — `{ name: string }` |
+| `TCreateApiKeyResponse` | `POST /api/admin/api-keys` response — `TApiKey & { key: string }`; `key` is the raw value, returned only once |
 
 
 ## Exported Utilities (`util/`)

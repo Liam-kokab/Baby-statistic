@@ -541,6 +541,25 @@ export const migrations: TMigration[] = [
       );
     `,
   },
+
+  {
+    name: '019_api_keys',
+    up: `
+      -- Admin-issued API keys, usable as a Bearer token alternative to JWTs for
+      -- ANY admin endpoint (see server/src/middleware/authenticate.ts). Only the
+      -- SHA-256 hash of the raw key is stored; the raw key is shown to the admin
+      -- once, at creation time, and cannot be retrieved again.
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT    NOT NULL,
+        key_hash   TEXT    NOT NULL UNIQUE,
+        created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
+    `,
+  },
 ];
 
 

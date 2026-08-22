@@ -94,6 +94,18 @@ The Express `authenticate` middleware is mounted on the `/api` prefix only (`app
 
 ---
 
+## API Keys
+
+Besides user JWTs, `Authorization: Bearer <token>` also accepts an **admin-issued API key** — a long-lived, non-expiring credential intended for machine-to-machine use (e.g. the `backup-lambda`), where logging in with a username/password on every invocation would be both slower (bcrypt cost) and awkward (no real login session).
+
+- **Creation**: any admin can create a key via the **API Keys** page (client) or `POST /api/admin/api-keys` (`{ "name": "..." }`). The raw key (format `bsk_<43 random base64url chars>`) is returned **once**, in the creation response, and never again — only its SHA-256 hash is stored in the `api_keys` table.
+- **Why SHA-256 and not bcrypt**: API keys are high-entropy random tokens, not human-chosen passwords — brute-forcing a 256-bit random value is infeasible regardless of hash speed, so the slow adaptive hashing used for passwords (bcrypt) would only add latency with no security benefit. A fast hash also enables an indexed, O(1) DB lookup by hash instead of comparing against every stored key.
+- **Verification**: `authenticate.ts` tries `jwt.verify` first; on failure it falls back to hashing the presented token and looking it up in `api_keys`. A match sets `req.user` to `{ role: 'admin', babyId: null, ... }` — **granting the same access as a real admin JWT to every admin endpoint** (`requireAdmin`-gated routes), including `/api/backup`, `/api/app-events/backup`, and `/api/admin/*` itself.
+- **No expiry, no per-endpoint scoping** — a key is valid for all admin endpoints until explicitly deleted (`DELETE /api/admin/api-keys/:id`), which takes effect immediately.
+- **Management**: `GET /api/admin/api-keys` lists existing keys (name, id, creator, creation date — never the key or its hash).
+
+---
+
 ## Permission Table
 
 | Endpoint                         | Public | `user` (with babyId) |   `admin`    |
@@ -115,6 +127,10 @@ The Express `authenticate` middleware is mounted on the `/api` prefix only (`app
 | `POST /api/admin/users`          |   —    |          ❌           |      ✅       |
 | `PATCH /api/admin/users/:id`     |   —    |          ❌           |      ✅       |
 | `DELETE /api/admin/users/:id`    |   —    |          ❌           |      ✅       |
+| **Admin — API keys**             |        |                      |              |
+| `GET /api/admin/api-keys`        |   —    |          ❌           |      ✅       |
+| `POST /api/admin/api-keys`       |   —    |          ❌           |      ✅       |
+| `DELETE /api/admin/api-keys/:id` |   —    |          ❌           |      ✅       |
 | **Baby**                         |        |                      |              |
 | `GET /api/baby`                  |   —    |     ✅ (own baby)     |      ❌       |
 | `POST /api/baby/invite`          |   —    |     ✅ (own baby)     |      ❌       |

@@ -44,6 +44,7 @@ server/
     routes/           # one file per resource
       auth.ts         # POST /api/auth/login|refresh|logout, GET /api/auth/me
       admin.ts        # /api/admin/* (admin-only)
+      apiKeys.ts      # /api/admin/api-keys/* — create/list/delete admin API keys (admin-only)
       baby.ts         # /api/baby (user-only)
       manifest.ts     # GET /manifest.json — theme-aware PWA manifest (public, mounted outside /api)
       simpleEventRouterFactory.ts  # builds standard CRUD router for "simple event" resources (pee, poop)
@@ -51,20 +52,22 @@ server/
     repositories/
       userRepository.ts   # users + refresh_tokens
       babyRepository.ts   # babies
+      apiKeyRepository.ts # api_keys — findByHash used by the authenticate middleware fallback
       simpleEventRepositoryFactory.ts  # builds CRUD repository for "simple event" tables (pee, poop, pumping)
       ...             # existing data repositories (all now scoped by baby_id)
     services/
       authService.ts  # bcrypt + JWT sign/verify
+      apiKeyService.ts # generate/hash (SHA-256)/verify admin API keys
       simpleEventServiceFactory.ts  # builds a TBabyContext-scoped service wrapping a simple-event repository
       ...             # existing services (all now accept TBabyContext)
     middleware/
-      authenticate.ts   # verify Bearer access token → set req.user
+      authenticate.ts   # verify Bearer access token (JWT, falling back to an API-key hash lookup) → set req.user
       requireAdmin.ts   # guard: role must be 'admin' (or 'user' + babyId)
     ws/
       eventBus.ts       # process-local EventEmitter pub/sub: publishBabyUpdate(babyId) / subscribeBabyUpdates(babyId, listener)
       wsServer.ts       # attaches a `ws` WebSocketServer to the HTTP server on path `/ws`; authenticates via a `{ type: 'auth', token }` first message (not a query param), scopes each connection to one babyId
     migrations/
-      index.ts        # migrations 001–018
+      index.ts        # migrations 001–019
     utils/
       bodyAs.ts       # casts req.body to Partial<T>
       time.ts         # Oslo timezone helpers
@@ -176,6 +179,7 @@ Each table has a service in `server/src/services/`. Services sit between routes 
 | `homeService` | `getSummary(ctx)` | Aggregates `sleepService.findLatest`, `drankMilkService.findLatest`/`suggestNextDrinkAmount`, `pumpingService.findLatest`, latest pee/poop, and `medicineService.findAllActive` into one `THomeSummary` payload — backs `GET /api/home/summary`, used by the Home page for its first load and every subsequent update. |
 | `homeService` | `getAlwaysOnDisplay(ctx)` | Lighter subset (`latestSleep`, `latestPumping`, `latestDrank`, `drankToday`, `medicines`) backing `GET /api/home/always-on-display` — used by every page's black-screen readout, refreshed on open and every 5 minutes after. |
 | `appEventsService` | `reportBackupSuccess(timestamp?)` / `getBackupStatus()` | Upserts/reads the single `app_events` row with `id = 'BACKUP'`, backing `POST`/`GET /api/app-events/backup`. Not baby-scoped — a global, app-wide status. |
+| `apiKeyService` | `create(name, createdBy)` / `verify(rawKey)` | `create` generates a random `bsk_...` key, hashes it (SHA-256) and stores it; `verify` hashes a presented Bearer token and looks it up — used by `authenticate.ts` as a fallback when JWT verification fails. Not baby-scoped — grants admin-role access. |
 
 ## Timezone
 All timestamps are stored and returned as **Oslo local time** (`Europe/Oslo`). See `doc/db.md` for full details.

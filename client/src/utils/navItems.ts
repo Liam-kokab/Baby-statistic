@@ -32,3 +32,7 @@ export const ADMIN_MAIN_ITEMS: TNavItem[] = [
   { path: '/admin/users',  emoji: '👥', labelKey: 'NAV_USERS'  },
 ];
 
+/** Rendered in the arc menu for admins, alongside Settings — not shown on the main bar. */
+export const ADMIN_API_KEYS_ITEM: TNavItem = { path: '/admin/api-keys', emoji: '🗝️', labelKey: 'NAV_API_KEYS' };
+
+
