@@ -161,15 +161,16 @@ Generic single-row-per-`id` app-level status table — not baby-scoped, no `crea
 | `value` | TEXT | meaning depends on `id`; for `BACKUP` it's an Oslo local datetime |
 | `updated_at` | TEXT | Oslo local datetime of the last upsert |
 
-### `api_keys` (migration `019_api_keys`)
-Admin-issued Bearer-token credentials, usable as a JWT alternative for any admin endpoint (see `doc/auth.md` → "API Keys"). Not baby-scoped. Only the SHA-256 hash of the raw key is stored — the raw key is shown to the admin once, at creation, and never persisted.
+### `api_keys` (migrations `019_api_keys`, `020_api_keys_baby_scope`)
+Bearer-token credentials, usable as a JWT alternative. `baby_id IS NULL` = admin-issued key, usable for any admin endpoint (see `doc/auth.md` → "API Keys"). A non-NULL `baby_id` instead restricts the key to regular user-role access scoped to exactly that baby (created via `POST /api/baby/api-keys` by the baby owner, or `POST /api/admin/api-keys` with a `babyId` by an admin) — e.g. for the MCP server. Only the SHA-256 hash of the raw key is stored — the raw key is shown once, at creation, and never persisted.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | INTEGER PK | autoincrement |
-| `name` | TEXT | admin-chosen label (e.g. `backup-lambda`) |
+| `name` | TEXT | chosen label (e.g. `backup-lambda`, `mcp-server`) |
 | `key_hash` | TEXT UNIQUE, indexed | SHA-256 hex digest of the raw key |
-| `created_by` | INTEGER | FK → `users.id` ON DELETE CASCADE — which admin created it |
+| `created_by` | INTEGER | FK → `users.id` ON DELETE CASCADE — who created it |
 | `created_at` | TEXT | Oslo local datetime |
+| `baby_id` | INTEGER, nullable, indexed | FK → `babies.id` ON DELETE CASCADE — NULL = admin-scoped, non-null = restricted to this baby |
 
 ## Triggers
 `updated_at` columns and their `AFTER UPDATE` triggers were removed in migration `007_drop_updated_at`. No triggers remain on data tables.

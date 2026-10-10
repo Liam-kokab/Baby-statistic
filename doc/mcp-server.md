@@ -48,6 +48,12 @@ In production, the MCP server is started automatically by `index.js` in SSE-only
 | `BABY_API_URL` | `http://localhost:3000` | Base URL of the Express API server |
 | `MCP_PORT` | `3001` | Port for the MCP SSE server |
 | `MCP_MODE` | (unset, falls back to argv or `'both'`) | `sse`, `stdio`, or `both` |
+| `MCP_API_KEY` | — | Baby-scoped API key the MCP server authenticates with (required) |
+
+### Authentication (`apiClient.ts`)
+
+Every REST endpoint used by the tools (`/api/sleep`, `/api/drank-milk`, `/api/pee`, ...) is baby-scoped and gated by `requireUser`, which **rejects the `admin` role** — so a plain admin-issued API key (as used by `backup-lambda`) does **not** work here. Instead, the MCP server uses a **baby-scoped API key**: a key created either by the baby owner (`POST /api/baby/api-keys`) or by an admin on the baby's behalf (`POST /api/admin/api-keys` with a `babyId`). A baby-scoped key authenticates every request as a regular `user` restricted to exactly that baby (see `server/src/middleware/authenticate.ts`) — it never expires and needs no login/refresh flow, and can be revoked at any time (`DELETE /api/baby/api-keys/:id`), instantly invalidating it. Set the raw key as `MCP_API_KEY`; without it, every tool call fails with `"Missing or invalid Authorization header"`.
+
 
 ## Transport (SSE)
 

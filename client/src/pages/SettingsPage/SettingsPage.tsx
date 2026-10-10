@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { authFetch } from '../../utils/authFetch';
 import { authStore } from '../../utils/authStore';
 import PageLayout from '../../components/PageLayout/PageLayout';
@@ -11,7 +11,7 @@ import NavOrderEditor from '../../components/NavOrderEditor/NavOrderEditor';
 import HomeWidgetsEditor from '../../components/HomeWidgetsEditor/HomeWidgetsEditor';
 import WhiteNoiseSoundsEditor from '../../components/WhiteNoiseSoundsEditor/WhiteNoiseSoundsEditor';
 import { useActionFeedback } from '../../utils/useActionFeedback';
-import type { TUser, TUpdateMeRequest } from 'baby-statistic-common';
+import type { TUser, TUpdateMeRequest, TApiKey, TCreateApiKeyRequest, TCreateApiKeyResponse } from 'baby-statistic-common';
 import styles from './SettingsPage.module.css';
 import { getSavedTheme, setTheme, themeToIndex, indexToTheme, getSavedMode, setMode, modeToIndex, indexToMode } from '../../utils/theme';
 import { useTranslation, languageToIndex, indexToLanguage } from '../../i18n/i18n';
@@ -28,7 +28,7 @@ type TBuildTimeResponse = {
   buildTime: string;
 };
 
-type TSettingsTab = 'account' | 'appearance' | 'navigation' | 'home' | 'about';
+type TSettingsTab = 'account' | 'appearance' | 'navigation' | 'home' | 'apiKeys' | 'about';
 
 const BLACK_SCREEN_FIELD_LABEL_KEYS: Record<TBlackScreenField, string> = {
   time:       'SETTINGS_BLACK_SCREEN_FIELD_TIME',
@@ -71,6 +71,15 @@ const SettingsPage = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const passwordAction = useActionFeedback();
 
+  // Baby-scoped API keys (e.g. for the MCP server) — every user assigned to this
+  // baby can create/revoke keys; a key never expires and grants the same
+  // access as this baby's own account, restricted to exactly this baby.
+  const [apiKeys, setApiKeys] = useState<TApiKey[]>([]);
+  const [apiKeysLoading, setApiKeysLoading] = useState(true);
+  const [apiKeyName, setApiKeyName] = useState('');
+  const [newlyCreatedApiKey, setNewlyCreatedApiKey] = useState<string | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+
   useEffect(() => {
     const load = async (): Promise<void> => {
       const res = await authFetch<TBuildTimeResponse>('/api/build-time');
@@ -94,6 +103,15 @@ const SettingsPage = () => {
     };
     loadUser();
   }, []);
+
+  const loadApiKeys = useCallback(async () => {
+    const res = await authFetch<TApiKey[]>('/api/baby/api-keys');
+    if (res.ok) setApiKeys(res.data);
+    else setApiKeyError(res.error);
+    setApiKeysLoading(false);
+  }, []);
+
+  useEffect(() => { loadApiKeys(); }, [loadApiKeys]);
 
   const onThemeChange = (i: number): void => {
     const th = indexToTheme(i);
@@ -165,6 +183,30 @@ const SettingsPage = () => {
     });
   };
 
+  const handleAddApiKey = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!apiKeyName.trim()) return;
+    setApiKeyError(null);
+    setNewlyCreatedApiKey(null);
+    const res = await authFetch<TCreateApiKeyResponse>('/api/baby/api-keys', {
+      method: 'POST',
+      body: JSON.stringify({ name: apiKeyName.trim() } satisfies TCreateApiKeyRequest),
+    });
+    if (res.ok) {
+      setApiKeyName('');
+      setNewlyCreatedApiKey(res.data.key);
+      loadApiKeys();
+    } else {
+      setApiKeyError(res.error);
+    }
+  };
+
+  const handleDeleteApiKey = async (id: number): Promise<void> => {
+    if (!confirm(t('SETTINGS_CONFIRM_DELETE_API_KEY'))) return;
+    await authFetch(`/api/baby/api-keys/${id}`, { method: 'DELETE' });
+    loadApiKeys();
+  };
+
   return (
     <PageLayout title={t('SETTINGS_TITLE')} emoji="⚙️" bannerSlug="settings">
       <div className={styles.content}>
@@ -174,6 +216,7 @@ const SettingsPage = () => {
           { key: 'appearance', emoji: '🎨', label: t('SETTINGS_TAB_APPEARANCE') },
           { key: 'navigation', emoji: '🧭', label: t('SETTINGS_TAB_NAVIGATION') },
           { key: 'home',       emoji: '🏠', label: t('SETTINGS_TAB_HOME') },
+          { key: 'apiKeys',    emoji: '🗝️', label: t('SETTINGS_TAB_API_KEYS') },
           { key: 'about',      emoji: 'ℹ️', label: t('SETTINGS_TAB_ABOUT') },
         ]}
         activeKey={activeTab}
@@ -303,6 +346,50 @@ const SettingsPage = () => {
         </>
       ) : null}
 
+      {activeTab === 'apiKeys' ? (
+        <section className={styles.card}>
+          <h2 className={styles.sectionTitle}>{t('SETTINGS_API_KEYS_TITLE')}</h2>
+          <p className={styles.description}>{t('SETTINGS_API_KEYS_DESCRIPTION')}</p>
+
+          <form onSubmit={handleAddApiKey} className={styles.addForm}>
+            <Input
+              value={apiKeyName}
+              onChange={setApiKeyName}
+              name="apiKeyName"
+              placeholder={t('SETTINGS_API_KEY_NAME_PLACEHOLDER')}
+            />
+            <Button text={t('COMMON_ADD')} type="submit" />
+          </form>
+
+          {apiKeyError ? <p className={styles.formError}>{apiKeyError}</p> : null}
+
+          {newlyCreatedApiKey ? (
+            <div className={styles.newKeyBanner}>
+              <span className={styles.newKeyLabel}>{t('SETTINGS_API_KEY_SHOWN_ONCE')}</span>
+              <div className={styles.newKeyRow}>
+                <code className={styles.newKeyValue}>{newlyCreatedApiKey}</code>
+              </div>
+            </div>
+          ) : null}
+
+          {apiKeysLoading ? (
+            <p className={styles.description}>{t('COMMON_LOADING_SIMPLE')}</p>
+          ) : apiKeys.length === 0 ? (
+            <p className={styles.description}>{t('SETTINGS_NO_API_KEYS_YET')}</p>
+          ) : (
+            <ul className={styles.apiKeyList}>
+              {apiKeys.map((k) => (
+                <li key={k.id} className={styles.apiKeyItem}>
+                  <span className={styles.apiKeyName}>🔑 {k.name}</span>
+                  <span className={styles.apiKeyMeta}>{k.createdAt.slice(0, 10)}</span>
+                  <button className={styles.apiKeyDeleteBtn} onClick={() => handleDeleteApiKey(k.id)}>🗑️</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
       {activeTab === 'about' ? (
         <section className={styles.card}>
           <h2 className={styles.sectionTitle}>{t('SETTINGS_BUILD_INFO')}</h2>
@@ -322,4 +409,3 @@ const SettingsPage = () => {
 };
 
 export default SettingsPage;
-

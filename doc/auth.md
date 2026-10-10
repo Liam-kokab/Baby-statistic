@@ -96,13 +96,16 @@ The Express `authenticate` middleware is mounted on the `/api` prefix only (`app
 
 ## API Keys
 
-Besides user JWTs, `Authorization: Bearer <token>` also accepts an **admin-issued API key** — a long-lived, non-expiring credential intended for machine-to-machine use (e.g. the `backup-lambda`), where logging in with a username/password on every invocation would be both slower (bcrypt cost) and awkward (no real login session).
+Besides user JWTs, `Authorization: Bearer <token>` also accepts a long-lived, non-expiring **API key**, intended for machine-to-machine use where logging in with a username/password on every invocation would be both slower (bcrypt cost) and awkward (no real login session). There are two scopes:
 
-- **Creation**: any admin can create a key via the **API Keys** page (client) or `POST /api/admin/api-keys` (`{ "name": "..." }`). The raw key (format `bsk_<43 random base64url chars>`) is returned **once**, in the creation response, and never again — only its SHA-256 hash is stored in the `api_keys` table.
+- **Admin-scoped** (`baby_id = NULL`) — e.g. the `backup-lambda`. Grants the same access as a real admin JWT to every admin endpoint.
+- **Baby-scoped** (`baby_id` set) — e.g. the MCP server, so an AI agent can be granted access to one baby's data without ever being given a real username/password. Grants the same access as a real user JWT for that one baby, and **cannot** reach any admin endpoint.
+
+- **Creation**: an admin-scoped key is created via the **API Keys** page (client) or `POST /api/admin/api-keys` (`{ "name": "..." }`, admin-only). A baby-scoped key is created either by any user assigned to that baby via `POST /api/baby/api-keys` (`{ "name": "..." }`), or by an admin on the baby's behalf via `POST /api/admin/api-keys` with a `babyId` field. The raw key (format `bsk_<43 random base64url chars>`) is returned **once**, in the creation response, and never again — only its SHA-256 hash is stored in the `api_keys` table.
 - **Why SHA-256 and not bcrypt**: API keys are high-entropy random tokens, not human-chosen passwords — brute-forcing a 256-bit random value is infeasible regardless of hash speed, so the slow adaptive hashing used for passwords (bcrypt) would only add latency with no security benefit. A fast hash also enables an indexed, O(1) DB lookup by hash instead of comparing against every stored key.
-- **Verification**: `authenticate.ts` tries `jwt.verify` first; on failure it falls back to hashing the presented token and looking it up in `api_keys`. A match sets `req.user` to `{ role: 'admin', babyId: null, ... }` — **granting the same access as a real admin JWT to every admin endpoint** (`requireAdmin`-gated routes), including `/api/backup`, `/api/app-events/backup`, and `/api/admin/*` itself.
-- **No expiry, no per-endpoint scoping** — a key is valid for all admin endpoints until explicitly deleted (`DELETE /api/admin/api-keys/:id`), which takes effect immediately.
-- **Management**: `GET /api/admin/api-keys` lists existing keys (name, id, creator, creation date — never the key or its hash).
+- **Verification**: `authenticate.ts` tries `jwt.verify` first; on failure it falls back to hashing the presented token and looking it up in `api_keys`. A match with `baby_id = NULL` sets `req.user` to `{ role: 'admin', babyId: null, ... }` — **granting the same access as a real admin JWT to every admin endpoint** (`requireAdmin`-gated routes), including `/api/backup`, `/api/app-events/backup`, and `/api/admin/*` itself. A match with a non-null `baby_id` instead sets `req.user` to `{ role: 'user', babyId: <that id>, ... }` — restricted to exactly that baby's data, same as a real user JWT.
+- **No expiry, no per-endpoint scoping within its grant** — a key is valid until explicitly deleted, which takes effect immediately: `DELETE /api/admin/api-keys/:id` for admin-scoped keys, `DELETE /api/baby/api-keys/:id` for baby-scoped keys (only deletes keys belonging to the caller's own baby).
+- **Management**: `GET /api/admin/api-keys` lists *all* keys (name, id, creator, creation date, babyId — never the key or its hash). `GET /api/baby/api-keys` lists only the current user's baby's keys.
 
 ---
 

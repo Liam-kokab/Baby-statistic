@@ -33,3 +33,5 @@ mcp-server/src/tools/buildTime.json
 .pm2
 logs
 
+/mcp-dev.log
+/server-dev.log

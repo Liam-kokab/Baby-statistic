@@ -560,6 +560,21 @@ export const migrations: TMigration[] = [
       CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
     `,
   },
+
+  {
+    name: '020_api_keys_baby_scope',
+    up: `
+      -- Adds baby-scoping to API keys. NULL baby_id = the original admin-scoped
+      -- key (unrestricted admin access, e.g. backup-lambda). A non-NULL baby_id
+      -- makes the key authenticate as a regular 'user' restricted to that one
+      -- baby (see authenticate.ts) — e.g. for the MCP server, so an AI agent
+      -- never needs a real username/password and can be revoked independently
+      -- of any human account just by deleting the key.
+      ALTER TABLE api_keys ADD COLUMN baby_id INTEGER REFERENCES babies(id) ON DELETE CASCADE;
+
+      CREATE INDEX IF NOT EXISTS idx_api_keys_baby_id ON api_keys(baby_id);
+    `,
+  },
 ];
 
 

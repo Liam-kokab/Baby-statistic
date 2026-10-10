@@ -18,20 +18,28 @@ const generateRawKey = (): string =>
 export const apiKeyService = {
   findAll: (): TApiKey[] => apiKeyRepository.findAll(),
 
-  create: (name: string, createdBy: number): TCreateApiKeyResponse => {
+  findAllByBaby: (babyId: number): TApiKey[] => apiKeyRepository.findAllByBaby(babyId),
+
+  /** `babyId: null` creates an admin-scoped key (unrestricted admin access, e.g. backup-lambda).
+   * A non-null `babyId` creates a key restricted to that one baby (e.g. for the MCP server) —
+   * it authenticates as a regular `user` scoped to that baby, never as admin. */
+  create: (name: string, createdBy: number, babyId: number | null = null): TCreateApiKeyResponse => {
     const rawKey = generateRawKey();
-    const apiKey = apiKeyRepository.insert({ name, keyHash: hashKey(rawKey), createdBy });
+    const apiKey = apiKeyRepository.insert({ name, keyHash: hashKey(rawKey), createdBy, babyId });
     return { ...apiKey, key: rawKey };
   },
 
   delete: (id: number): boolean => apiKeyRepository.delete(id),
 
+  /** Deletes only if the key belongs to the given baby — used by the baby-owner-facing
+   * route so a user can never revoke another baby's (or an admin-scoped) key. */
+  deleteForBaby: (id: number, babyId: number): boolean => apiKeyRepository.deleteForBaby(id, babyId),
+
   /** Verifies a Bearer token against stored API keys. Returns the matching key's
-   * `createdBy` user id (used only to populate `req.user`), or `null` if no match. */
-  verify: (rawKey: string): { id: number } | null => {
+   * `createdBy` user id and `babyId` (used only to populate `req.user`), or `null` if no match. */
+  verify: (rawKey: string): { id: number; keyId: number; babyId: number | null } | null => {
     if (!rawKey.startsWith(KEY_PREFIX)) return null;
     const match = apiKeyRepository.findByHash(hashKey(rawKey));
-    return match ? { id: match.id } : null;
+    return match ? { id: match.created_by, keyId: match.id, babyId: match.baby_id } : null;
   },
 };
-

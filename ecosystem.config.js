@@ -50,6 +50,10 @@ const apps = [
         // block only 301-redirects to HTTPS (see doc/nginx.md), it does not
         // proxy the API directly.
         BABY_API_URL: 'http://localhost:3000',
+        // Baby-scoped API key the MCP server authenticates with (see
+        // doc/mcp-server.md). Set MCP_API_KEY in the repo-root .env, loaded by
+        // dotenv.config() at the top of this file.
+        MCP_API_KEY: process.env.MCP_API_KEY,
       },
       autorestart: true,
       max_restarts: 10,

@@ -123,16 +123,16 @@ Delete a user. Guarded by `requireRecentAuth(300)` — same 403/`REAUTH_REQUIRED
 List all API keys (name, id, createdBy, createdAt — never the key itself or its hash).
 
 ### `POST /api/admin/api-keys`
-Create a new API key. **Body**: `{ "name": "..." }`
+Create a new API key. **Body**: `{ "name": "...", "babyId"?: 1 }` — omit `babyId` for an admin-scoped key, or provide it to create a key restricted to that one baby (grants regular user-role access, not admin).
 
-**Response `201`**: `{ id, name, createdBy, createdAt, "key": "bsk_..." }` — `key` is the raw, unhashed value and is **only ever returned in this response**; it cannot be retrieved again afterwards.
+**Response `201`**: `{ id, name, createdBy, createdAt, babyId, "key": "bsk_..." }` — `key` is the raw, unhashed value and is **only ever returned in this response**; it cannot be retrieved again afterwards.
 
 ### `DELETE /api/admin/api-keys/:id`
 Delete (revoke) an API key immediately.
 
 **Response `204`**: No content. **Response `404`**: Key not found.
 
-> API keys authenticate as `Authorization: Bearer <key>` — same header as a JWT access token. `authenticate` middleware tries JWT verification first, then falls back to an API-key hash lookup. A valid key grants **admin-role access to any admin endpoint** (same as a real admin JWT), with no expiry. See `doc/auth.md` → "API Keys".
+> API keys authenticate as `Authorization: Bearer <key>` — same header as a JWT access token. `authenticate` middleware tries JWT verification first, then falls back to an API-key hash lookup. A key with no `babyId` grants **admin-role access to any admin endpoint** (same as a real admin JWT), with no expiry. A key created with a `babyId` (see below) instead grants **regular user-role access scoped to exactly that baby** — it can never reach admin-only endpoints. See `doc/auth.md` → "API Keys".
 
 ---
 
@@ -150,6 +150,19 @@ Invite another user (by username) to share the current user's baby.
 **Body**: `{ "username": "..." }`
 
 **Response `201`**: `{ "ok": true }`
+
+### `GET /api/baby/api-keys`
+List API keys scoped to the current user's baby (name, id, createdBy, createdAt — never the key itself or its hash).
+
+### `POST /api/baby/api-keys`
+Create a new API key scoped to the current user's baby — e.g. for the MCP server, so an AI agent can access baby data without a real username/password. **Body**: `{ "name": "..." }`
+
+**Response `201`**: `{ id, name, createdBy, createdAt, babyId, "key": "bsk_..." }` — `key` is the raw, unhashed value and is **only ever returned in this response**; it cannot be retrieved again afterwards.
+
+### `DELETE /api/baby/api-keys/:id`
+Delete (revoke) a baby-scoped API key immediately. Only deletes keys belonging to the current user's baby — returns `404` for any other key id.
+
+**Response `204`**: No content. **Response `404`**: Key not found (or belongs to a different baby).
 
 ---
 

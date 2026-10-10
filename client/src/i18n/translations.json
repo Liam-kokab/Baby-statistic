@@ -282,5 +282,12 @@
   "ADMIN_API_KEY_NAME_PLACEHOLDER": { "en": "Key name (e.g. backup-lambda)…", "nb": "Nøkkelnavn (f.eks. backup-lambda)…" },
   "ADMIN_NO_API_KEYS_YET": { "en": "No API keys yet.", "nb": "Ingen API-nøkler enda." },
   "ADMIN_CONFIRM_DELETE_API_KEY": { "en": "Delete this API key? Anything using it will stop working immediately.", "nb": "Slette denne API-nøkkelen? Alt som bruker den vil slutte å fungere umiddelbart." },
-  "ADMIN_API_KEY_SHOWN_ONCE": { "en": "⚠️ Copy this key now — it won't be shown again:", "nb": "⚠️ Kopier denne nøkkelen nå — den vises ikke igjen:" }
+  "ADMIN_API_KEY_SHOWN_ONCE": { "en": "⚠️ Copy this key now — it won't be shown again:", "nb": "⚠️ Kopier denne nøkkelen nå — den vises ikke igjen:" },
+  "SETTINGS_TAB_API_KEYS": { "en": "🗝️ API Keys", "nb": "🗝️ API-nøkler" },
+  "SETTINGS_API_KEYS_TITLE": { "en": "🗝️ Baby API Keys", "nb": "🗝️ API-nøkler for babyen" },
+  "SETTINGS_API_KEYS_DESCRIPTION": { "en": "Create a key to let an external tool (e.g. an AI assistant via MCP) read and log data for your baby, without sharing your username and password. Delete a key at any time to revoke its access immediately.", "nb": "Opprett en nøkkel for å la et eksternt verktøy (f.eks. en KI-assistent via MCP) lese og logge data for babyen din, uten å dele brukernavn og passord. Slett en nøkkel når som helst for å oppheve tilgangen umiddelbart." },
+  "SETTINGS_API_KEY_NAME_PLACEHOLDER": { "en": "Key name (e.g. mcp-server)…", "nb": "Nøkkelnavn (f.eks. mcp-server)…" },
+  "SETTINGS_NO_API_KEYS_YET": { "en": "No API keys yet.", "nb": "Ingen API-nøkler enda." },
+  "SETTINGS_CONFIRM_DELETE_API_KEY": { "en": "Delete this API key? Anything using it will stop working immediately.", "nb": "Slette denne API-nøkkelen? Alt som bruker den vil slutte å fungere umiddelbart." },
+  "SETTINGS_API_KEY_SHOWN_ONCE": { "en": "⚠️ Copy this key now — it won't be shown again:", "nb": "⚠️ Kopier denne nøkkelen nå — den vises ikke igjen:" }
 }
