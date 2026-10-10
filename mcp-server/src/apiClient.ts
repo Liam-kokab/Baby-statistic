@@ -1,4 +1,10 @@
+import { AsyncLocalStorage } from 'async_hooks';
+
 const BASE_URL = process.env.BABY_API_URL ?? 'http://localhost:3000';
+
+// Per-connection API key supplied by the connecting SSE client (Authorization header).
+// When running inside this context, the env key is never used.
+export const requestContext = new AsyncLocalStorage<{ apiKey: string }>();
 
 // A baby-scoped API key (format `bsk_...`), created by the baby's owner (or an
 // admin) via `POST /api/baby/api-keys` (or `POST /api/admin/api-keys` with a
@@ -8,7 +14,7 @@ const BASE_URL = process.env.BABY_API_URL ?? 'http://localhost:3000';
 // baby-scoped route the MCP tools call (sleep, drank-milk, pee, poop,
 // medicine, pumping, milestones, ...). It never expires and needs no
 // login/refresh flow — it stays valid until explicitly revoked (deleted).
-const API_KEY = process.env.MCP_API_KEY;
+const ENV_API_KEY = process.env.MCP_API_KEY; // stdio/local use only
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -22,11 +28,13 @@ export const apiCall = async (
   path: string,
   body?: unknown
 ): Promise<ApiResponse> => {
-  if (!API_KEY) {
+  const ctx = requestContext.getStore();
+  // SSE connections must use their own key; only stdio falls back to the env key.
+  const apiKey = ctx ? ctx.apiKey : ENV_API_KEY;
+  if (!apiKey) {
     throw new Error(
-      'MCP_API_KEY env var must be set to a baby-scoped API key (create one via ' +
-        'POST /api/baby/api-keys as the baby owner, or POST /api/admin/api-keys with a ' +
-        '"babyId" as an admin) — see doc/mcp-server.md.'
+      'No API key: SSE clients must send "Authorization: Bearer <baby-scoped key>"; ' +
+        'stdio mode needs MCP_API_KEY — see doc/mcp-server.md.'
     );
   }
 
@@ -36,7 +44,7 @@ export const apiCall = async (
     method,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
     },
   };
 

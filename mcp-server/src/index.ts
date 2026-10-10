@@ -11,6 +11,7 @@ import path from 'path';
 import fs from 'fs';
 import { z } from 'zod';
 import { allTools } from './tools';
+import { requestContext } from './apiClient';
 
 const app = express();
 const PORT = process.env.MCP_PORT ?? 3001;
@@ -23,10 +24,15 @@ const getMcpBuildTime = (): string => {
   return data.buildTime;
 };
 
+const getBearerKey = (header: string | undefined): string | null => {
+  const match = /^Bearer\s+(\S+)$/i.exec(header ?? '');
+  return match ? match[1] : null;
+};
+
 // Store active transports by session ID
 const transports = new Map<string, SSEServerTransport>();
 
-const createServer = (): Server => {
+const createServer = (apiKey?: string): Server => {
   const server = new Server(
     { name: 'baby-statistic-mcp', version: '1.0.0' },
     { capabilities: { tools: {} } }
@@ -51,7 +57,7 @@ const createServer = (): Server => {
       };
     }
 
-    return tool.handler(args ?? {});
+    return apiKey ? requestContext.run({ apiKey }, () => tool.handler(args ?? {})) : tool.handler(args ?? {});
   });
 
   return server;
@@ -60,6 +66,12 @@ const createServer = (): Server => {
 // --- SSE transport ---
 if (mode === 'sse' || mode === 'both') {
   app.get('/sse', async (req, res) => {
+    const apiKey = getBearerKey(req.headers.authorization);
+    if (!apiKey) {
+      res.status(401).json({ error: 'Missing "Authorization: Bearer <API key>" header' });
+      return;
+    }
+
     const transport = new SSEServerTransport('/messages', res);
     transports.set(transport.sessionId, transport);
 
@@ -67,7 +79,7 @@ if (mode === 'sse' || mode === 'both') {
       transports.delete(transport.sessionId);
     });
 
-    const server = createServer();
+    const server = createServer(apiKey);
     await server.connect(transport);
   });
 
