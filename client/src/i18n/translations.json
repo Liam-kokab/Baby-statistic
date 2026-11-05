@@ -53,6 +53,7 @@
   "HOME_TITLE": { "en": "Baby Stats", "nb": "Babystatistikk" },
   "HOME_SUBTITLE": { "en": "Track every little moment 💕", "nb": "Følg med på hvert lille øyeblikk 💕" },
   "HOME_SLEEP_TITLE": { "en": "😴 Sleep", "nb": "😴 Søvn" },
+  "HOME_PUMPING_TITLE": { "en": "🥛 Pumping", "nb": "🥛 Pumping" },
   "HOME_SLEEP_SLEEPING": { "en": "Sleeping", "nb": "Sover" },
   "HOME_SLEEP_AWAKE": { "en": "Awake", "nb": "Våken" },
   "HOME_SLEEP_SLEEPING_FOR": { "en": "Sleeping for", "nb": "Har sovet i" },

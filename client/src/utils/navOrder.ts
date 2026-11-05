@@ -3,6 +3,11 @@ import type { TNavItem } from './navItems';
 const STORAGE_KEY = 'navOrder';
 const HIDDEN_STORAGE_KEY = 'navHidden';
 
+export const NAV_PREFS_CHANGED_EVENT = 'nav-prefs-changed';
+const notifyChanged = (): void => {
+  window.dispatchEvent(new Event(NAV_PREFS_CHANGED_EVENT));
+};
+
 /** Reads the user's custom nav item order (an array of `path`s) from localStorage, if any. */
 export const getSavedNavOrder = (): string[] | null => {
   try {
@@ -22,6 +27,7 @@ export const saveNavOrder = (order: string[]): void => {
   } catch (_e) {
     // ignore
   }
+  notifyChanged();
 };
 
 export const clearNavOrder = (): void => {
@@ -30,6 +36,7 @@ export const clearNavOrder = (): void => {
   } catch (_e) {
     // ignore
   }
+  notifyChanged();
 };
 
 /** Reads the set of feature-item `path`s the user has hidden from the NavBar. Empty by default (all visible). */
@@ -51,6 +58,7 @@ export const saveHiddenNavItems = (hidden: string[]): void => {
   } catch (_e) {
     // ignore
   }
+  notifyChanged();
 };
 
 export const clearHiddenNavItems = (): void => {
@@ -59,6 +67,7 @@ export const clearHiddenNavItems = (): void => {
   } catch (_e) {
     // ignore
   }
+  notifyChanged();
 };
 
 /**

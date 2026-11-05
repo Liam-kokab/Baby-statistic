@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authStore } from '../../utils/authStore';
 import { authFetch } from '../../utils/authFetch';
 import { clearResourceCache } from '../../utils/resourceCache';
 import { useTranslation } from '../../i18n/i18n';
 import { HOME_ITEM, SETTINGS_ITEM, USER_FEATURE_ITEMS, ADMIN_MAIN_ITEMS, ADMIN_API_KEYS_ITEM, VISIBLE_FEATURE_COUNT } from '../../utils/navItems';
-import { getSavedNavOrder, applyNavOrder, getHiddenNavItems } from '../../utils/navOrder';
+import { getSavedNavOrder, applyNavOrder, getHiddenNavItems, NAV_PREFS_CHANGED_EVENT } from '../../utils/navOrder';
 import styles from './NavBar.module.css';
 
 const NavBar = () => {
@@ -13,6 +13,13 @@ const NavBar = () => {
   const { pathname } = useLocation();
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Bumped whenever nav prefs change so the bar re-renders immediately.
+  const [, setPrefsVersion] = useState(0);
+  useEffect(() => {
+    const onChange = (): void => setPrefsVersion((v) => v + 1);
+    window.addEventListener(NAV_PREFS_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(NAV_PREFS_CHANGED_EVENT, onChange);
+  }, []);
   const isAdmin = authStore.getUser()?.role === 'admin';
 
   // Feature items are user-reorderable and optional (Settings page → Navigation tab);

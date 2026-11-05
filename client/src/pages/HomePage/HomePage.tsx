@@ -277,9 +277,12 @@ const HomePage = () => {
           variant={isSleeping ? 'ghost' : 'primary'}
         />
       </div>
+    </section>
+  );
 
-      <div className={styles.divider} />
-
+  const renderPumpingWidget = (): ReactNode => (
+    <section className={styles.card}>
+      <h2 className={styles.sectionTitle}>{t('HOME_PUMPING_TITLE')}</h2>
       <div className={styles.sleepRow}>
         <div className={styles.sleepLeft}>
           <span className={styles.timer}>{pumpingDisplay}</span>
@@ -469,6 +472,8 @@ const HomePage = () => {
 
   const widgetRenderers: Record<THomeWidgetKey, () => ReactNode> = {
     sleep: renderSleepWidget,
+    pumping: renderPumpingWidget,
+
     milk: renderMilkWidget,
     nappy: renderNappyWidget,
     medicines: renderMedicinesWidget,

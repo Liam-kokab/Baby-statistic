@@ -1,4 +1,4 @@
-export type THomeWidgetKey = 'sleep' | 'milk' | 'nappy' | 'medicines' | 'whiteNoise';
+export type THomeWidgetKey = 'sleep' | 'pumping' | 'milk' | 'nappy' | 'medicines' | 'whiteNoise';
 
 export type THomeWidgetItem = {
   key: THomeWidgetKey;
@@ -9,6 +9,7 @@ export type THomeWidgetItem = {
  * Used as the fallback when the user hasn't customized anything (Settings → Home tab). */
 export const DEFAULT_HOME_WIDGETS: THomeWidgetItem[] = [
   { key: 'sleep',      labelKey: 'HOME_SLEEP_TITLE'      },
+  { key: 'pumping',    labelKey: 'HOME_PUMPING_TITLE'    },
   { key: 'milk',       labelKey: 'HOME_MILK_TITLE'       },
   { key: 'nappy',      labelKey: 'HOME_NAPPY_TITLE'      },
   { key: 'medicines',  labelKey: 'HOME_MEDICINES_TITLE'  },
