@@ -67,6 +67,14 @@ else
       cp -a "$LIVE_DIR/$d" "$d"
     fi
   done
+  # The live node_modules may be incomplete (e.g. installed without
+  # devDependencies). Verify the copy and fall back to a clean install.
+  if ! npm ls --all >/dev/null 2>&1; then
+    echo "    copied node_modules is incomplete — running npm ci instead"
+    DEPS_CHANGED=1
+    rm -rf node_modules */node_modules
+    npm ci --prefer-offline --no-audit --no-fund --include=dev
+  fi
 fi
 
 echo "==> Building client + server + mcp-server in staging"
