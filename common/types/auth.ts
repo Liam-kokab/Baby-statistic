@@ -27,12 +27,21 @@ export type TBabyDb = {
   id: number;
   name: string;
   created_at: string;
+  milk_green_minutes: number;
+  milk_yellow_minutes: number;
+};
+
+/** Minutes since last milk: < greenMinutes = green, < yellowMinutes = yellow, otherwise default colour (defaults 90 / 120). */
+export type TMilkColorSettings = {
+  greenMinutes: number;
+  yellowMinutes: number;
 };
 
 export type TBaby = {
   id: number;
   name: string;
   createdAt: string;
+  milkColors: TMilkColorSettings;
 };
 
 export type TRefreshTokenDb = {

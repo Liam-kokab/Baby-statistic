@@ -36,6 +36,22 @@ router.patch('/name', (req: Request, res: Response): void => {
   res.json(baby);
 });
 
+// PUT /api/baby/milk-colors — set the minute thresholds for milk colour coding
+router.put('/milk-colors', (req: Request, res: Response): void => {
+  const { greenMinutes, yellowMinutes } = bodyAs<{ greenMinutes?: unknown; yellowMinutes?: unknown }>(req);
+  const valid = (n: unknown): n is number => Number.isInteger(n) && (n as number) > 0 && (n as number) <= 1440;
+  if (!valid(greenMinutes) || !valid(yellowMinutes) || greenMinutes >= yellowMinutes) {
+    res.status(400).json({ error: 'greenMinutes and yellowMinutes must be integers (1-1440) with greenMinutes < yellowMinutes' });
+    return;
+  }
+  const baby = babyRepository.updateMilkColors(req.user!.babyId!, greenMinutes, yellowMinutes);
+  if (!baby) {
+    res.status(404).json({ error: 'Baby not found' });
+    return;
+  }
+  res.json(baby);
+});
+
 // POST /api/baby/invite — add another user to your baby by username
 router.post('/invite', (req: Request, res: Response): void => {
   const { username } = bodyAs<{ username?: string }>(req);

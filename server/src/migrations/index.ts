@@ -575,6 +575,15 @@ export const migrations: TMigration[] = [
       CREATE INDEX IF NOT EXISTS idx_api_keys_baby_id ON api_keys(baby_id);
     `,
   },
+  {
+    name: '021_baby_milk_color_thresholds',
+    up: `
+      -- Per-baby thresholds (minutes since last milk) for the Home page colour coding:
+      -- < green = green, < yellow = yellow, otherwise default. Defaults match the old hard-coded values.
+      ALTER TABLE babies ADD COLUMN milk_green_minutes INTEGER NOT NULL DEFAULT 90;
+      ALTER TABLE babies ADD COLUMN milk_yellow_minutes INTEGER NOT NULL DEFAULT 120;
+    `,
+  },
 ];
 
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment, type ReactNode } from 'react';
 import { authFetch } from '../../utils/authFetch';
-import type { TSleep, TPumping, TMedicineWithLatestLog, THomeSummary } from 'baby-statistic-common';
+import type { TSleep, TPumping, TMedicineWithLatestLog, THomeSummary, TMilkColorSettings } from 'baby-statistic-common';
 import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
 import BlackScreenOverlay from '../../components/BlackScreenOverlay/BlackScreenOverlay';
@@ -32,10 +32,12 @@ const RESOURCES: TResource[] = ['sleep', 'drankMilk', 'pumping', 'nappy', 'medic
 const SUMMARY_KEY = '/api/home/summary';
 const fetchSummary = () => authFetch<THomeSummary>(SUMMARY_KEY);
 
-const getMilkAgeClass = (createdAt: string): string => {
+const DEFAULT_MILK_COLORS: TMilkColorSettings = { greenMinutes: 90, yellowMinutes: 120 };
+
+const getMilkAgeClass = (createdAt: string, colors: TMilkColorSettings): string => {
   const ageMin = (Date.now() - new Date(createdAt).getTime()) / 60_000;
-  if (ageMin < 90) return 'milkLastGreen';
-  if (ageMin < 120) return 'milkLastYellow';
+  if (ageMin < colors.greenMinutes) return 'milkLastGreen';
+  if (ageMin < colors.yellowMinutes) return 'milkLastYellow';
   return 'milkLastDefault';
 };
 
@@ -103,6 +105,7 @@ const HomePage = () => {
   const pumpingTimerRef = summary?.latestPumping?.createdAt ?? null;
   const latestNappy = summary?.latestNappy?.createdAt ?? null;
   const medicines: TMedicineWithLatestLog[] = summary?.medicines ?? [];
+  const milkColors = summary?.milkColors ?? DEFAULT_MILK_COLORS;
 
   const refetchAll = (): void => {
     void refresh();
@@ -306,7 +309,7 @@ const HomePage = () => {
       <div className={styles.milkHeader}>
         <h2 className={styles.sectionTitle}>{t('HOME_MILK_TITLE')}</h2>
         {latestDrank ? (
-          <span className={`${styles.milkLastInfo} ${styles[getMilkAgeClass(latestDrank.createdAt)]}`}>
+          <span className={`${styles.milkLastInfo} ${styles[getMilkAgeClass(latestDrank.createdAt, milkColors)]}`}>
             {latestDrank.amount} ml · {formatAgo(latestDrank.createdAt)}
           </span>
         ) : (

@@ -11,7 +11,7 @@ import NavOrderEditor from '../../components/NavOrderEditor/NavOrderEditor';
 import HomeWidgetsEditor from '../../components/HomeWidgetsEditor/HomeWidgetsEditor';
 import WhiteNoiseSoundsEditor from '../../components/WhiteNoiseSoundsEditor/WhiteNoiseSoundsEditor';
 import { useActionFeedback } from '../../utils/useActionFeedback';
-import type { TUser, TUpdateMeRequest, TApiKey, TCreateApiKeyRequest, TCreateApiKeyResponse } from 'baby-statistic-common';
+import type { TUser, TBaby, TUpdateMeRequest, TApiKey, TCreateApiKeyRequest, TCreateApiKeyResponse } from 'baby-statistic-common';
 import styles from './SettingsPage.module.css';
 import { getSavedTheme, setTheme, themeToIndex, indexToTheme, getSavedMode, setMode, modeToIndex, indexToMode } from '../../utils/theme';
 import { useTranslation, languageToIndex, indexToLanguage } from '../../i18n/i18n';

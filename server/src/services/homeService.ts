@@ -5,6 +5,7 @@ import { pumpingService } from './pumpingService';
 import { medicineService } from './medicineService';
 import { peeRepository } from '../repositories/peeRepository';
 import { poopRepository } from '../repositories/poopRepository';
+import { babyRepository } from '../repositories/babyRepository';
 import type { TBabyContext } from '../types';
 
 /** Latest pee/poop timestamp, whichever is more recent — mirrors GET /api/nappy/latest. */
@@ -28,6 +29,7 @@ export const homeService = {
     latestPumping: pumpingService.findLatest(ctx),
     latestNappy: findLatestNappy(ctx),
     medicines: medicineService.findAllActive(ctx),
+    milkColors: babyRepository.findById(ctx.babyId)?.milkColors ?? { greenMinutes: 90, yellowMinutes: 120 },
   }),
 
   /** Lightweight subset shown on the always-on-display (black screen) readout, on every page. */

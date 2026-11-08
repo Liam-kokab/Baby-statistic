@@ -6,6 +6,7 @@ const fromDb = (row: TBabyDb): TBaby => ({
   id: row.id,
   name: row.name,
   createdAt: toOsloIso(row.created_at),
+  milkColors: { greenMinutes: row.milk_green_minutes, yellowMinutes: row.milk_yellow_minutes },
 });
 
 export const babyRepository = {
@@ -31,6 +32,14 @@ export const babyRepository = {
     if (!existing) return null;
     const name = data.name ?? existing.name;
     db.prepare<[string, number]>('UPDATE babies SET name = ? WHERE id = ?').run(name, id);
+    const row = db.prepare<[number], TBabyDb>('SELECT * FROM babies WHERE id = ?').get(id);
+    return row ? fromDb(row) : null;
+  },
+
+  updateMilkColors: (id: number, greenMinutes: number, yellowMinutes: number): TBaby | null => {
+    db.prepare<[number, number, number]>(
+      'UPDATE babies SET milk_green_minutes = ?, milk_yellow_minutes = ? WHERE id = ?'
+    ).run(greenMinutes, yellowMinutes, id);
     const row = db.prepare<[number], TBabyDb>('SELECT * FROM babies WHERE id = ?').get(id);
     return row ? fromDb(row) : null;
   },

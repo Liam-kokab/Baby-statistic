@@ -3,6 +3,7 @@ import type { TDrankMilk } from './drankMilk';
 import type { TPumping } from './pumping';
 import type { TMedicineWithLatestLog } from './medicine';
 import type { TDrankMilkTodayStats } from './summaries';
+import type { TMilkColorSettings } from './auth';
 
 /**
  * Aggregated payload for the Home page's first load and background refresh —
@@ -15,6 +16,7 @@ export type THomeSummary = {
   latestPumping: TPumping | null;
   latestNappy: { createdAt: string } | null;
   medicines: TMedicineWithLatestLog[];
+  milkColors: TMilkColorSettings;
 };
 
 /**
