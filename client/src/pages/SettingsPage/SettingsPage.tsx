@@ -113,6 +113,51 @@ const SettingsPage = () => {
 
   useEffect(() => { loadApiKeys(); }, [loadApiKeys]);
 
+  // Per-baby milk colour thresholds (minutes since last milk), stored in the DB.
+  const [milkGreen, setMilkGreen] = useState('90');
+  const [milkYellow, setMilkYellow] = useState('120');
+  const [milkColorsError, setMilkColorsError] = useState<string | null>(null);
+  const milkColorsAction = useActionFeedback();
+
+  useEffect(() => {
+    const loadBaby = async (): Promise<void> => {
+      const res = await authFetch<{ baby: TBaby }>('/api/baby');
+      if (res.ok) {
+        setMilkGreen(String(res.data.baby.milkColors.greenMinutes));
+        setMilkYellow(String(res.data.baby.milkColors.yellowMinutes));
+      }
+    };
+    loadBaby();
+  }, []);
+
+  const saveMilkColors = async (green: string, yellow: string): Promise<boolean> => {
+    const g = Number(green);
+    const y = Number(yellow);
+    const valid = (n: number): boolean => Number.isInteger(n) && n > 0 && n <= 1440;
+    if (!valid(g) || !valid(y) || g >= y) {
+      setMilkColorsError(t('SETTINGS_MILK_COLORS_INVALID'));
+      return false;
+    }
+    setMilkColorsError(null);
+    const res = await authFetch<TBaby>('/api/baby/milk-colors', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ greenMinutes: g, yellowMinutes: y }),
+    });
+    if (!res.ok) setMilkColorsError(res.error);
+    return res.ok;
+  };
+
+  const handleSaveMilkColors = async (): Promise<void> => {
+    await milkColorsAction.run(() => saveMilkColors(milkGreen, milkYellow));
+  };
+
+  const handleResetMilkColors = async (): Promise<void> => {
+    setMilkGreen('90');
+    setMilkYellow('120');
+    await milkColorsAction.run(() => saveMilkColors('90', '120'));
+  };
+
   const onThemeChange = (i: number): void => {
     const th = indexToTheme(i);
     setTheme(th);
@@ -304,6 +349,20 @@ const SettingsPage = () => {
           <section className={styles.card}>
             <h2 className={styles.sectionTitle}>{t('SETTINGS_TAB_HOME')}</h2>
             <HomeWidgetsEditor />
+          </section>
+
+          <section className={styles.card}>
+            <h2 className={styles.sectionTitle}>{t('SETTINGS_MILK_COLORS_TITLE')}</h2>
+            <p className={styles.description}>{t('SETTINGS_MILK_COLORS_DESCRIPTION')}</p>
+            <div className={styles.formGrid}>
+              <Input label={t('SETTINGS_MILK_GREEN_MINUTES')} type="tel" value={milkGreen} onChange={setMilkGreen} name="milkGreenMinutes" />
+              <Input label={t('SETTINGS_MILK_YELLOW_MINUTES')} type="tel" value={milkYellow} onChange={setMilkYellow} name="milkYellowMinutes" />
+            </div>
+            {milkColorsError ? <p className={styles.formError}>{milkColorsError}</p> : null}
+            <div className={styles.formActions}>
+              <Button text={t('SETTINGS_MILK_COLORS_SAVE')} onClick={handleSaveMilkColors} status={milkColorsAction.status} />
+              <Button text={t('SETTINGS_MILK_COLORS_RESET')} onClick={handleResetMilkColors} />
+            </div>
           </section>
 
           <section className={styles.card}>
